@@ -240,18 +240,18 @@ def determine_owner(filename):
         return matched["owner"]
     return "---"
 
-def read_csv(a_csv):
+def read_csv(users_csv):
     """
     read a csv and returns a list of rows
     """
-    with open(a_csv) as csv_fp:
+    with open(users_csv) as csv_fp:
         return list(csv.DictReader(csv_fp))
 
-def make_user_info(a_csv):
+def make_user_info(users_csv):
     """
     make a dictionary mapping user -> row in a csv file
     """
-    return {row["user"] : row for row in read_csv(a_csv)}
+    return {row["uid"] : row for row in read_csv(users_csv)}
 
 class record_sorter:
     """
@@ -335,14 +335,14 @@ def group_paths(paths, threshold):
     large_groups.sort()
     return large_groups
 
-def select_records(a_sqlite, a_csv, cols_to_mask,
+def select_records(a_sqlite, users_csv, cols_to_mask,
                    time_after_expr, time_before_expr):
     """
     select records from the database in the specified time range.
     it also joins user information to each record.
     """
     conn = sqlite_connect(A_SQLITE)
-    user_info = make_user_info(USERS_CSV)
+    user_info = make_user_info(users_csv)
     for user_val in user_info.values():
         for key in cols_to_mask: # ["real_name", "class", "team"]
             user_val[key] = "?"
