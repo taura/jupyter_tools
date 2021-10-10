@@ -86,7 +86,7 @@ nbgrader_configs := $(foreach user,$(nbg_users),/home/$(user)/.jupyter/nbgrader_
 $(nbgrader_configs) : cls=$(shell sqlite3 $(users_sqlite) 'select class from a where user="$*"')
 $(nbgrader_configs) : /home/%/.jupyter/nbgrader_config.py :
 	sudo -u $* mkdir -p /home/$*/.jupyter
-	sudo -u $* ln -sf /home/share/taulec_env/user_scripts/nbgrader_config/$(cls)/nbgrader_config.py $@
+	sudo -u $* ln -sf /home/share/jupyter_tools/nbgrader/$(cls)/nbgrader_config.py $@
 
 nb : $(notebooks_dirs) $(nbgrader_configs)
 
