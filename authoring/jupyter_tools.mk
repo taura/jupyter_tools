@@ -73,17 +73,17 @@ dummy := $(shell tail -n +2 $(users_csv) | sqlite3 -csv -separator , $(users_sql
 #
 notebooks_dirs := $(shell sqlite3 $(users_sqlite) 'select notebooks from a')
 
-$(notebooks_dirs) : user=$(shell sqlite3 $(users_sqlite) 'select user from a where notebooks="$*"')
+$(notebooks_dirs) : user=$(shell sqlite3 $(users_sqlite) 'select uid from a where notebooks="$*"')
 $(notebooks_dirs) : % :
 	sudo -u $(user) mkdir -p $*
 
 #
 # ~/.jupyter/nbgrader_config.py
 #
-nbg_users := $(shell sqlite3 $(users_sqlite) 'select user from a where class in ("pmp","pl","csi","os","pd")')
+nbg_users := $(shell sqlite3 $(users_sqlite) 'select uid from a where class in ("pmp","pl","csi","os","pd")')
 nbgrader_configs := $(foreach user,$(nbg_users),/home/$(user)/.jupyter/nbgrader_config.py)
 
-$(nbgrader_configs) : cls=$(shell sqlite3 $(users_sqlite) 'select class from a where user="$*"')
+$(nbgrader_configs) : cls=$(shell sqlite3 $(users_sqlite) 'select class from a where uid="$*"')
 $(nbgrader_configs) : /home/%/.jupyter/nbgrader_config.py :
 	sudo -u $* mkdir -p /home/$*/.jupyter
 	sudo -u $* ln -sf /home/share/jupyter_tools/nbgrader/$(cls)/nbgrader_config.py $@
@@ -95,5 +95,5 @@ nb : $(notebooks_dirs) $(nbgrader_configs)
 #
 feedback_class ?= pl
 feedback :
-	sqlite3 $(users_sqlite) 'select "https://taulec.zapto.org:8000 user="||user||" passwd="||pwd from a where class="$(feedback_class)"'
+	sqlite3 $(users_sqlite) 'select "https://taulec.zapto.org:8000 user="||uid||" passwd="||pwd from a where class="$(feedback_class)"'
 
