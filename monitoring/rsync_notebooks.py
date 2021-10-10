@@ -84,7 +84,7 @@ def parse_argv(argv):
     """
     psr = argparse.ArgumentParser(prog=argv[0])
     psr.add_argument("--log-dir", default="logs")
-    psr.add_argument("--users-csv", default="all_2021.csv")
+    psr.add_argument("--users-csv", default="u21_nopw.csv")
     psr.add_argument("--dest", default="/home/tau/notebooks/rsync")
     psr.add_argument("--db", default="a.sqlite")
     psr.add_argument("--repeat", default=10000, type=int)

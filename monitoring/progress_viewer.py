@@ -27,7 +27,7 @@ else:
 
 application = app.server
 A_SQLITE = "a.sqlite"
-A_CSV = "/home/tau/public_html/lecture/programming_languages/gen/jupyter/all_2021.csv"
+USERS_CSV = "/home/tau/public_html/lecture/operating_systems/jupyter/u21_nopw.csv"
 
 ################################################
 # nuts and bolts
@@ -340,7 +340,7 @@ def select_records(a_sqlite, a_csv, cols_to_mask,
     it also joins user information to each record.
     """
     conn = sqlite_connect(A_SQLITE)
-    user_info = make_user_info(A_CSV)
+    user_info = make_user_info(USERS_CSV)
     for user_val in user_info.values():
         for key in cols_to_mask: # ["real_name", "class", "team"]
             user_val[key] = "?"
@@ -434,7 +434,7 @@ def update_activity_graph(passwd, path_re, path_re_options,
     path_regexps = [path_re] if path_re else path_re_options if path_re_options else [".*"]
     time_after_expr = mk_sql_time_expr(time_after, 'datetime(0, "unixepoch")')
     time_before_expr = mk_sql_time_expr(time_before, 'datetime("now")')
-    records = select_records(A_SQLITE, A_CSV, cols_to_mask, time_after_expr, time_before_expr)
+    records = select_records(A_SQLITE, USERS_CSV, cols_to_mask, time_after_expr, time_before_expr)
     fig, n_rows = make_scatter_data(records, path_regexps, sort_criteria, show_only_latest, limit)
     radio_items = make_regexp_suggestions(records, int(threshold))
     return ("{} rows".format(n_rows), fig, radio_items)
