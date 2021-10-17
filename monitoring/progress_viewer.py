@@ -9,10 +9,12 @@ import time
 
 import dash
 #deprecated
-#import dash_core_components as dcc
-from dash import dcc
-#import dash_html_components as html
-from dash import html
+if hasattr(dash, "dcc"):
+    from dash import dcc
+    from dash import html
+else:
+    import dash_core_components as dcc
+    import dash_html_components as html
 #import plotly.express as px
 import plotly.graph_objects as go
 #from dash.dependencies import Input, Output, State
@@ -28,8 +30,25 @@ else:
     app = dash.Dash(__name__, requests_pathname_prefix='/progress_viewer/')
 
 application = app.server
-A_SQLITE = "a.sqlite"
-USERS_CSV = "/home/tau/public_html/lecture/operating_systems/jupyter/u21_nopw.csv"
+
+progress_viewer_config = None
+try:
+    import progress_viewer_config
+except:
+    pass
+
+if progress_viewer_config:
+    SYNC_SQLITE = progress_viewer_config.SYNC_SQLITE
+    USERS_CSV = progress_viewer_config.USERS_CSV
+    USER_ATTRS = progress_viewer_config.USER_ATTRS
+    PASSWD = progress_viewer_config.PASSWD
+    URL_TEMPLATE = progress_viewer_config.URL_TEMPLATE
+else:
+    SYNC_SQLITE = "sync.sqlite"
+    USERS_CSV = "users.csv"
+    USER_ATTRS = ["real_name", "class", "team"]
+    PASSWD = "es1seePh"
+    URL_TEMPLATE = "https://taulec.zapto.org:8000/user/tau/notebooks/rsync/{filename}"
 
 ################################################
 # nuts and bolts
@@ -147,28 +166,28 @@ def remove_backup_part(filename):
     """
     foo.bak_2021-04-23T12:34:56.ipynb -> foo.ipynb
     """
-    pat = re.compile(r"(?P<base>.*?)(\.bak_(?P<t>.{19}))?\.ipynb$")
+    pat = re.compile(r"(?P<base>.*?)(\.bak_(?P<t>.{19}))?(?P<ext>(\..*)?)$")
     matched = pat.match(filename)
     if matched is None:
         return filename
-    return "{}.ipynb".format(matched["base"])
+    return "{}{}".format(matched["base"], matched["ext"])
 
 def hover_of_row(i, drow):
     """
     hover of a row
     """
-    filename = drow["filename"]
-    url = "https://taulec.zapto.org:8000/user/tau/notebooks/rsync/{}".format(filename)
-    hover = ("""<a href="{url}"
-    style="color:yellow">{code_ok}/{code_display}/{code_stream}/{code_error}/{code_empty}
-    </a>""".format(url=url, **drow))
+    url = URL_TEMPLATE.format(**drow)
+    hover = ("""<a href="{url}" style="color:yellow">
+{code_ok}/{code_display}/{code_stream}/{code_error}/{code_empty}
+</a>""".format(url=url, **drow))
     return hover
 
 def y_of_row(i, drow):
     """
     y of a row
     """
-    return "{src_filename} {real_name} {class} {team} {owner}".format(i=i, **drow)
+    fmt = " ".join(["{" + key + "}" for key in ["src_filename"] + USER_ATTRS + ["owner"]])
+    return fmt.format(i=i, **drow)
 
 def color_of_row(i, drow):
     """
@@ -211,7 +230,7 @@ def mk_sql_time_expr(time_spec, default):
     if time_spec == "":
         return default
     if time_spec[:1] == "-":           # -12345 = now - 12345 sec
-        return 'datetime("now", "{}")'.format(time_spec)
+        return 'datetime("now", "localtime", "{}")'.format(time_spec)
     return 'datetime("{}")'.format(time_spec)
 
 def make_flattened_values(dic, key_order, fun):
@@ -231,14 +250,14 @@ def make_flattened_values(dic, key_order, fun):
         vals.extend([fun(i, d) for i, d in enumerate(dic[k])])
     return vals
 
-def determine_owner(filename):
+def guess_owner(filename):
     """
     guess the owner of a file from the path name
     """
     matched = re.match("home/(?P<owner>[^/]+)/", filename)
     if matched:
         return matched["owner"]
-    return "---"
+    return "unknown"
 
 def read_csv(users_csv):
     """
@@ -341,16 +360,17 @@ def select_records(a_sqlite, users_csv, cols_to_mask,
     select records from the database in the specified time range.
     it also joins user information to each record.
     """
-    conn = sqlite_connect(A_SQLITE)
+    conn = sqlite_connect(SYNC_SQLITE)
     user_info = make_user_info(users_csv)
     for user_val in user_info.values():
-        for key in cols_to_mask: # ["real_name", "class", "team"]
-            user_val[key] = "?"
+        for key in cols_to_mask:
+            user_val[key] = "*"
     records = {}               # src_filename -> sql row + user info
     sql = ("""select * from summary
     where datetime(t) >= {time_after_expr} and datetime(t) <= {time_before_expr} 
     order by t desc"""
            .format(time_after_expr=time_after_expr, time_before_expr=time_before_expr))
+    print(sql)
     for row in do_sql(conn, sql):
         drow = dict(row)
         filename = drow["filename"]
@@ -361,12 +381,12 @@ def select_records(a_sqlite, users_csv, cols_to_mask,
         if src_filename not in records:
             records[src_filename] = []
         # join owner info
-        owner = determine_owner(filename)
-        owner_info = user_info[owner]
-        drow["owner"] = owner
-        for key in owner_info.keys():
+        owner_record = {key : "?" for key in USER_ATTRS}
+        owner = drow["owner"]
+        owner_record.update(user_info.get(owner, {}))
+        for key in owner_record.keys():
             assert(key not in drow), key
-        drow.update(owner_info)
+        drow.update(owner_record)
         records[src_filename].append(drow)
     conn.close()
     return records
@@ -398,7 +418,8 @@ def make_scatter_data(records, path_regexps, sort_criteria, show_only_latest, li
                          mode='markers')
     fig = go.FigureWidget([scatter], layout={"hovermode" : "closest"})
     n_rows = len(filenames)
-    height = 40 if n_rows < 13 else 30 if n_rows < 44 else 25
+    height = 100 if n_rows == 0 else 500 // n_rows if n_rows < 20 else 1000 / n_rows if n_rows < 45 else 25
+    # height = 70 if n_rows < 6 else 40 if n_rows < 13 else 30 if n_rows < 44 else 25
     fig.update_layout(height=max(100, height * n_rows))
     return fig, n_rows
 
@@ -411,6 +432,12 @@ def make_regexp_suggestions(records, threshold):
     radio_items = dcc.RadioItems(options=options, value="",
                                  labelStyle={'display': 'block'})
     return options
+
+def safe_int(x):
+    try:
+        return int(x)
+    except:
+        return 10
 
 @app.callback(
     Output("n_rows",                         "children"),
@@ -432,13 +459,13 @@ def update_activity_graph(passwd, path_re, path_re_options,
     """
     update the activity graph
     """
-    cols_to_mask = [] if passwd == "es1seePh" else ["user", "real_name", "class", "team"]
+    cols_to_mask = [] if passwd == PASSWD else ["uid"] + USER_ATTRS
     path_regexps = [path_re] if path_re else path_re_options if path_re_options else [".*"]
     time_after_expr = mk_sql_time_expr(time_after, 'datetime(0, "unixepoch")')
-    time_before_expr = mk_sql_time_expr(time_before, 'datetime("now")')
-    records = select_records(A_SQLITE, USERS_CSV, cols_to_mask, time_after_expr, time_before_expr)
+    time_before_expr = mk_sql_time_expr(time_before, 'datetime("now", "localtime")')
+    records = select_records(SYNC_SQLITE, USERS_CSV, cols_to_mask, time_after_expr, time_before_expr)
     fig, n_rows = make_scatter_data(records, path_regexps, sort_criteria, show_only_latest, limit)
-    radio_items = make_regexp_suggestions(records, int(threshold))
+    radio_items = make_regexp_suggestions(records, safe_int(threshold))
     return ("{} rows".format(n_rows), fig, radio_items)
 
 

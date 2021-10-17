@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
 import argparse
+import csv
 import json
 import os
+import pwd
 import re
 import sqlite3
 import sys
@@ -25,7 +27,7 @@ def open_database(a_sqlite, dry_run):
     conn = sqlite3.connect(a_sqlite)
     do_sql(conn,
            """create table if not exists
-           summary(filename unique, t, code_ok, code_display, code_stream, code_error, code_empty)""",
+           summary(filename unique, t, owner, code_ok, code_display, code_stream, code_error, code_empty)""",
            dry_run)
     do_sql(conn,
            """create table if not exists
@@ -38,17 +40,22 @@ def get_timestamp(filename):
     stamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(st.st_mtime))
     return stamp
 
-def insert_ipynb_info(conn, path, filename, timestamp, info, dry_run):
+def get_owner(filename, srcs):
+    for uid, notebooks_dir in srcs:
+        if filename.startswith(notebooks_dir):
+            return uid
+    return "unknown"
+
+def insert_ipynb_info(conn, filename, timestamp, owner, info, dry_run):
     """
     insert record (filename, info) 
     """
-    vals = [filename, timestamp] + list(info)
-    print("path = {}".format(path))
+    vals = [filename, timestamp, owner] + [info[key] for key in ["code_ok", "code_display", "code_stream", "code_error", "code_empty"]]
     do_sql(conn,
            """insert or replace into
-           summary(filename, t, 
+           summary(filename, t, owner,
            code_ok, code_display, code_stream, code_error, code_empty)
-           values (?,?,?,?,?,?,?)""",
+           values (?,?,?,?,?,?,?,?)""",
            dry_run,
            *vals)
     conn.commit()
@@ -67,8 +74,11 @@ class ipynb_parser:
                 print("  {} :".format(grade))
                 for output_type, count in counts_of_grade.items():
                     print("   {} : {}".format(output_type, count))
-        
-    def parse(self, a_ipynb):
+    def parse(self, a_ipynb, ext):
+        keys = ["execute_result", "display_data", "stream",
+                "error", "non-empty", "empty"]
+        if ext != ".ipynb":
+            return {key : 0 for key in keys}
         fp = open(a_ipynb)
         nb = json.load(fp)
         # cell_type -> grade -> list of (grade_id, source, results)
@@ -95,10 +105,8 @@ class ipynb_parser:
         if 0:
             self.print_cell_stats(a_ipynb, counts)
         status = {s : counts["code"][True][s] + (0 * counts["code"][False][s])
-                  for s in ["execute_result", "display_data", "stream",
-                            "error", "non-empty", "empty"]}
-        return (status["execute_result"], status["display_data"],
-                status["stream"], status["error"], status["empty"])
+                  for s in keys}
+        return status
 
     def calc_output_type(self, source, output_types):
         for output_type in ["error", "display_data", "stream", "execute_result"]:
@@ -138,63 +146,70 @@ class ipynb_parser:
                             counts[cell_type][grade][output_type] += 1
         return counts
 
-def read_copied_files(rsync_out, dest_dir, a_sqlite, dry_run):
+def read_user_csv(a_csv):
+    """
+    read user csv and collect values in "notebooks" column
+    """
+    with open(a_csv) as a_fp:
+        csv_fp = csv.DictReader(a_fp)
+        srcs = [(row["uid"], row["notebooks"]) for row in csv_fp]
+    return srcs
+    
+def read_copied_files(rsync_out, users_csv, dest_dir, a_sqlite, dry_run):
     pat = re.compile("(?P<info>.{11})\|(?P<path>.*)\|$")
     conn = open_database(a_sqlite, dry_run)
+    srcs = read_user_csv(users_csv)
     psr = ipynb_parser()
     with open(rsync_out) as fp:
+        # get the first line
         suffix_line = next(fp)
         match = re.match("suffix=(?P<suffix>.*)", suffix_line)
-        bak_suffix = match.group("suffix")
+        bak = match.group("suffix")
+        # remaining lines
         for line in fp:
             matched = pat.match(line)
             assert(matched), line
             info = matched.group("info")
             if info[1] != "f":
                 continue
-            org_path = matched.group("path")
+            src_path = matched.group("path")
             # if we see a path name in rsync output,
             # like abc.ext, what happened is either
-            # (1) abc.ext, did not exist and was just created, or
-            # (2) abc.ext did exist and was renamed to abc.ext.suffix
-            #     and abc.ext was created again
-            # so we need to check abc.ext and abc.ext.suffix
-            # the latter is renamed to abc.suffix.ext
-            for path, suffix in [(org_path, ""), (org_path, bak_suffix)]:
-                base, ext = os.path.splitext(path)
-                if base[:1] == "/": # absolute path
-                    base = base[1:]
-                path0 = "{}/{}{}{}".format(dest_dir, base, ext, suffix)
-                path1 = "{}/{}{}{}".format(dest_dir, base, suffix, ext)
-                if ext == ".ipynb":
-                    rel_path = "{}{}{}".format(base, suffix, ext)
-                    if os.path.exists(path0):
-                        xinfo = psr.parse(path0)
-                        timestamp = get_timestamp(path0)
-                        insert_ipynb_info(conn, path0, rel_path, timestamp, xinfo, dry_run)
-                        if suffix != "":
-                            os.rename(path0, path1)
-                    elif os.path.exists(path1):
-                        xinfo = psr.parse(path1)
-                        timestamp = get_timestamp(path1)
-                        insert_ipynb_info(conn, path1, rel_path, timestamp, xinfo, dry_run)
-                if 0:
-                    if os.path.exists(path0):
-                        if ext == ".ipynb":
-                            info = psr.parse(path0)
-                            timestamp = get_timestamp(path0)
-                            rel_path1 = "{}{}{}".format(base, suffix, ext)
-                            insert_ipynb_info(conn, rel_path1, timestamp, info, dry_run)
-                        if suffix != "":
-                            os.rename(path0, path1)
+            # (1) abc.txt did not exist and was just created, or
+            # (2) abc.txt did exist and was renamed to abc.txt.bak
+            #     and abc.txt was created again
+            # so we need to check abc.txt and abc.ext.bak
+            # the latter is renamed to abc.bak.txt
+            # check abc.txt, abc.txt, abc.txt.bak, abc.bak.txt
+            if src_path[:1] == "/":
+                src_rel_path = src_path[1:]
+            else:
+                src_rel_path = src_path
+            base, ext = os.path.splitext(src_rel_path)
+            # check abc.txt, abc.txt.bak, abc.bak.txt in this order
+            for bs, ex, bk in [(base, ext, ""),
+                               (base, ext, bak),
+                               (base, bak, ext)]:
+                rel_path = "{}{}{}".format(bs, ex, bk)
+                dest_path = "{}/{}".format(dest_dir, rel_path)
+                if os.path.exists(dest_path):
+                    timestamp = get_timestamp(dest_path)
+                    owner = get_owner(src_path, srcs)
+                    xinfo = psr.parse(dest_path, ex)
+                    insert_ipynb_info(conn, rel_path, timestamp,
+                                      owner, xinfo, dry_run)
+                    if bk == bak:
+                        new_path = "{}/{}{}{}".format(dest_dir, bs, bk, ex)
+                        os.rename(dest_path, new_path)
     conn.close()
     return 1                    # OK
 
 def parse_argv(argv):
     psr = argparse.ArgumentParser(prog=argv[0])
+    psr.add_argument("--users-csv", default="users.csv")
     psr.add_argument("--log", default="rsync.log")
-    psr.add_argument("--dest", default="dst")
-    psr.add_argument("--db", default="a.sqlite")
+    psr.add_argument("--dest", default="sync_dest")
+    psr.add_argument("--db", default="sync.sqlite")
     psr.add_argument("--dry-run", default=0, type=int)
     psr.add_argument("--parse-only")
     opt = psr.parse_args(argv[1:])
@@ -206,7 +221,7 @@ def main():
         psr = ipynb_parser()
         info = psr.parse(opt.parse_only)
         return 0
-    elif read_copied_files(opt.log, opt.dest, opt.db, opt.dry_run):
+    elif read_copied_files(opt.log, opt.users_csv, opt.dest, opt.db, opt.dry_run):
         return 0
     else:
         return 1

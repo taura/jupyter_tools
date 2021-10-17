@@ -1,0 +1,21 @@
+# the sqlite3 database that stores history of all files
+# the name must match the name given to rsync_notebooks.py with --db option
+SYNC_SQLITE = "sync.sqlite"
+
+# a csv file that describes user information
+# it must at least have two columns, "uid" (user name) and "notebooks",
+# from which progress_viewer knows which files belong to which users
+USERS_CSV = "users.csv"
+
+# extra column names you want to show in the visualizer in addition to
+# file names and their uids.  when you add a column here, you must have
+# the column in USERS_CSV, too
+USER_ATTRS = ["real_name"]
+
+# the password you enter in the passwd: box of the visualizer to reveal
+# information other than filenames (i.e., uid and USER_ATTRS)
+PASSWD = "es1seePh"
+
+# template to convert a relative path name under the destination folder
+# to the URL with which to open the file via Jupyter
+URL_TEMPLATE = "https://your.jupyterhub.org:8000/user/you/notebooks/sync_dest/{filename}"

@@ -1,7 +1,129 @@
+# monitoring
 
-./make_src.py --- make src/ directory
-./rsync_notebooks --- copy src into dst/ and update sqlite3 database
+Files under this directory monitor users' files under specified directories by periodically copying them (using rsync, making backups of older files as needed) and recording updates into an sqlite3 database, and visualize the database via a web user interface.
 
-repeat:
-  ./make_src.py
-  ./rsync_notebooks
+# FILES
+
+* rsync_notebooks.py --- periodically copies files and makes a database
+* make_database.py   --- invoked by rsync_notebooks.py to make a database
+* progress_viewer.py --- a web app to visualize the database
+
+# How to use
+
+## rsync_notebooks.py
+
+Before you run rsync_notebooks.py, prepare a csv file listing directories you want to monitor.  The minimum csv file has two columns "uid" and "notebooks", which looks like this.
+
+```
+$ cat users.csv
+uid,notebooks
+a,hoge/a/notebooks
+b,hoge/b/notebooks
+c,hoge/c/notebooks
+d,hoge/d/notebooks
+e,hoge/e/notebooks
+```
+
+With this setting, rsync_notebooks.py will keep monitoring these five directories (all files under them).  Directories that actually do not exist are simply skipped.  
+
+Let's actually make some directories and populate them.
+
+```
+$ mkdir -p hoge/{a,b}/notebooks
+$ for x in hoge/?/notebooks; do echo hello > ${x}/hello.txt; done
+```
+
+```
+$ ./rsync_notebooks.py --no-sudo 
+======== 2021-10-17T18:26:14 ========
+(echo suffix=.bak_2021-10-17T18:26:14;  rsync --itemize-changes --out-format="%i|%n|" --relative --recursive --update --perms --owner --group --times --links --safe-links --super --one-file-system --backup --max-size=10m --suffix=.bak_2021-10-17T18:26:14 hoge/a/notebooks hoge/b/notebooks hoge/c/notebooks hoge/d/notebooks hoge/e/notebooks sync_dest/) > sync_logs/sync_2021-10-17T18:26:14.log;  chmod -R +rX sync_dest
+rsync: [sender] link_stat "/home/tau/public_html/lecture/jupyter_tools/monitoring/hoge/c/notebooks" failed: No such file or directory (2)
+rsync: [sender] link_stat "/home/tau/public_html/lecture/jupyter_tools/monitoring/hoge/d/notebooks" failed: No such file or directory (2)
+rsync: [sender] link_stat "/home/tau/public_html/lecture/jupyter_tools/monitoring/hoge/e/notebooks" failed: No such file or directory (2)
+rsync error: some files/attrs were not transferred (see previous errors) (code 23) at main.c(1330) [sender=3.2.3]
+ ./make_database.py --users-csv users.csv --log sync_logs/sync_2021-10-17T18:26:14.log --dest sync_dest --db sync.sqlite
+create table if not exists
+           summary(filename unique, t, owner, code_ok, code_display, code_stream, code_error, code_empty) ()
+create table if not exists
+           problems(filename, grade_id, result) ()
+insert or replace into
+           summary(filename, t, owner,
+           code_ok, code_display, code_stream, code_error, code_empty)
+           values (?,?,?,?,?,?,?,?) ('hoge/a/notebooks/hello.txt', '2021-10-17T18:26:01', 'a', 0, 0, 0, 0, 0)
+insert or replace into
+           summary(filename, t, owner,
+           code_ok, code_display, code_stream, code_error, code_empty)
+           values (?,?,?,?,?,?,?,?) ('hoge/b/notebooks/hello.txt', '2021-10-17T18:26:01', 'b', 0, 0, 0, 0, 0)
+took 0.15 sec to update, sleep 3e+02 sec until next updte
+```
+
+By default, this program runs `rsync` command with `sudo`, as these directories are often owned by different users and may be readable only by root.  If you are sure you can read them without sudo privilege, give `--no-sudo` option just as we did above.
+
+After it ran rsync for the five directories listed, it says it will sleep 300 sec until it will copy them next.
+
+Meanwhile, let's make and populate the other directories.  From another shell, 
+
+```
+$ mkdir -p hoge/{c,d,e}/notebooks
+$ for x in hoge/{b,c,d,e}/notebooks; do echo bye > ${x}/hello.txt; done
+```
+
+You may want to take a look at sync_logs/ directory as well as sync.sqlite database to get a sense of what it is doing.
+
+```
+$ ls sync_logs
+sync_2021-10-17T18:26:14.log
+$ cat sync_logs/sync_2021-10-17T18:26:14.log
+suffix=.bak_2021-10-17T18:26:14
+cd+++++++++|hoge/|
+cd+++++++++|hoge/a/|
+cd+++++++++|hoge/a/notebooks/|
+>f+++++++++|hoge/a/notebooks/hello.txt|
+cd+++++++++|hoge/b/|
+cd+++++++++|hoge/b/notebooks/|
+>f+++++++++|hoge/b/notebooks/hello.txt|
+```
+
+```
+$ sqlite3 sync.sqlite 
+SQLite version 3.34.1 2021-01-20 14:10:07
+Enter ".help" for usage hints.
+sqlite> .schema
+CREATE TABLE summary(filename unique, t, owner, code_ok, code_display, code_stream, code_error, code_empty);
+CREATE TABLE problems(filename, grade_id, result);
+sqlite> select * from summary;
+hoge/a/notebooks/hello.txt|2021-10-17T18:26:01|a|0|0|0|0|0
+hoge/b/notebooks/hello.txt|2021-10-17T18:26:01|b|0|0|0|0|0
+```
+It copies all files that are newly created or updated.  In addition, for all files that have '.ipynb' extension, it looks into the contents and count the number of problems answered, errored, etc.
+
+See ipynb_parser:parse method in make_database.py for how .ipynb files are parsed.  Currently it is written to parse nbgrader notebooks.
+
+## progress_viewer.py
+
+This is a dash application that visualizes what is in the database generated by  rsync_notebooks.py
+
+### install
+
+You need to install dash
+
+```
+$ sudo pip3 install dash
+```
+
+or
+
+```
+$ pip3 install --user dash
+```
+
+In the directory where you have users.csv and sync.sqlite, run
+
+```
+./progress_viewer.py
+```
+
+users.csv must be the same file you gave to rsync_notebooks.py and sync.sqlite the file it generated.
+
+If you want to change filenames users.csv and sync.sqlite, copy progress_viewer_config.py.example and configure them accordingly.
+
