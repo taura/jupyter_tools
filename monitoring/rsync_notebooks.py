@@ -77,7 +77,7 @@ def replay_log_and_update_db(opt):
     os.makedirs(opt.dest, exist_ok=True)
     for log_ in sorted(os.listdir(opt.log_dir)):
         log = "{}/{}".format(opt.log_dir, log_)
-        update_database(log, opt.dest, opt.db, opt.no_sudo)
+        update_database(log, opt.users_csv, opt.dest, opt.db, opt.no_sudo)
 
 def parse_argv(argv):
     """
@@ -103,9 +103,9 @@ def parse_argv(argv):
                            " it adjusts the overhead by adjusting the interval between two consecutive copies."))
     psr.add_argument("--min-sleep", default=300.0, type=float,
                      help=("the minimum interval between two consecutive copies."))
-    psr.add_argument("--no-sudo", action="store_true",
+    psr.add_argument("--no-sudo", action="store_true", 
                      help=("if given, sudo is not used"))
-    psr.add_argument("--replay-log", action="store_true",
+    psr.add_argument("--replay-log", action="store_true", 
                      help=("mainly used for debugging.  if given, it does not look"
                            " at the actual user files.  it instead looks at the log directory (--log-dir) and"
                            " and reconstruct the database solely based on the log."))

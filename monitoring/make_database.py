@@ -50,7 +50,8 @@ def insert_ipynb_info(conn, filename, timestamp, owner, info, dry_run):
     """
     insert record (filename, info) 
     """
-    vals = [filename, timestamp, owner] + [info[key] for key in ["code_ok", "code_display", "code_stream", "code_error", "code_empty"]]
+    #vals = [filename, timestamp, owner] + [info.get(key, -1) for key in ["code_ok", "code_display", "code_stream", "code_error", "code_empty"]]
+    vals = [filename, timestamp, owner, info["execute_result"], info["display_data"], info["stream"], info["error"], info["empty"]]
     do_sql(conn,
            """insert or replace into
            summary(filename, t, owner,
@@ -75,6 +76,7 @@ class ipynb_parser:
                 for output_type, count in counts_of_grade.items():
                     print("   {} : {}".format(output_type, count))
     def parse(self, a_ipynb, ext):
+        print("parse({}, {})".format(a_ipynb, ext))
         keys = ["execute_result", "display_data", "stream",
                 "error", "non-empty", "empty"]
         if ext != ".ipynb":
@@ -106,6 +108,7 @@ class ipynb_parser:
             self.print_cell_stats(a_ipynb, counts)
         status = {s : counts["code"][True][s] + (0 * counts["code"][False][s])
                   for s in keys}
+        print("--> {}".format(status))
         return status
 
     def calc_output_type(self, source, output_types):
@@ -187,6 +190,8 @@ def read_copied_files(rsync_out, users_csv, dest_dir, a_sqlite, dry_run):
                 src_rel_path = src_path
             base, ext = os.path.splitext(src_rel_path)
             if ext != ".ipynb":
+                continue
+            if "/.ipynb_checkpoints/" in base:
                 continue
             # check abc.txt, abc.txt.bak, abc.bak.txt in this order
             for bs, ex, bk in [(base, ext, ""),
