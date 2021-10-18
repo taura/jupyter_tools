@@ -186,6 +186,8 @@ def read_copied_files(rsync_out, users_csv, dest_dir, a_sqlite, dry_run):
             else:
                 src_rel_path = src_path
             base, ext = os.path.splitext(src_rel_path)
+            if ext != ".ipynb":
+                continue
             # check abc.txt, abc.txt.bak, abc.bak.txt in this order
             for bs, ex, bk in [(base, ext, ""),
                                (base, ext, bak),
