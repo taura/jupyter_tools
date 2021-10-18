@@ -166,7 +166,7 @@ def remove_backup_part(filename):
     """
     foo.bak_2021-04-23T12:34:56.ipynb -> foo.ipynb
     """
-    pat = re.compile(r"(?P<base>.*?)(\.bak_(?P<t>.{19}))?(?P<ext>(\..*)?)$")
+    pat = re.compile(r"(?P<base>.*?)(\.bak_(?P<t>.{19}))?(?P<ext>(\.[^\.]*)?)$")
     matched = pat.match(filename)
     if matched is None:
         return filename
