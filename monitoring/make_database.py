@@ -42,7 +42,7 @@ def get_timestamp(filename):
 
 def get_owner(filename, srcs):
     for uid, notebooks_dir in srcs:
-        if filename.startswith(notebooks_dir):
+        if notebooks_dir and filename.startswith(notebooks_dir):
             return uid
     return "unknown"
 
@@ -192,17 +192,20 @@ def read_copied_files(rsync_out, users_csv, dest_dir, a_sqlite, dry_run):
             for bs, ex, bk in [(base, ext, ""),
                                (base, ext, bak),
                                (base, bak, ext)]:
-                rel_path = "{}{}{}".format(bs, ex, bk)
-                dest_path = "{}/{}".format(dest_dir, rel_path)
+                rel_path     = "{}{}{}".format(bs, ex, bk)
+                rel_path_new = "{}{}{}".format(bs, bk, ex) if bk == bak else rel_path
+                dest_path     = "{}/{}".format(dest_dir, rel_path)
+                dest_path_new = "{}/{}".format(dest_dir, rel_path_new)
                 if os.path.exists(dest_path):
                     timestamp = get_timestamp(dest_path)
                     owner = get_owner(src_path, srcs)
                     xinfo = psr.parse(dest_path, ex)
-                    insert_ipynb_info(conn, rel_path, timestamp,
+                    insert_ipynb_info(conn, rel_path_new, timestamp,
                                       owner, xinfo, dry_run)
                     if bk == bak:
-                        new_path = "{}/{}{}{}".format(dest_dir, bs, bk, ex)
-                        os.rename(dest_path, new_path)
+                        if not dry_run:
+                            os.rename(dest_path, dest_path_new)
+                        break
     conn.close()
     return 1                    # OK
 
