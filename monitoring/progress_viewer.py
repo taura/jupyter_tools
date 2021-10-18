@@ -399,9 +399,9 @@ def make_scatter_data(records, path_regexps, sort_criteria, show_only_latest, li
     pats = [re.compile(path_regexp) for path_regexp in path_regexps]
     # filter out all non .ipynb files
     ipynb_pat = re.compile(".*\.ipynb$")
-    filenames = [filename for filename in records.keys() if ipynb_pat.match(filename) ]
+    ipynb_filenames = [filename for filename in records.keys() if ipynb_pat.match(filename) ]
     # filenames that match the specified regexp
-    filenames = [filename for filename in records.keys() if any(pat.search(filename) for pat in pats)]
+    filenames = [filename for filename in ipynb_filenames if any(pat.search(filename) for pat in pats)]
     # sort them according to the criteria
     filenames.sort(key=make_sort_key(records, sort_criteria))
     # limit the number of entries
