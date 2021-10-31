@@ -12,28 +12,6 @@ import sys
 DBG = 2
 # Bash, Ocaml default, Python 3, C
 
-def xxx_canonicalize_kernel(syntax):
-    """
-    canonicalize kernel name (c -> C etc.)
-    """
-    syn = syntax.lower()
-    comp = {
-        "bash" : "Bash",
-        "ocaml" : "Ocaml default",
-        "caml" : "Ocaml default",
-        "ml" : "Ocaml default",
-        "python" : "Python 3",
-        "py" : "Python 3",
-        "c" : "C",
-        "cc" : "C",
-        "c++" : "C",
-        "cpp" : "C",
-        "sos" : "SoS"
-    }
-    update_comp = {v.lower() : v for v in comp.values()}
-    comp.update(update_comp)
-    return comp[syn]
-
 def canonicalize_kernel_dict():
     """
     canonicalize kernel name (c -> C etc.)
@@ -43,8 +21,10 @@ def canonicalize_kernel_dict():
         "ocaml" : "Ocaml default",
         "caml" : "Ocaml default",
         "ml" : "Ocaml default",
-        "python" : "Python 3",
-        "py" : "Python 3",
+        # "python" : "Python 3",
+        #"py" : "Python 3",
+        "python" : "Python 3 (ipykernel)",
+        "py" : "Python 3 (ipykernel)",
         "c" : "C",
         "cc" : "C",
         "c++" : "C",
@@ -79,7 +59,8 @@ def make_metadata_sos():
                 ["Bash", "bash", "bash", "", "shell"],
                 ["C", "c_kernel", "c", "", ""],
                 ["OCaml default", "ocaml-jupyter", "OCaml", "", "text/x-ocaml"],
-                ["Python 3", "python3", "python3", "", {"name": "ipython", "version": 3}]
+                ["Python 3 (ipykernel)", "python3", "python3", "", {"name": "ipython", "version": 3}]
+                # ["Python 3", "python3", "python3", "", {"name": "ipython", "version": 3}]
             ],
             "panel": {
                 "displayed": True,
@@ -96,7 +77,7 @@ def make_metadata_python():
     return {
         "celltoolbar": "Create Assignment",
         "kernelspec": {
-            "display_name": "Python 3",
+            "display_name": "Python 3 (ipykernel)",
             "language": "python",
             "name": "python3"
         },
@@ -160,7 +141,7 @@ def make_metadata(syntax):
     """
     aux_data_dict = {
         "SoS" : make_metadata_sos,
-        "Python 3" : make_metadata_python,
+        "Python 3 (ipykernel)" : make_metadata_python,
         "Ocaml default" : make_metadata_ocaml,
         "C" : make_metadata_c,
     }
@@ -273,7 +254,7 @@ class ParserBase:
                 (self.tok_eof,
                  re.compile(r'<!--- eof --->')),
             ]
-        elif self.syntax == "Python 3":
+        elif self.syntax in ["Python 3", "Python 3 (ipykernel)"]:
             self.patterns = [
                 (self.tok_begin_md,
                  re.compile(r'""" *(?P<cell_attrs>md.*)')),

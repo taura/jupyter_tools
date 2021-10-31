@@ -8,8 +8,10 @@ import sqlite3
 import time
 
 import dash
-#deprecated
+# the right way to import dcc and html depend
+# on python version
 if hasattr(dash, "dcc"):
+    #deprecated
     from dash import dcc
     from dash import html
 else:
@@ -25,8 +27,10 @@ from dash.dependencies import Input, Output
 ################################################
 
 if __name__ == "__main__":
+    # when launched as a standalone process
     app = dash.Dash(__name__)
 else:
+    # when launched from apache as wsgi application
     app = dash.Dash(__name__, requests_pathname_prefix='/progress_viewer/')
 
 application = app.server
@@ -44,6 +48,7 @@ if progress_viewer_config:
     PASSWD = progress_viewer_config.PASSWD
     URL_TEMPLATE = progress_viewer_config.URL_TEMPLATE
 else:
+    # default values likely to need to be overwritten
     SYNC_SQLITE = "sync.sqlite"
     USERS_CSV = "users.csv"
     USER_ATTRS = ["real_name", "class", "team"]
