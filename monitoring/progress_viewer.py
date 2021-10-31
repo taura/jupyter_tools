@@ -370,7 +370,6 @@ def select_records(a_sqlite, users_csv, cols_to_mask,
     where datetime(t) >= {time_after_expr} and datetime(t) <= {time_before_expr} 
     order by t desc"""
            .format(time_after_expr=time_after_expr, time_before_expr=time_before_expr))
-    print(sql)
     for row in do_sql(conn, sql):
         drow = dict(row)
         filename = drow["filename"]
