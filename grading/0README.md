@@ -10,7 +10,7 @@ autograde が失敗することがある. 一部の学生で失敗したら
 
 nbgrader autograde --assignment pl02 --no-execute --student xxx
 
-を成功する学生に対してやっていくしかない
+nbgrader autograde --assignment pl02 --no-execute --CourseDirectory.student_id_exclude=...
 
 [3] データをダウンロード
 
@@ -30,6 +30,11 @@ pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 それらをすべてgrade.csvに書き出す.
 
 採点作業は grade.csv 上で行う
+
+[OS 2021のときにやったテキストクラスタリング]
+
+cd public_html/lecture/operating_systems/exam/2021/grading/clustering
+./add_distance.py
 
 [5] プログラムを実行して採点
 
@@ -58,10 +63,10 @@ ext=ml
 cmd=ocaml
 
 prologue=
-epilogue=${test_dir}/${assignment_name}/${prob_name}/test.${ext}
-test_prog=${work_dir}/${assignment_name}/${prob_name}/${student_id}.${ext} # exec/pl02/p-001/test.ml
+epilogue=${test_dir}/${assignment_name}/${notebook_name}/${prob_name}/test.${ext}
+test_prog=${work_dir}/${assignment_name}/${notebook_name}/${prob_name}/${student_id}.${ext} # exec/pl02/pl02-ocaml.sos/p-001/test.ml
 
-./work.py export-source --student-id ${student_id} --assignment-name ${assignment_name} --prob-name ${prob_name} --txt - | cat ${prologue} - ${epilogue} > ${test_prog}
+./work.py export-source --student-id ${student_id} --assignment-name ${assignment_name} --notebook-name ${notebook_name} --prob-name ${prob_name} --txt - | cat ${prologue} - ${epilogue} > ${test_prog}
 
 ${cmd} ${test_prog} 2>&1
 

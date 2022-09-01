@@ -75,7 +75,11 @@ def answer_cells_of_nb(a_ipynb):
             prob_name = nbg["grade_id"] # like a1-1-1
             source = cell["source"]
             outputs = cell.get("outputs", [])
-            assert(prob_name not in cells), prob_name
+            if prob_name in cells:
+                if 0:
+                    print("WARNING: duplicated problem label {} in {}"
+                          .format(prob_name, a_ipynb), file=sys.stderr)
+                # assert(prob_name not in cells), prob_name
             cells[prob_name] = source, outputs
     return cells
 
@@ -200,7 +204,10 @@ create temp table answer_cell
    source, 
    outputs, 
    errors, 
-   eval_output)
+   eval_ok,
+   eval_out,
+   eval_err,
+   eval_diff)
 """
 
 SQL_JOIN_GRADE_COMMENT_CELL = """
@@ -213,7 +220,10 @@ grade_comment.prob_name as prob_name,
 source,
 outputs,
 errors,
-eval_output,
+eval_ok,
+eval_out,
+eval_err,
+eval_diff,
 auto_score,
 manual_score,
 extra_credit,
@@ -245,16 +255,20 @@ select * from grade_comment_cell
 
 """
 
-def get_eval_output(exec_dir, assignment, notebook, prob, student):
+def get_eval_result(exec_dir, assignment, notebook, prob, student):
     base = "{}/{}/{}/{}/{}".format(exec_dir, assignment, notebook, prob, student)
-    for ext in ["ok", "err"]:
+    eval_result = {}
+    for ext in ["ok", "out", "err", "diff"]:
+        eval_result[ext] = ""
         f = "{}.{}".format(base, ext)
         if os.path.exists(f):
-            fp = open(f)
+            fp = open(f, errors="replace")
             output = fp.read()
             fp.close()
-            return "== {} ==\n{}".format(ext, output)
-    return None
+            max_cell_sz = 30 * 1024
+            output = output[:max_cell_sz]
+            eval_result[ext] = "== {} ==\n{}".format(ext, output)
+    return eval_result
 
 def join_outputs(outputs):
     # [
@@ -301,12 +315,14 @@ def make_table_of_cells(conn, cells, exec_dir):
                     source_s = "".join(source)
                     output_s = join_outputs(outputs)
                     error_s = join_errors(outputs)
-                    eval_output = get_eval_output(exec_dir, assignment, notebook, prob, student)
+                    eval_result = get_eval_result(exec_dir, assignment, notebook, prob, student)
                     do_sql(conn,
-                           """insert into answer_cell(student_id, assignment_name, notebook_name, prob_name, source, outputs, errors, eval_output)
-                           values(?, ?, ?, ?, ?, ?, ?, ?)""",
+                           """insert into answer_cell(student_id, assignment_name, notebook_name, prob_name, source, 
+                           outputs, errors, eval_ok, eval_out, eval_err, eval_diff)
+                           values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                            student, assignment, notebook, prob,
-                           source_s, output_s, error_s, eval_output)
+                           source_s, output_s, error_s,
+                           eval_result["ok"], eval_result["out"], eval_result["err"], eval_result["diff"])
 
 def connect_to_db(gradebook_db, inbound, exec_dir):
     """
@@ -525,7 +541,8 @@ def main():
         export_txt(args.gradebook, args.inbound, args.exec_dir, args.sql, args.separater, args.txt)
     elif command == "export-source": # to be removed
         export_source(args.gradebook, args.inbound, args.exec_dir,
-                      args.student_id, args.assignment_name, args.notebook_name, args.prob_name,
+                      args.student_id, args.assignment_name,
+                      args.notebook_name, args.prob_name,
                       args.separater, args.txt)
     elif command == "import":
         import_grade_csv(args.csv, args.gradebook)

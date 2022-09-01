@@ -1,9 +1,12 @@
 work_dir:=exec
 test_dir:=test
-assignment_name?=pl12
-#notebook_name?=3-cc-print.sos
-notebook_name?=4-cc-cogen.sos
-prob_name?=p-001
+#assignment_name?=pl05
+#notebook_name?=pl05_calculator.sos
+#prob_name?=p-001
+
+assignment_name?=pl10
+notebook_name?=pl10_minc.sos
+prob_name?=p-002
 
 .DEFAULT_GOAL := all
 
@@ -57,10 +60,10 @@ notebook : $(results_notebook)
 students?=$(shell ./work.py export-txt --sql 'select student_id from grade_comment_cell where assignment_name = "$(assignment_name)" and notebook_name = "$(notebook_name)" and prob_name = "$(prob_name)" order by student_id' --txt -)
 results_prob:=$(patsubst %,$(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/%.ok,$(students))
 
-$(results_prob) : $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/%.ok : $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/created
+$(results_prob) : $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/%.ok : $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/created # $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh 
 # run test.sh on a student working on a problem
-	test_dir=$(test_dir) work_dir=$(work_dir) assignment_name=$(assignment_name) notebook_name=$(notebook_name) prob_name=$(prob_name) student_id=$* $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh > $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.err 2>&1
-	mv $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.err $@
+	test_dir=$(test_dir) work_dir=$(work_dir) assignment_name=$(assignment_name) notebook_name=$(notebook_name) prob_name=$(prob_name) student_id=$* $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh > $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.out 2> $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.err 
+	touch $@
 
 problem : $(results_prob)
 

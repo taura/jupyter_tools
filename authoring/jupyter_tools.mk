@@ -95,5 +95,5 @@ nb : $(notebooks_dirs) $(nbgrader_configs)
 #
 feedback_class ?= pl
 feedback :
-	sqlite3 $(users_sqlite) 'select "https://taulec.zapto.org:8000     user="||uid||" passwd="||password from a where class="$(feedback_class)"'
+	sqlite3 $(users_sqlite) 'select "https://taulec.zapto.org:8000/   user="||uid||"   passwd="||password from a where class="$(feedback_class)"'
 
