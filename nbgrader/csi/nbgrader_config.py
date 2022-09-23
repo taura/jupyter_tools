@@ -539,6 +539,7 @@ os.chdir(c.CourseDirectory.root)
 ## The code snippet that will replace code solutions
 #  Default: {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'sas': '/* YOUR CODE HERE */\n %notImplemented;', 'java': '// YOUR CODE HERE'}
 # c.ClearSolutions.code_stub = {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'sas': '/* YOUR CODE HERE */\n %notImplemented;', 'java': '// YOUR CODE HERE'}
+c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 
 ## Whether to use this preprocessor when running nbgrader
 #  See also: NbGraderPreprocessor.enabled
