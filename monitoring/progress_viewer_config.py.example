@@ -14,8 +14,13 @@ USER_ATTRS = ["real_name"]
 
 # the password you enter in the passwd: box of the visualizer to reveal
 # information other than filenames (i.e., uid and USER_ATTRS)
-PASSWD = "es1seePh"
+PASSWD = "vae1uPhi"
 
 # template to convert a relative path name under the destination folder
 # to the URL with which to open the file via Jupyter
-URL_TEMPLATE = "https://your.jupyterhub.org:8000/user/you/notebooks/sync_dest/{filename}"
+URL_TEMPLATE = "https://xxxx.yyyy.org:8000/user/zzz/notebooks/sync_dest/{filename}"
+
+BASIC_AUTH_USER_PASSWORD_PAIRS = {
+    'progress' : "iek2Ieji"
+}
+

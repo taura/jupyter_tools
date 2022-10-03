@@ -736,6 +736,21 @@ c.JupyterHub.services = [
 ]
 
 
+c.JupyterHub.services = [
+    {
+        'name': 'cull-idle',
+        'admin': True,
+        'command': [
+            '/usr/bin/python3',
+            # '/usr/local/bin/cull_idle_servers.py',
+            '/home/tau/tmp/jupyterhub-helm-chart/images/hub/cull_idle_servers.py',
+            '--timeout=400',
+            '--cull_every=10'
+        ]
+    }
+][0:0]
+
+
 ## Instead of starting the Application, dump configuration to stdout
 #  See also: Application.show_config
 # c.JupyterHub.show_config = False
@@ -1002,6 +1017,8 @@ c.JupyterHub.ssl_key = '/etc/pki/tls/certs/{FQDN}/{FQDN}.key'.format(FQDN=os.env
 #  - You can set this to `/lab` to have JupyterLab start by default, rather than Jupyter Notebook.
 #  Default: ''
 # c.Spawner.default_url = ''
+#c.Spawner.default_url = '/lab'
+c.Spawner.default_url = ''
 
 ## Disable per-user configuration of single-user servers.
 #  
@@ -1286,6 +1303,7 @@ c.JupyterHub.ssl_key = '/etc/pki/tls/certs/{FQDN}/{FQDN}.key'.format(FQDN=os.env
 #  Defaults to an empty set, in which case no user has admin access.
 #  Default: set()
 # c.Authenticator.admin_users = set()
+c.Authenticator.admin_users = set()
 
 ## Set of usernames that are allowed to log in.
 #  
@@ -1300,6 +1318,7 @@ c.JupyterHub.ssl_key = '/etc/pki/tls/certs/{FQDN}/{FQDN}.key'.format(FQDN=os.env
 #      `Authenticator.whitelist` renamed to `allowed_users`
 #  Default: set()
 # c.Authenticator.allowed_users = set()
+c.Authenticator.allowed_users = set()
 
 ## The max age (in seconds) of authentication info
 #          before forcing a refresh of user auth info.
@@ -1472,5 +1491,57 @@ c.JupyterHub.ssl_key = '/etc/pki/tls/certs/{FQDN}/{FQDN}.key'.format(FQDN=os.env
 # c.CryptKeeper.keys = []
 
 ## The number of threads to allocate for encryption
-#  Default: 76
-# c.CryptKeeper.n_threads = 76
+#  Default: 8
+# c.CryptKeeper.n_threads = 8
+
+#------------------------------------------------------------------------------
+# Pagination(Configurable) configuration
+#------------------------------------------------------------------------------
+## Default number of entries per page for paginated results.
+#  Default: 100
+# c.Pagination.default_per_page = 100
+
+## Maximum number of entries per page for paginated results.
+#  Default: 250
+# c.Pagination.max_per_page = 250
+
+# shutdown the server after no activity for 20 minutes
+#c.NotebookApp.shutdown_no_activity_timeout = 20 * 60
+c.NotebookApp.shutdown_no_activity_timeout = 5 * 60
+# shutdown kernels after no activity for 10 minutes
+#c.MappingKernelManager.cull_idle_timeout = 10 * 60
+c.MappingKernelManager.cull_idle_timeout = 3 * 60
+# Check every minute
+c.MappingKernelManager.cull_interval = 60
+# cull connected (e.g. Browser tab open)
+c.MappingKernelManager.cull_connected = True
+
+
+c.JupyterHub.load_roles = [
+    {
+        "name": "jupyterhub-idle-culler-role",
+        "scopes": [
+            "list:users",
+            "read:users:activity",
+            "read:servers",
+            "delete:servers",
+            "admin:users", # if using --cull-users
+        ],
+        # assignment of role's permissions to:
+        "services": ["jupyterhub-idle-culler-service"],
+    }
+]
+
+import sys
+c.JupyterHub.services = [
+    {
+        "name": "jupyterhub-idle-culler-service",
+        "command": [
+            sys.executable,
+            "-m", "jupyterhub_idle_culler",
+            "--timeout=14400",  # 4h (check every 2hours)
+            "--cull-users"
+        ],
+        # "admin": True,
+    }
+]
