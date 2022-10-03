@@ -6,7 +6,6 @@ import csv
 import re
 import sqlite3
 import time
-
 import dash
 #deprecated
 if hasattr(dash, "dcc"):
@@ -15,10 +14,24 @@ if hasattr(dash, "dcc"):
 else:
     import dash_core_components as dcc
     import dash_html_components as html
+import dash_auth
 #import plotly.express as px
 import plotly.graph_objects as go
 #from dash.dependencies import Input, Output, State
 from dash.dependencies import Input, Output
+
+################################################
+# read config
+################################################
+
+import progress_viewer_config
+
+SYNC_SQLITE = progress_viewer_config.SYNC_SQLITE
+USERS_CSV = progress_viewer_config.USERS_CSV
+USER_ATTRS = progress_viewer_config.USER_ATTRS
+PASSWD = progress_viewer_config.PASSWD
+URL_TEMPLATE = progress_viewer_config.URL_TEMPLATE
+VALID_USERNAME_PASSWORD_PAIRS = progress_viewer_config.BASIC_AUTH_USER_PASSWORD_PAIRS
 
 ################################################
 # the app object
@@ -29,26 +42,13 @@ if __name__ == "__main__":
 else:
     app = dash.Dash(__name__, requests_pathname_prefix='/progress_viewer/')
 
+app = dash.Dash(__name__)
+auth = dash_auth.BasicAuth(
+    app,
+    VALID_USERNAME_PASSWORD_PAIRS
+)
+
 application = app.server
-
-progress_viewer_config = None
-try:
-    import progress_viewer_config
-except:
-    pass
-
-if progress_viewer_config:
-    SYNC_SQLITE = progress_viewer_config.SYNC_SQLITE
-    USERS_CSV = progress_viewer_config.USERS_CSV
-    USER_ATTRS = progress_viewer_config.USER_ATTRS
-    PASSWD = progress_viewer_config.PASSWD
-    URL_TEMPLATE = progress_viewer_config.URL_TEMPLATE
-else:
-    SYNC_SQLITE = "sync.sqlite"
-    USERS_CSV = "users.csv"
-    USER_ATTRS = ["real_name", "class", "team"]
-    PASSWD = "es1seePh"
-    URL_TEMPLATE = "https://taulec.zapto.org:8000/user/tau/notebooks/rsync/{filename}"
 
 ################################################
 # nuts and bolts
