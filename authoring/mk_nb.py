@@ -12,48 +12,178 @@ import sys
 DBG = 2
 # Bash, Ocaml default, Python 3, C
 
-def xxx_canonicalize_kernel(syntax):
-    """
-    canonicalize kernel name (c -> C etc.)
-    """
-    syn = syntax.lower()
-    comp = {
-        "bash" : "Bash",
-        "ocaml" : "Ocaml default",
-        "caml" : "Ocaml default",
-        "ml" : "Ocaml default",
-        "python" : "Python 3",
-        "py" : "Python 3",
-        "c" : "C",
-        "cc" : "C",
-        "c++" : "C",
-        "cpp" : "C",
-        "sos" : "SoS"
-    }
-    update_comp = {v.lower() : v for v in comp.values()}
-    comp.update(update_comp)
-    return comp[syn]
-
 def canonicalize_kernel_dict():
     """
     canonicalize kernel name (c -> C etc.)
     """
     comp = {
+        "python" : "Python 3 (ipykernel)",
+        "py" : "Python 3 (ipykernel)",
         "bash" : "Bash",
-        "ocaml" : "Ocaml default",
-        "caml" : "Ocaml default",
-        "ml" : "Ocaml default",
-        "python" : "Python 3",
-        "py" : "Python 3",
         "c" : "C",
         "cc" : "C",
         "c++" : "C",
         "cpp" : "C",
+        "go" : "Go",
+        "golang" : "Go",
+        "jl" : "Julia 1.4.1",
+        "julia" : "Julia 1.4.1",
+        "ocaml" : "OCaml default",
+        "caml" : "OCaml default",
+        "ml" : "OCaml default",
+        "rs" : "Rust",
+        "rust" : "Rust",
         "sos" : "SoS"
     }
     update_comp = {v.lower() : v for v in comp.values()}
     comp.update(update_comp)
     return comp
+
+def make_metadata_python():
+    """
+    aux data for python kernel
+    """
+    return {
+        "celltoolbar": "Create Assignment",
+        "kernelspec": {
+            "display_name": "Python 3 (ipykernel)",
+            "language": "python",
+            "name": "python3"
+        },
+        "language_info": {
+            "codemirror_mode": {
+                "name": "ipython",
+                "version": 3
+            },
+            "file_extension": ".py",
+            "mimetype": "text/x-python",
+            "name": "python",
+            "nbconvert_exporter": "python",
+            "pygments_lexer": "ipython3",
+            "version": "3.8.10"
+        }
+    }
+
+def make_metadata_bash():
+    """
+    aux data for bash kernel
+    """
+    return {
+        "celltoolbar": "Create Assignment",
+        "kernelspec": {
+            "display_name": "Bash",
+            "language": "bash",
+            "name": "bash"
+        },
+        "language_info": {
+            "codemirror_mode": "shell",
+            "file_extension": ".sh",
+            "mimetype": "text/x-sh",
+            "name": "bash"
+        }
+    }
+
+def make_metadata_c():
+    """
+    aux data for c kernel
+    """
+    return {
+        "celltoolbar": "Create Assignment",
+        "kernelspec": {
+            "display_name": "C",
+            "language": "c",
+            "name": "c_kernel"
+        },
+        "language_info": {
+            "file_extension": ".c",
+            "mimetype": "text/plain",
+            "name": "c"
+        }
+    }
+
+def make_metadata_go():
+    """
+    aux data for go kernel
+    """
+    return {
+        "celltoolbar": "Create Assignment",
+        "kernelspec": {
+            "display_name": "Go",
+            "language": "go",
+            "name": "gophernotes"
+        },
+        "language_info": {
+            "codemirror_mode": "",
+            "file_extension": ".go",
+            "mimetype": "",
+            "name": "go",
+            "nbconvert_exporter": "",
+            "pygments_lexer": "",
+            "version": "go1.13.8"
+        }
+    }
+
+def make_metadata_julia():
+    """
+    aux data for julia kernel
+    """
+    return {
+        "celltoolbar": "Create Assignment",
+        "kernelspec": {
+            "display_name": "Julia 1.4.1",
+            "language": "julia",
+            "name": "julia-1.4"
+        },
+        "language_info": {
+            "file_extension": ".jl",
+            "mimetype": "application/julia",
+            "name": "julia",
+            "version": "1.4.1"
+        }
+    }
+
+def make_metadata_ocaml():
+    """
+    aux data for ocaml kernel
+    """
+    return {
+        "celltoolbar": "Create Assignment",
+        "kernelspec": {
+            "display_name": "OCaml default",
+            "language": "OCaml",
+            "name": "ocaml-jupyter"
+        },
+        "language_info": {
+            "codemirror_mode": "text/x-ocaml",
+            "file_extension": ".ml",
+            "mimetype": "text/x-ocaml",
+            "name": "OCaml",
+            "nbconverter_exporter": null,
+            "pygments_lexer": "OCaml",
+            "version": "4.08.1"
+        }
+    }
+
+def make_metadata_rust():
+    """
+    aux data for rust kernel
+    """
+    return {
+        "celltoolbar": "Create Assignment",
+        "kernelspec": {
+            "display_name": "Rust",
+            "language": "rust",
+            "name": "rust"
+        },
+        "language_info": {
+            "codemirror_mode": "rust",
+            "file_extension": ".rs",
+            "mimetype": "text/rust",
+            "name": "Rust",
+            "pygment_lexer": "rust",
+            "version": ""
+        }
+    }
 
 def make_metadata_sos():
     """
@@ -78,79 +208,17 @@ def make_metadata_sos():
             "kernels": [
                 ["Bash", "bash", "bash", "", "shell"],
                 ["C", "c_kernel", "c", "", ""],
+                ["Go", "gophernotes", "go", "", ""],
+                ["Julia 1.4.1", "julia-1.4", "julia", "", ""],
                 ["OCaml default", "ocaml-jupyter", "OCaml", "", "text/x-ocaml"],
-                ["Python 3", "python3", "python3", "", {"name": "ipython", "version": 3}]
+                ["Python 3 (ipykernel)", "python3", "python3", "", {"name": "ipython", "version": 3}],
+                ["Rust", "rust", "rust", "", ""]
             ],
             "panel": {
                 "displayed": True,
                 "height": 0
             },
-            "version": "0.21.21"
-        }
-    }
-
-def make_metadata_python():
-    """
-    aux data for python kernel
-    """
-    return {
-        "celltoolbar": "Create Assignment",
-        "kernelspec": {
-            "display_name": "Python 3",
-            "language": "python",
-            "name": "python3"
-        },
-        "language_info": {
-            "codemirror_mode": {
-                "name": "ipython",
-                "version": 3
-            },
-            "file_extension": ".py",
-            "mimetype": "text/x-python",
-            "name": "python",
-            "nbconvert_exporter": "python",
-            "pygments_lexer": "ipython3",
-            "version": "3.8.5"
-        }
-    }
-
-def make_metadata_ocaml():
-    """
-    aux data for ocaml kernel
-    """
-    return {
-        "celltoolbar": "Create Assignment",
-        "kernelspec": {
-            "display_name": "OCaml default",
-            "language": "OCaml",
-            "name": "ocaml-jupyter"
-        },
-        "language_info": {
-            "codemirror_mode": "text/x-ocaml",
-            "file_extension": ".ml",
-            "mimetype": "text/x-ocaml",
-            "name": "OCaml",
-            "nbconverter_exporter": None,
-            "pygments_lexer": "OCaml",
-            "version": "4.08.1"
-        }
-    }
-
-def make_metadata_c():
-    """
-    aux data for c kernel
-    """
-    return {
-        "celltoolbar": "Create Assignment",
-        "kernelspec": {
-            "display_name": "C",
-            "language": "c",
-            "name": "c_kernel"
-        },
-        "language_info": {
-            "file_extension": ".c",
-            "mimetype": "text/plain",
-            "name": "c"
+            "version": "0.23.3"
         }
     }
 
@@ -159,10 +227,14 @@ def make_metadata(syntax):
     aux data
     """
     aux_data_dict = {
-        "SoS" : make_metadata_sos,
-        "Python 3" : make_metadata_python,
-        "Ocaml default" : make_metadata_ocaml,
+        "Python 3 (ipykernel)" : make_metadata_python,
+        "Bash" : make_metadata_bash,
         "C" : make_metadata_c,
+        "Go" : make_metadata_go,
+        "Julia 1.4.1" : make_metadata_julia,
+        "OCaml default" : make_metadata_ocaml,
+        "Rust" : make_metadata_rust,
+        "SoS" : make_metadata_sos,
     }
     return aux_data_dict[syntax]()
 
@@ -273,7 +345,7 @@ class ParserBase:
                 (self.tok_eof,
                  re.compile(r'<!--- eof --->')),
             ]
-        elif self.syntax == "Python 3":
+        elif self.syntax == "Python 3 (ipykernel)":
             self.patterns = [
                 (self.tok_begin_md,
                  re.compile(r'""" *(?P<cell_attrs>md.*)')),
@@ -288,7 +360,7 @@ class ParserBase:
                 (self.tok_eof,
                  re.compile(r'""" *eof *"""')),
             ]
-        elif self.syntax == "Ocaml default":
+        elif self.syntax == "OCaml default":
             self.patterns = [
                 (self.tok_begin_md,
                  re.compile(r'\(\*\* *(?P<cell_attrs>md.*)')),

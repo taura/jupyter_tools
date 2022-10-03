@@ -7,8 +7,10 @@ import re
 import sqlite3
 import time
 import dash
-#deprecated
+# the right way to import dcc and html depend
+# on python version
 if hasattr(dash, "dcc"):
+    #deprecated
     from dash import dcc
     from dash import html
 else:
@@ -38,8 +40,10 @@ VALID_USERNAME_PASSWORD_PAIRS = progress_viewer_config.BASIC_AUTH_USER_PASSWORD_
 ################################################
 
 if __name__ == "__main__":
+    # when launched as a standalone process
     app = dash.Dash(__name__)
 else:
+    # when launched from apache as wsgi application
     app = dash.Dash(__name__, requests_pathname_prefix='/progress_viewer/')
 
 app = dash.Dash(__name__)
@@ -49,6 +53,26 @@ auth = dash_auth.BasicAuth(
 )
 
 application = app.server
+
+progress_viewer_config = None
+try:
+    import progress_viewer_config
+except:
+    pass
+
+if progress_viewer_config:
+    SYNC_SQLITE = progress_viewer_config.SYNC_SQLITE
+    USERS_CSV = progress_viewer_config.USERS_CSV
+    USER_ATTRS = progress_viewer_config.USER_ATTRS
+    PASSWD = progress_viewer_config.PASSWD
+    URL_TEMPLATE = progress_viewer_config.URL_TEMPLATE
+else:
+    # default values likely to need to be overwritten
+    SYNC_SQLITE = "sync.sqlite"
+    USERS_CSV = "users.csv"
+    USER_ATTRS = ["real_name", "class", "team"]
+    PASSWD = "es1seePh"
+    URL_TEMPLATE = "https://taulec.zapto.org:8000/user/tau/notebooks/rsync/{filename}"
 
 ################################################
 # nuts and bolts

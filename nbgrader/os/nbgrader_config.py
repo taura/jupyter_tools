@@ -161,6 +161,41 @@
 # c.GenerateConfigApp.show_config_json = False
 
 #------------------------------------------------------------------------------
+# ExchangeFactory(LoggingConfigurable) configuration
+#------------------------------------------------------------------------------
+## A plugin for collecting assignments.
+#  Default: 'nbgrader.exchange.default.collect.ExchangeCollect'
+# c.ExchangeFactory.collect = 'nbgrader.exchange.default.collect.ExchangeCollect'
+
+## A plugin for exchange.
+#  Default: 'nbgrader.exchange.default.exchange.Exchange'
+# c.ExchangeFactory.exchange = 'nbgrader.exchange.default.exchange.Exchange'
+
+## A plugin for fetching assignments.
+#  Default: 'nbgrader.exchange.default.fetch_assignment.ExchangeFetchAssignment'
+# c.ExchangeFactory.fetch_assignment = 'nbgrader.exchange.default.fetch_assignment.ExchangeFetchAssignment'
+
+## A plugin for fetching feedback.
+#  Default: 'nbgrader.exchange.default.fetch_feedback.ExchangeFetchFeedback'
+# c.ExchangeFactory.fetch_feedback = 'nbgrader.exchange.default.fetch_feedback.ExchangeFetchFeedback'
+
+## A plugin for listing exchange files.
+#  Default: 'nbgrader.exchange.default.list.ExchangeList'
+# c.ExchangeFactory.list = 'nbgrader.exchange.default.list.ExchangeList'
+
+## A plugin for releasing assignments.
+#  Default: 'nbgrader.exchange.default.release_assignment.ExchangeReleaseAssignment'
+# c.ExchangeFactory.release_assignment = 'nbgrader.exchange.default.release_assignment.ExchangeReleaseAssignment'
+
+## A plugin for releasing feedback.
+#  Default: 'nbgrader.exchange.default.release_feedback.ExchangeReleaseFeedback'
+# c.ExchangeFactory.release_feedback = 'nbgrader.exchange.default.release_feedback.ExchangeReleaseFeedback'
+
+## A plugin for submitting assignments.
+#  Default: 'nbgrader.exchange.default.submit.ExchangeSubmit'
+# c.ExchangeFactory.submit = 'nbgrader.exchange.default.submit.ExchangeSubmit'
+
+#------------------------------------------------------------------------------
 # CourseDirectory(LoggingConfigurable) configuration
 #------------------------------------------------------------------------------
 ## The assignment name. This MUST be specified, either by setting the config
@@ -179,35 +214,7 @@
 #  by setting the config option, or using the --course option on the command
 #  line.
 #  Default: ''
-# c.CourseDirectory.course_id = ''
-
-#########################################
 c.CourseDirectory.course_id = 'os'
-#########################################
-
-## A list of assignments that will be created in the database. Each item in the
-#  list should be a dictionary with the following keys:
-#  
-#      - name
-#      - duedate (optional)
-#  
-#  The values will be stored in the database. Please see the API documentation on
-#  the `Assignment` database model for details on these fields.
-#  Default: []
-# c.CourseDirectory.db_assignments = []
-
-## A list of student that will be created in the database. Each item in the list
-#  should be a dictionary with the following keys:
-#  
-#      - id
-#      - first_name (optional)
-#      - last_name (optional)
-#      - email (optional)
-#  
-#  The values will be stored in the database. Please see the API documentation on
-#  the `Student` database model for details on these fields.
-#  Default: []
-# c.CourseDirectory.db_students = []
 
 ## URL to the database. Defaults to sqlite:///<root>/gradebook.db, where <root>
 #  is another configurable variable.
@@ -266,13 +273,16 @@ c.CourseDirectory.course_id = 'os'
 #  `release`, `submitted`, `autograded`, etc. directories). Defaults to the
 #  current working directory.
 #  Default: ''
-#c.CourseDirectory.root = ''
-
-#########################################
+# c.CourseDirectory.root = ''
 import os
 c.CourseDirectory.root = os.path.expanduser('~/notebooks')
 os.chdir(c.CourseDirectory.root)
-#########################################
+
+## The name of the directory that contains the assignment solution after grading
+#  has been completed. This corresponds to the `nbgrader_step` variable in the
+#  `directory_structure` config option.
+#  Default: 'solution'
+# c.CourseDirectory.solution_directory = 'solution'
 
 ## The name of the directory that contains the master/instructor version of
 #  assignments. This corresponds to the `nbgrader_step` variable in the
@@ -355,8 +365,8 @@ os.chdir(c.CourseDirectory.root)
 # ExtractorPlugin(BasePlugin) configuration
 #------------------------------------------------------------------------------
 ## Submission archive files extractor plugin for the
-#  :class:`~nbgrader.apps.zipcollectapp.ZipCollectApp`. Extractor plugin
-#  subclasses MUST inherit from this class.
+#      :class:`~nbgrader.apps.zipcollectapp.ZipCollectApp`.
+#      Extractor plugin subclasses MUST inherit from this class.
 
 ## Force overwrite of existing files.
 #  Default: False
@@ -372,8 +382,8 @@ os.chdir(c.CourseDirectory.root)
 # FileNameCollectorPlugin(BasePlugin) configuration
 #------------------------------------------------------------------------------
 ## Submission filename collector plugin for the
-#  :class:`~nbgrader.apps.zipcollectapp.ZipCollectApp`. Collect plugin subclasses
-#  MUST inherit from this class.
+#      :class:`~nbgrader.apps.zipcollectapp.ZipCollectApp`.
+#      Collect plugin subclasses MUST inherit from this class.
 
 ## This regular expression is applied to each submission filename and MUST be
 #  supplied by the instructor. This regular expression MUST provide the
@@ -415,7 +425,7 @@ os.chdir(c.CourseDirectory.root)
 #------------------------------------------------------------------------------
 ## Global configurable class for shared config
 #  
-#  Useful for display data priority that might be used by many transformers
+#      Useful for display data priority that might be used by many transformers
 
 ## Deprecated default highlight language as of 5.0, please use language_info
 #  metadata instead
@@ -432,18 +442,18 @@ os.chdir(c.CourseDirectory.root)
 #------------------------------------------------------------------------------
 ## A configurable preprocessor
 #  
-#  Inherit from this class if you wish to have configurability for your
-#  preprocessor.
+#      Inherit from this class if you wish to have configurability for your
+#      preprocessor.
 #  
-#  Any configurable traitlets this class exposed will be configurable in profiles
-#  using c.SubClassName.attribute = value
+#      Any configurable traitlets this class exposed will be configurable in
+#      profiles using c.SubClassName.attribute = value
 #  
-#  You can overwrite `preprocess_cell()` to apply a transformation independently
-#  on each cell or `preprocess()` if you prefer your own logic. See corresponding
-#  docstring for information.
+#      You can overwrite `preprocess_cell()` to apply a transformation
+#      independently on each cell or `preprocess()` if you prefer your own
+#      logic. See corresponding docstring for information.
 #  
-#  Disabled by default and can be enabled via the config by
-#      'c.YourPreprocessorName.enabled = True'
+#      Disabled by default and can be enabled via the config by
+#          'c.YourPreprocessorName.enabled = True'
 
 ## Deprecated default highlight language as of 5.0, please use language_info
 #  metadata instead
@@ -527,13 +537,9 @@ os.chdir(c.CourseDirectory.root)
 # c.ClearSolutions.begin_solution_delimeter = 'BEGIN SOLUTION'
 
 ## The code snippet that will replace code solutions
-#  Default: {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'java': '// YOUR CODE HERE'}
-# c.ClearSolutions.code_stub = {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'java': '// YOUR CODE HERE'}
-
-##########################
+#  Default: {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'sas': '/* YOUR CODE HERE */\n %notImplemented;', 'java': '// YOUR CODE HERE'}
+# c.ClearSolutions.code_stub = {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'sas': '/* YOUR CODE HERE */\n %notImplemented;', 'java': '// YOUR CODE HERE'}
 c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
-##########################
-
 
 ## Whether to use this preprocessor when running nbgrader
 #  See also: NbGraderPreprocessor.enabled
@@ -553,10 +559,6 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 ## The text snippet that will replace written solutions
 #  Default: 'YOUR ANSWER HERE'
 # c.ClearSolutions.text_stub = 'YOUR ANSWER HERE'
-
-##########################
-c.ClearSolutions.text_stub = ''
-##########################
 
 #------------------------------------------------------------------------------
 # SaveAutoGrades(NbGraderPreprocessor) configuration
@@ -608,10 +610,17 @@ c.ClearSolutions.text_stub = ''
 #------------------------------------------------------------------------------
 ## Encompasses a Client for executing cells in a notebook
 
+## List of error names which won't stop the execution. Use this if the
+#  ``allow_errors`` option it too general and you want to allow only specific
+#  kinds of errors.
+#  Default: []
+# c.NotebookClient.allow_error_names = []
+
 ## If ``False`` (default), when a cell raises an error the execution is stopped
-#  and a `CellExecutionError` is raised. If ``True``, execution errors are
-#  ignored and the execution is continued until the end of the notebook. Output
-#  from exceptions is included in the cell output in both cases.
+#  and a ``CellExecutionError`` is raised, except if the error name is in
+#  ``allow_error_names``. If ``True``, execution errors are ignored and the
+#  execution is continued until the end of the notebook. Output from exceptions
+#  is included in the cell output in both cases.
 #  Default: False
 # c.NotebookClient.allow_errors = False
 
@@ -620,17 +629,29 @@ c.ClearSolutions.text_stub = ''
 #  Default: ['text/html', 'application/pdf', 'text/latex', 'image/svg+xml', 'image/png', 'image/jpeg', 'text/markdown', 'text/plain']
 # c.NotebookClient.display_data_priority = ['text/html', 'application/pdf', 'text/latex', 'image/svg+xml', 'image/png', 'image/jpeg', 'text/markdown', 'text/plain']
 
+## If a cell execution was interrupted after a timeout, don't wait for the
+#  execute_reply from the kernel (e.g. KeyboardInterrupt error). Instead, return
+#  an execute_reply with the given error, which should be of the following form::
+#  
+#      {
+#          'ename': str,  # Exception name, as a string
+#          'evalue': str,  # Exception value, as a string
+#          'traceback': list(str),  # traceback frames, as strings
+#      }
+#  Default: None
+# c.NotebookClient.error_on_timeout = None
+
 #  Default: []
 # c.NotebookClient.extra_arguments = []
 
 ## If False (default), errors from executing the notebook can be allowed with a
-#  ``raises-exception`` tag on a single cell, or the ``allow_errors``
-#  configurable option for all cells. An allowed error will be recorded in
-#  notebook output, and execution will continue. If an error occurs when it is
-#  not explicitly allowed, a `CellExecutionError` will be raised. If True,
-#  `CellExecutionError` will be raised for any error that occurs while executing
-#  the notebook. This overrides both the ``allow_errors`` option and the
-#  ``raises-exception`` cell tag.
+#  ``raises-exception`` tag on a single cell, or the ``allow_errors`` or
+#  ``allow_error_names`` configurable options for all cells. An allowed error
+#  will be recorded in notebook output, and execution will continue. If an error
+#  occurs when it is not explicitly allowed, a ``CellExecutionError`` will be
+#  raised. If True, ``CellExecutionError`` will be raised for any error that
+#  occurs while executing the notebook. This overrides the ``allow_errors`` and
+#  ``allow_error_names`` options and the ``raises-exception`` cell tag.
 #  Default: False
 # c.NotebookClient.force_raise_errors = False
 
@@ -647,24 +668,67 @@ c.ClearSolutions.text_stub = ''
 
 ## Path to file to use for SQLite history database for an IPython kernel.
 #  
-#  The specific value ``:memory:`` (including the colon at both end but not the
-#  back ticks), avoids creating a history file. Otherwise, IPython will create a
-#  history file for each kernel.
+#          The specific value ``:memory:`` (including the colon
+#          at both end but not the back ticks), avoids creating a history file. Otherwise, IPython
+#          will create a history file for each kernel.
 #  
-#  When running kernels simultaneously (e.g. via multiprocessing) saving history
-#  a single SQLite file can result in database errors, so using ``:memory:`` is
-#  recommended in non-interactive contexts.
+#          When running kernels simultaneously (e.g. via multiprocessing) saving history a single
+#          SQLite file can result in database errors, so using ``:memory:`` is recommended in
+#          non-interactive contexts.
 #  Default: ':memory:'
 # c.NotebookClient.ipython_hist_file = ':memory:'
 
 ## The kernel manager class to use.
-#  Default: 'builtins.object'
-# c.NotebookClient.kernel_manager_class = 'builtins.object'
+#  Default: 'jupyter_client.manager.KernelManager'
+# c.NotebookClient.kernel_manager_class = 'jupyter_client.manager.KernelManager'
 
 ## Name of kernel to use to execute the cells. If not set, use the kernel_spec
 #  embedded in the notebook.
 #  Default: ''
 # c.NotebookClient.kernel_name = ''
+
+## A callable which executes after a cell execution is complete. It is called
+#  even when a cell results in a failure. Called with kwargs ``cell`` and
+#  ``cell_index``.
+#  Default: None
+# c.NotebookClient.on_cell_complete = None
+
+## A callable which executes when a cell execution results in an error. This is
+#  executed even if errors are suppressed with ``cell_allows_errors``. Called
+#  with kwargs ``cell`, ``cell_index`` and ``execute_reply``.
+#  Default: None
+# c.NotebookClient.on_cell_error = None
+
+## A callable which executes just before a code cell is executed. Called with
+#  kwargs ``cell`` and ``cell_index``.
+#  Default: None
+# c.NotebookClient.on_cell_execute = None
+
+## A callable which executes just after a code cell is executed, whether or not
+#  it results in an error. Called with kwargs ``cell``, ``cell_index`` and
+#  ``execute_reply``.
+#  Default: None
+# c.NotebookClient.on_cell_executed = None
+
+## A callable which executes before a cell is executed and before non-executing
+#  cells are skipped. Called with kwargs ``cell`` and ``cell_index``.
+#  Default: None
+# c.NotebookClient.on_cell_start = None
+
+## A callable which executes after the kernel is cleaned up. Called with kwargs
+#  ``notebook``.
+#  Default: None
+# c.NotebookClient.on_notebook_complete = None
+
+## A callable which executes when the notebook encounters an error. Called with
+#  kwargs ``notebook``.
+#  Default: None
+# c.NotebookClient.on_notebook_error = None
+
+## A callable which executes after the kernel manager and kernel client are
+#  setup, and cells are about to execute. Called with kwargs ``notebook``.
+#  Default: None
+# c.NotebookClient.on_notebook_start = None
 
 ## If ``False`` (default), then the kernel will continue waiting for iopub
 #  messages until it receives a kernel idle message, or until a timeout occurs,
@@ -692,6 +756,10 @@ c.ClearSolutions.text_stub = ''
 #  Choices: any of ['graceful', 'immediate']
 #  Default: 'graceful'
 # c.NotebookClient.shutdown_kernel = 'graceful'
+
+## Name of the cell tag to use to denote a cell that should be skipped.
+#  Default: 'skip-execution'
+# c.NotebookClient.skip_cells_with_tag = 'skip-execution'
 
 ## The time to wait (in seconds) for the kernel to start. If kernel startup takes
 #  longer, a RuntimeError is raised.
@@ -728,6 +796,10 @@ c.ClearSolutions.text_stub = ''
 ## Executes all the cells in a notebook
 
 ## 
+#  See also: NotebookClient.allow_error_names
+# c.ExecutePreprocessor.allow_error_names = []
+
+## 
 #  See also: NotebookClient.allow_errors
 # c.ExecutePreprocessor.allow_errors = False
 
@@ -742,6 +814,10 @@ c.ClearSolutions.text_stub = ''
 
 #  See also: Preprocessor.enabled
 # c.ExecutePreprocessor.enabled = False
+
+## 
+#  See also: NotebookClient.error_on_timeout
+# c.ExecutePreprocessor.error_on_timeout = None
 
 #  See also: NotebookClient.extra_arguments
 # c.ExecutePreprocessor.extra_arguments = []
@@ -764,11 +840,43 @@ c.ClearSolutions.text_stub = ''
 
 ## The kernel manager class to use.
 #  See also: NotebookClient.kernel_manager_class
-# c.ExecutePreprocessor.kernel_manager_class = 'builtins.object'
+# c.ExecutePreprocessor.kernel_manager_class = 'jupyter_client.manager.KernelManager'
 
 ## 
 #  See also: NotebookClient.kernel_name
 # c.ExecutePreprocessor.kernel_name = ''
+
+## 
+#  See also: NotebookClient.on_cell_complete
+# c.ExecutePreprocessor.on_cell_complete = None
+
+## 
+#  See also: NotebookClient.on_cell_error
+# c.ExecutePreprocessor.on_cell_error = None
+
+## 
+#  See also: NotebookClient.on_cell_execute
+# c.ExecutePreprocessor.on_cell_execute = None
+
+## 
+#  See also: NotebookClient.on_cell_executed
+# c.ExecutePreprocessor.on_cell_executed = None
+
+## 
+#  See also: NotebookClient.on_cell_start
+# c.ExecutePreprocessor.on_cell_start = None
+
+## 
+#  See also: NotebookClient.on_notebook_complete
+# c.ExecutePreprocessor.on_notebook_complete = None
+
+## 
+#  See also: NotebookClient.on_notebook_error
+# c.ExecutePreprocessor.on_notebook_error = None
+
+## 
+#  See also: NotebookClient.on_notebook_start
+# c.ExecutePreprocessor.on_notebook_start = None
 
 ## 
 #  See also: NotebookClient.raise_on_iopub_timeout
@@ -785,6 +893,10 @@ c.ClearSolutions.text_stub = ''
 ## 
 #  See also: NotebookClient.shutdown_kernel
 # c.ExecutePreprocessor.shutdown_kernel = 'graceful'
+
+## 
+#  See also: NotebookClient.skip_cells_with_tag
+# c.ExecutePreprocessor.skip_cells_with_tag = 'skip-execution'
 
 ## 
 #  See also: NotebookClient.startup_timeout
@@ -805,6 +917,10 @@ c.ClearSolutions.text_stub = ''
 #------------------------------------------------------------------------------
 # Execute(NbGraderPreprocessor, ExecutePreprocessor) configuration
 #------------------------------------------------------------------------------
+## 
+#  See also: NotebookClient.allow_error_names
+# c.Execute.allow_error_names = []
+
 ## Whether to use this preprocessor when running nbgrader
 #  See also: NbGraderPreprocessor.enabled
 # c.Execute.enabled = True
@@ -835,11 +951,39 @@ c.ClearSolutions.text_stub = ''
 
 ## The kernel manager class to use.
 #  See also: NotebookClient.kernel_manager_class
-# c.Execute.kernel_manager_class = 'builtins.object'
+# c.Execute.kernel_manager_class = 'jupyter_client.manager.KernelManager'
 
 ## 
 #  See also: NotebookClient.kernel_name
 # c.Execute.kernel_name = ''
+
+## 
+#  See also: NotebookClient.on_cell_complete
+# c.Execute.on_cell_complete = None
+
+## 
+#  See also: NotebookClient.on_cell_error
+# c.Execute.on_cell_error = None
+
+## 
+#  See also: NotebookClient.on_cell_execute
+# c.Execute.on_cell_execute = None
+
+## 
+#  See also: NotebookClient.on_cell_start
+# c.Execute.on_cell_start = None
+
+## 
+#  See also: NotebookClient.on_notebook_complete
+# c.Execute.on_notebook_complete = None
+
+## 
+#  See also: NotebookClient.on_notebook_error
+# c.Execute.on_notebook_error = None
+
+## 
+#  See also: NotebookClient.on_notebook_start
+# c.Execute.on_notebook_start = None
 
 ## 
 #  See also: NotebookClient.record_timing
@@ -854,16 +998,16 @@ c.ClearSolutions.text_stub = ''
 # c.Execute.shutdown_kernel = 'graceful'
 
 ## 
+#  See also: NotebookClient.skip_cells_with_tag
+# c.Execute.skip_cells_with_tag = 'skip-execution'
+
+## 
 #  See also: NotebookClient.startup_timeout
 # c.Execute.startup_timeout = 60
 
 ## 
 #  See also: NotebookClient.store_widget_state
 # c.Execute.store_widget_state = True
-
-## 
-#  See also: NotebookClient.timeout
-# c.Execute.timeout = None
 
 ## 
 #  See also: NotebookClient.timeout_func
@@ -994,30 +1138,9 @@ c.ClearSolutions.text_stub = ''
 # Exchange(LoggingConfigurable) configuration
 #------------------------------------------------------------------------------
 ## Local path for storing student assignments.  Defaults to '.' which is normally
-#  Jupyter's notebook_dir.
+#  Jupyter's root_dir.
 #  Default: '.'
 # c.Exchange.assignment_dir = '.'
-
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  Default: ''
-# c.Exchange.cache = ''
-
-## Whether the path for fetching/submitting  assignments should be prefixed with
-#  the course name. If this is `False`, then the path will be something like
-#  `./ps1`. If this is `True`, then the path will be something like
-#  `./course123/ps1`.
-#  Default: False
-# c.Exchange.path_includes_course = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  Default: '/srv/nbgrader/exchange'
-# c.Exchange.root = '/srv/nbgrader/exchange'
-
-#########################################
-### make a symlink /srv/nbgrader -> /home/share/nbgrader
-### c.Exchange.root = '/home/share/nbgrader/exchange'
-#########################################
 
 ## Format string for timestamps
 #  Default: '%Y-%m-%d %H:%M:%S.%f %Z'
@@ -1034,23 +1157,15 @@ c.ClearSolutions.text_stub = ''
 #  See also: Exchange.assignment_dir
 # c.ExchangeCollect.assignment_dir = '.'
 
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  See also: Exchange.cache
-# c.ExchangeCollect.cache = ''
+## Collect the last submission before due date or the last submission if no
+#  submission before due date.
+#  Default: False
+# c.ExchangeCollect.before_duedate = False
 
 ## Whether to cross-check the student_id with the UNIX-owner of the submitted
 #  directory.
 #  Default: True
 # c.ExchangeCollect.check_owner = True
-
-## 
-#  See also: Exchange.path_includes_course
-# c.ExchangeCollect.path_includes_course = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  See also: Exchange.root
-# c.ExchangeCollect.root = '/srv/nbgrader/exchange'
 
 ## Format string for timestamps
 #  See also: Exchange.timestamp_format
@@ -1071,22 +1186,9 @@ c.ClearSolutions.text_stub = ''
 #  See also: Exchange.assignment_dir
 # c.ExchangeFetchAssignment.assignment_dir = '.'
 
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  See also: Exchange.cache
-# c.ExchangeFetchAssignment.cache = ''
-
-## 
-#  See also: Exchange.path_includes_course
-# c.ExchangeFetchAssignment.path_includes_course = False
-
 ## Whether to replace missing files on fetch
 #  Default: False
 # c.ExchangeFetchAssignment.replace_missing_files = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  See also: Exchange.root
-# c.ExchangeFetchAssignment.root = '/srv/nbgrader/exchange'
 
 ## Format string for timestamps
 #  See also: Exchange.timestamp_format
@@ -1103,22 +1205,9 @@ c.ClearSolutions.text_stub = ''
 #  See also: Exchange.assignment_dir
 # c.ExchangeFetch.assignment_dir = '.'
 
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  See also: Exchange.cache
-# c.ExchangeFetch.cache = ''
-
-## 
-#  See also: Exchange.path_includes_course
-# c.ExchangeFetch.path_includes_course = False
-
 ## Whether to replace missing files on fetch
 #  See also: ExchangeFetchAssignment.replace_missing_files
 # c.ExchangeFetch.replace_missing_files = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  See also: Exchange.root
-# c.ExchangeFetch.root = '/srv/nbgrader/exchange'
 
 ## Format string for timestamps
 #  See also: Exchange.timestamp_format
@@ -1135,19 +1224,6 @@ c.ClearSolutions.text_stub = ''
 #  See also: Exchange.assignment_dir
 # c.ExchangeFetchFeedback.assignment_dir = '.'
 
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  See also: Exchange.cache
-# c.ExchangeFetchFeedback.cache = ''
-
-## 
-#  See also: Exchange.path_includes_course
-# c.ExchangeFetchFeedback.path_includes_course = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  See also: Exchange.root
-# c.ExchangeFetchFeedback.root = '/srv/nbgrader/exchange'
-
 ## Format string for timestamps
 #  See also: Exchange.timestamp_format
 # c.ExchangeFetchFeedback.timestamp_format = '%Y-%m-%d %H:%M:%S.%f %Z'
@@ -1163,11 +1239,6 @@ c.ClearSolutions.text_stub = ''
 #  See also: Exchange.assignment_dir
 # c.ExchangeList.assignment_dir = '.'
 
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  See also: Exchange.cache
-# c.ExchangeList.cache = ''
-
 ## List assignments in submission cache.
 #  Default: False
 # c.ExchangeList.cached = False
@@ -1176,17 +1247,9 @@ c.ClearSolutions.text_stub = ''
 #  Default: False
 # c.ExchangeList.inbound = False
 
-## 
-#  See also: Exchange.path_includes_course
-# c.ExchangeList.path_includes_course = False
-
 ## Remove, rather than list files.
 #  Default: False
 # c.ExchangeList.remove = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  See also: Exchange.root
-# c.ExchangeList.root = '/srv/nbgrader/exchange'
 
 ## Format string for timestamps
 #  See also: Exchange.timestamp_format
@@ -1203,22 +1266,9 @@ c.ClearSolutions.text_stub = ''
 #  See also: Exchange.assignment_dir
 # c.ExchangeReleaseAssignment.assignment_dir = '.'
 
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  See also: Exchange.cache
-# c.ExchangeReleaseAssignment.cache = ''
-
 ## Force overwrite existing files in the exchange.
 #  Default: False
 # c.ExchangeReleaseAssignment.force = False
-
-## 
-#  See also: Exchange.path_includes_course
-# c.ExchangeReleaseAssignment.path_includes_course = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  See also: Exchange.root
-# c.ExchangeReleaseAssignment.root = '/srv/nbgrader/exchange'
 
 ## Format string for timestamps
 #  See also: Exchange.timestamp_format
@@ -1235,22 +1285,9 @@ c.ClearSolutions.text_stub = ''
 #  See also: Exchange.assignment_dir
 # c.ExchangeRelease.assignment_dir = '.'
 
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  See also: Exchange.cache
-# c.ExchangeRelease.cache = ''
-
 ## Force overwrite existing files in the exchange.
 #  See also: ExchangeReleaseAssignment.force
 # c.ExchangeRelease.force = False
-
-## 
-#  See also: Exchange.path_includes_course
-# c.ExchangeRelease.path_includes_course = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  See also: Exchange.root
-# c.ExchangeRelease.root = '/srv/nbgrader/exchange'
 
 ## Format string for timestamps
 #  See also: Exchange.timestamp_format
@@ -1267,19 +1304,6 @@ c.ClearSolutions.text_stub = ''
 #  See also: Exchange.assignment_dir
 # c.ExchangeReleaseFeedback.assignment_dir = '.'
 
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  See also: Exchange.cache
-# c.ExchangeReleaseFeedback.cache = ''
-
-## 
-#  See also: Exchange.path_includes_course
-# c.ExchangeReleaseFeedback.path_includes_course = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  See also: Exchange.root
-# c.ExchangeReleaseFeedback.root = '/srv/nbgrader/exchange'
-
 ## Format string for timestamps
 #  See also: Exchange.timestamp_format
 # c.ExchangeReleaseFeedback.timestamp_format = '%Y-%m-%d %H:%M:%S.%f %Z'
@@ -1291,26 +1315,9 @@ c.ClearSolutions.text_stub = ''
 #------------------------------------------------------------------------------
 # ExchangeSubmit(Exchange) configuration
 #------------------------------------------------------------------------------
-## Whether to add a random string on the end of the submission.
-#  Default: True
-# c.ExchangeSubmit.add_random_string = True
-
 ## 
 #  See also: Exchange.assignment_dir
 # c.ExchangeSubmit.assignment_dir = '.'
-
-## Local cache directory for nbgrader submit and nbgrader list. Defaults to
-#  $JUPYTER_DATA_DIR/nbgrader_cache
-#  See also: Exchange.cache
-# c.ExchangeSubmit.cache = ''
-
-## 
-#  See also: Exchange.path_includes_course
-# c.ExchangeSubmit.path_includes_course = False
-
-## The nbgrader exchange directory writable to everyone. MUST be preexisting.
-#  See also: Exchange.root
-# c.ExchangeSubmit.root = '/srv/nbgrader/exchange'
 
 ## Whether or not to submit the assignment if there are missing notebooks from
 #  the released assignment notebooks.
@@ -1328,6 +1335,9 @@ c.ClearSolutions.text_stub = ''
 #------------------------------------------------------------------------------
 # BaseConverter(LoggingConfigurable) configuration
 #------------------------------------------------------------------------------
+#  Default: 'nbconvert.exporters.notebook.NotebookExporter'
+# c.BaseConverter.exporter_class = 'nbconvert.exporters.notebook.NotebookExporter'
+
 ## Whether to overwrite existing assignments/submissions
 #  Default: False
 # c.BaseConverter.force = False
@@ -1338,12 +1348,37 @@ c.ClearSolutions.text_stub = ''
 #  Default: 0
 # c.BaseConverter.permissions = 0
 
+## An optional hook function that you can implement to do some work after
+#  converting.  This function is called after the notebooks are converted and
+#  should be used for specific converters such as Autograde, GenerateAssignment
+#  or GenerateFeedback.
+#  
+#  It will be called as (all arguments are passed as keywords)::
+#  
+#      hook(assignment=assignment, student=student, notebooks=notebooks)
+#  Default: None
+# c.BaseConverter.post_convert_hook = None
+
+## An optional hook function that you can implement to do some bootstrapping work
+#  before converting.  This function is called before the notebooks are converted
+#  and should be used for specific converters such as Autograde,
+#  GenerateAssignment or GenerateFeedback.
+#  
+#  It will be called as (all arguments are passed as keywords)::
+#  
+#      hook(assignment=assignment, student=student, notebooks=notebooks)
+#  Default: None
+# c.BaseConverter.pre_convert_hook = None
+
 #------------------------------------------------------------------------------
 # GenerateAssignment(BaseConverter) configuration
 #------------------------------------------------------------------------------
 ## Whether to create the assignment at runtime if it does not already exist.
 #  Default: True
 # c.GenerateAssignment.create_assignment = True
+
+#  See also: BaseConverter.exporter_class
+# c.GenerateAssignment.exporter_class = 'nbconvert.exporters.notebook.NotebookExporter'
 
 ## Whether to overwrite existing assignments/submissions
 #  See also: BaseConverter.force
@@ -1357,12 +1392,26 @@ c.ClearSolutions.text_stub = ''
 #  See also: BaseConverter.permissions
 # c.GenerateAssignment.permissions = 0
 
+## 
+#  See also: BaseConverter.post_convert_hook
+# c.GenerateAssignment.post_convert_hook = None
+
+## 
+#  See also: BaseConverter.pre_convert_hook
+# c.GenerateAssignment.pre_convert_hook = None
+
+#  Default: [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearsolutions.ClearSolutions'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.savecells.SaveCells'>, <class 'nbgrader.preprocessors.clearhiddentests.ClearHiddenTests'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+# c.GenerateAssignment.preprocessors = [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearsolutions.ClearSolutions'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.savecells.SaveCells'>, <class 'nbgrader.preprocessors.clearhiddentests.ClearHiddenTests'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+
 #------------------------------------------------------------------------------
 # Assign(GenerateAssignment) configuration
 #------------------------------------------------------------------------------
 ## 
 #  See also: GenerateAssignment.create_assignment
 # c.Assign.create_assignment = True
+
+#  See also: BaseConverter.exporter_class
+# c.Assign.exporter_class = 'nbconvert.exporters.notebook.NotebookExporter'
 
 ## Whether to overwrite existing assignments/submissions
 #  See also: BaseConverter.force
@@ -1376,9 +1425,23 @@ c.ClearSolutions.text_stub = ''
 #  See also: BaseConverter.permissions
 # c.Assign.permissions = 0
 
+## 
+#  See also: BaseConverter.post_convert_hook
+# c.Assign.post_convert_hook = None
+
+## 
+#  See also: BaseConverter.pre_convert_hook
+# c.Assign.pre_convert_hook = None
+
+#  See also: GenerateAssignment.preprocessors
+# c.Assign.preprocessors = [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearsolutions.ClearSolutions'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.savecells.SaveCells'>, <class 'nbgrader.preprocessors.clearhiddentests.ClearHiddenTests'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+
 #------------------------------------------------------------------------------
 # Autograde(BaseConverter) configuration
 #------------------------------------------------------------------------------
+#  Default: [<class 'nbgrader.preprocessors.execute.Execute'>, <class 'nbconvert.preprocessors.clearmetadata.ClearMetadataPreprocessor'>, <class 'nbgrader.preprocessors.limitoutput.LimitOutput'>, <class 'nbgrader.preprocessors.saveautogrades.SaveAutoGrades'>, <class 'nbgrader.preprocessors.latesubmissions.AssignLatePenalties'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+# c.Autograde.autograde_preprocessors = [<class 'nbgrader.preprocessors.execute.Execute'>, <class 'nbconvert.preprocessors.clearmetadata.ClearMetadataPreprocessor'>, <class 'nbgrader.preprocessors.limitoutput.LimitOutput'>, <class 'nbgrader.preprocessors.saveautogrades.SaveAutoGrades'>, <class 'nbgrader.preprocessors.latesubmissions.AssignLatePenalties'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+
 ## Whether to create the student at runtime if it does not already exist.
 #  Default: True
 # c.Autograde.create_student = True
@@ -1390,6 +1453,9 @@ c.ClearSolutions.text_stub = ''
 #  Default: {}
 # c.Autograde.exclude_overwriting = {}
 
+#  See also: BaseConverter.exporter_class
+# c.Autograde.exporter_class = 'nbconvert.exporters.notebook.NotebookExporter'
+
 ## Whether to overwrite existing assignments/submissions
 #  See also: BaseConverter.force
 # c.Autograde.force = False
@@ -1398,9 +1464,23 @@ c.ClearSolutions.text_stub = ''
 #  See also: BaseConverter.permissions
 # c.Autograde.permissions = 0
 
+## 
+#  See also: BaseConverter.post_convert_hook
+# c.Autograde.post_convert_hook = None
+
+## 
+#  See also: BaseConverter.pre_convert_hook
+# c.Autograde.pre_convert_hook = None
+
+#  Default: [<class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.deduplicateids.DeduplicateIds'>, <class 'nbgrader.preprocessors.overwritekernelspec.OverwriteKernelspec'>, <class 'nbgrader.preprocessors.overwritecells.OverwriteCells'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+# c.Autograde.sanitize_preprocessors = [<class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.deduplicateids.DeduplicateIds'>, <class 'nbgrader.preprocessors.overwritekernelspec.OverwriteKernelspec'>, <class 'nbgrader.preprocessors.overwritecells.OverwriteCells'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+
 #------------------------------------------------------------------------------
 # GenerateFeedback(BaseConverter) configuration
 #------------------------------------------------------------------------------
+#  See also: BaseConverter.exporter_class
+# c.GenerateFeedback.exporter_class = 'nbconvert.exporters.notebook.NotebookExporter'
+
 ## Whether to overwrite existing assignments/submissions
 #  See also: BaseConverter.force
 # c.GenerateFeedback.force = False
@@ -1409,9 +1489,23 @@ c.ClearSolutions.text_stub = ''
 #  See also: BaseConverter.permissions
 # c.GenerateFeedback.permissions = 0
 
+## 
+#  See also: BaseConverter.post_convert_hook
+# c.GenerateFeedback.post_convert_hook = None
+
+## 
+#  See also: BaseConverter.pre_convert_hook
+# c.GenerateFeedback.pre_convert_hook = None
+
+#  Default: [<class 'nbgrader.preprocessors.getgrades.GetGrades'>, <class 'nbconvert.preprocessors.csshtmlheader.CSSHTMLHeaderPreprocessor'>]
+# c.GenerateFeedback.preprocessors = [<class 'nbgrader.preprocessors.getgrades.GetGrades'>, <class 'nbconvert.preprocessors.csshtmlheader.CSSHTMLHeaderPreprocessor'>]
+
 #------------------------------------------------------------------------------
 # Feedback(GenerateFeedback) configuration
 #------------------------------------------------------------------------------
+#  See also: BaseConverter.exporter_class
+# c.Feedback.exporter_class = 'nbconvert.exporters.notebook.NotebookExporter'
+
 ## Whether to overwrite existing assignments/submissions
 #  See also: BaseConverter.force
 # c.Feedback.force = False
@@ -1419,3 +1513,43 @@ c.ClearSolutions.text_stub = ''
 ## 
 #  See also: BaseConverter.permissions
 # c.Feedback.permissions = 0
+
+## 
+#  See also: BaseConverter.post_convert_hook
+# c.Feedback.post_convert_hook = None
+
+## 
+#  See also: BaseConverter.pre_convert_hook
+# c.Feedback.pre_convert_hook = None
+
+#  See also: GenerateFeedback.preprocessors
+# c.Feedback.preprocessors = [<class 'nbgrader.preprocessors.getgrades.GetGrades'>, <class 'nbconvert.preprocessors.csshtmlheader.CSSHTMLHeaderPreprocessor'>]
+
+#------------------------------------------------------------------------------
+# GenerateSolution(BaseConverter) configuration
+#------------------------------------------------------------------------------
+## Whether to create the assignment at runtime if it does not already exist.
+#  Default: True
+# c.GenerateSolution.create_assignment = True
+
+#  See also: BaseConverter.exporter_class
+# c.GenerateSolution.exporter_class = 'nbconvert.exporters.notebook.NotebookExporter'
+
+## Whether to overwrite existing assignments/submissions
+#  See also: BaseConverter.force
+# c.GenerateSolution.force = False
+
+## 
+#  See also: BaseConverter.permissions
+# c.GenerateSolution.permissions = 0
+
+## 
+#  See also: BaseConverter.post_convert_hook
+# c.GenerateSolution.post_convert_hook = None
+
+## 
+#  See also: BaseConverter.pre_convert_hook
+# c.GenerateSolution.pre_convert_hook = None
+
+#  Default: [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.execute.Execute'>]
+# c.GenerateSolution.preprocessors = [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.execute.Execute'>]

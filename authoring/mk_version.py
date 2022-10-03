@@ -37,28 +37,7 @@ class parser:
         self.mode = mode
 
     def classify_line(self):
-        """
-        attach token label to the current line
-        """
-        if self.line == "":
-            return "eof", None
-        line = self.line.rstrip()
-        m = re.match(r"#com\s+(?P<comment>.*)", line)
-        if m:
-            return "comment", m.group("comment")
-        m = re.match(r"#ifpy\s+(?P<expr>.*)", line)
-        if m:
-            return "if", m.group("expr")
-        m = re.match(r"#elifpy\s+(?P<expr>.*)", line)
-        if m:
-            return "elif", m.group("expr")
-        m = re.match(r"#elsepy\s*", line)
-        if m:
-            return "else", None
-        m = re.match(r"#endifpy\s*", line)
-        if m:
-            return "endif", None
-        return "regular", None
+        not_implemented
 
     def next_line(self):
         """
@@ -172,7 +151,115 @@ class parser:
         self.parse_clause(directives, context)
         self.eat_eof()
 
+    def close(self):
+        self.fp.close()
 
+class parser_gen(parser):
+    def classify_line(self):
+        """
+        attach token label to the current line
+        """
+        if self.line == "":
+            return "eof", None
+        line = self.line.rstrip()
+        m = re.match(r"#com\s+(?P<comment>.*)", line)
+        if m:
+            return "comment", m.group("comment")
+        m = re.match(r"#ifpy\s+(?P<expr>.*)", line)
+        if m:
+            return "if", m.group("expr")
+        m = re.match(r"#elifpy\s+(?P<expr>.*)", line)
+        if m:
+            return "elif", m.group("expr")
+        m = re.match(r"#elsepy\s*", line)
+        if m:
+            return "else", None
+        m = re.match(r"#endifpy\s*", line)
+        if m:
+            return "endif", None
+        return "regular", None
+
+class parser_ml(parser):
+    def classify_line(self):
+        """
+        attach token label to the current line
+        """
+        if self.line == "":
+            return "eof", None
+        line = self.line.rstrip()
+        m = re.match(r"\(\*\* com\s+(?P<comment>.*)\*\)", line)
+        if m:
+            return "comment", m.group("comment")
+        m = re.match(r"\(\*\* if\s+(?P<expr>.*)\*\)", line)
+        if m:
+            return "if", m.group("expr")
+        m = re.match(r"\(\*\* elif\s+(?P<expr>.*)\*\)", line)
+        if m:
+            return "elif", m.group("expr")
+        m = re.match(r"\(\*\* else\s*\*\)", line)
+        if m:
+            return "else", None
+        m = re.match(r"\(\*\* endif\s*\*\)", line)
+        if m:
+            return "endif", None
+        return "regular", None
+    
+class parser_c(parser):
+    def classify_line(self):
+        """
+        attach token label to the current line
+        """
+        if self.line == "":
+            return "eof", None
+        line = self.line.rstrip()
+        m = re.match(r"/\*\*\* com\s+(?P<comment>.*)\*/", line)
+        if m:
+            return "comment", m.group("comment")
+        m = re.match(r"/\*\*\* if\s+(?P<expr>.*)\*/", line)
+        if m:
+            return "if", m.group("expr")
+        m = re.match(r"/\*\*\* elif\s+(?P<expr>.*)\*/", line)
+        if m:
+            return "elif", m.group("expr")
+        m = re.match(r"/\*\*\* else\s*\*/", line)
+        if m:
+            return "else", None
+        m = re.match(r"/\*\*\* endif\s*\*/", line)
+        if m:
+            return "endif", None
+        return "regular", None
+    
+class parser_py(parser):
+    def classify_line(self):
+        """
+        attach token label to the current line
+        """
+        if self.line == "":
+            return "eof", None
+        line = self.line.rstrip()
+        m = re.match(r"### com\s+(?P<comment>.*)", line)
+        if m:
+            return "comment", m.group("comment")
+        m = re.match(r"### if\s+(?P<expr>.*)", line)
+        if m:
+            return "if", m.group("expr")
+        m = re.match(r"### elif\s+(?P<expr>.*)", line)
+        if m:
+            return "elif", m.group("expr")
+        m = re.match(r"### else\s*", line)
+        if m:
+            return "else", None
+        m = re.match(r"### endif\s*", line)
+        if m:
+            return "endif", None
+        return "regular", None
+    
+def parse_int_or_string(x):
+    try:
+        return int(x)
+    except ValueError:
+        return x
+    
 def parse_var_defs(var_defs):
     """
     parse VAR=DEF
@@ -181,7 +268,7 @@ def parse_var_defs(var_defs):
     for vd in var_defs:
         m = re.match("(?P<var>.*?)=(?P<def>.*)", vd)
         assert(m), vd
-        D[m.group("var")] = int(m.group("def"))
+        D[m.group("var")] = parse_int_or_string(m.group("def"))
     return D
 
 def parse_args(argv):
@@ -192,6 +279,7 @@ def parse_args(argv):
     psr.add_argument("-D", dest="var_defs", default=[], action="append")
     psr.add_argument("--mode", dest="mode", metavar="MODE(regular/comment)",
                      default="regular")
+    psr.add_argument("--lang", dest="lang", metavar="LANG(c/py/ml/jl/go/rs)")
     psr.add_argument("files", metavar="FILE", nargs="+")
     opt = psr.parse_args(argv[1:])
     opt.directives = parse_var_defs(opt.var_defs)
@@ -203,16 +291,39 @@ def parse_args(argv):
     opt.directives["BASENAME"] = base
     return opt
 
+def mk_parser(src, mode, lang):
+    fp = open(src)
+    if lang is None:
+        base,ext = os.path.splitext(src)
+        langs = ["c", "py", "ml", "jl", "go", "rs"]
+        assert(ext[1:] in langs), ext
+        lang = ext[1:]
+    if lang == "gen":
+        return parser_gen(fp, mode)
+    elif lang == "py":
+        return parser_py(fp, mode)
+    elif lang == "ml":
+        return parser_ml(fp, mode)
+    elif lang == "jl":
+        return parser_py(fp, mode)
+    elif lang == "go":
+        return parser_c(fp, mode)
+    elif lang == "rs":
+        return parser_c(fp, mode)
+    else:
+        assert(0), lang
+    return psr
+
 def main():
     """
     main
     """
     opt = parse_args(sys.argv)
     for src in opt.files:
-        with open(src) as fp:
-            psr = parser(fp, opt.mode)
-            psr.parse_file(opt.directives)
-            # handle_directives(fp, opt.directives)
+        psr = mk_parser(src, opt.mode, opt.lang)
+        psr.parse_file(opt.directives)
+        # handle_directives(fp, opt.directives)
+        psr.close()
 
 if __name__ == "__main__":
     main()

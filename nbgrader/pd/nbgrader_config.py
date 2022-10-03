@@ -214,7 +214,7 @@
 #  by setting the config option, or using the --course option on the command
 #  line.
 #  Default: ''
-c.CourseDirectory.course_id = 'pmp'
+c.CourseDirectory.course_id = 'pd'
 
 ## URL to the database. Defaults to sqlite:///<root>/gradebook.db, where <root>
 #  is another configurable variable.

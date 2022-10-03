@@ -127,3 +127,12 @@ users.csv must be the same file you gave to rsync_notebooks.py and sync.sqlite t
 
 If you want to change filenames users.csv and sync.sqlite, copy progress_viewer_config.py.example and configure them accordingly.
 
+### configuration
+
+settings you might want to change are imported from progress_viewer_config.py.  If the file does not exist, default values written in the progress_viewer.py are used.
+
+### displaying personal information
+
+* by default, the viewer does not show the real name of the user.
+* it is shown when you enter a correct password in the "passwd:" box
+* the correct password should be set in progress_viewer_config.py
