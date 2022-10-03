@@ -73,7 +73,7 @@ dummy := $(shell tail -n +2 $(users_csv) | sqlite3 -csv -separator , $(users_sql
 #
 notebooks_dirs := $(shell sqlite3 $(users_sqlite) 'select notebooks from a')
 
-$(notebooks_dirs) : user=$(shell sqlite3 $(users_sqlite) 'select uid from a where notebooks="$*"')
+$(notebooks_dirs) : user=u$(shell sqlite3 $(users_sqlite) 'select uid from a where notebooks="$*"')
 $(notebooks_dirs) : % :
 	sudo -u $(user) mkdir -p $*
 
@@ -95,5 +95,5 @@ nb : $(notebooks_dirs) $(nbgrader_configs)
 #
 feedback_class ?= pl
 feedback :
-	sqlite3 $(users_sqlite) 'select "https://taulec.zapto.org:8000/   user="||uid||"   passwd="||password from a where class="$(feedback_class)"'
+	sqlite3 $(users_sqlite) 'select "https://taulec.zapto.org:8000/   user="||user||"   passwd="||password from a where class="$(feedback_class)"'
 

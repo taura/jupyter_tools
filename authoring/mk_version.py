@@ -306,6 +306,8 @@ def mk_parser(src, mode, lang):
         return parser_ml(fp, mode)
     elif lang == "jl":
         return parser_py(fp, mode)
+    elif lang == "c":
+        return parser_gen(fp, mode)
     elif lang == "go":
         return parser_c(fp, mode)
     elif lang == "rs":
