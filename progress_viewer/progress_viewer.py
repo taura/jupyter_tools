@@ -54,25 +54,26 @@ auth = dash_auth.BasicAuth(
 
 application = app.server
 
-progress_viewer_config = None
-try:
-    import progress_viewer_config
-except:
-    pass
+if 0:
+    progress_viewer_config = None
+    try:
+        import progress_viewer_config
+    except:
+        pass
 
-if progress_viewer_config:
-    SYNC_SQLITE = progress_viewer_config.SYNC_SQLITE
-    USERS_CSV = progress_viewer_config.USERS_CSV
-    USER_ATTRS = progress_viewer_config.USER_ATTRS
-    PASSWD = progress_viewer_config.PASSWD
-    URL_TEMPLATE = progress_viewer_config.URL_TEMPLATE
-else:
-    # default values likely to need to be overwritten
-    SYNC_SQLITE = "sync.sqlite"
-    USERS_CSV = "users.csv"
-    USER_ATTRS = ["real_name", "class", "team"]
-    PASSWD = "es1seePh"
-    URL_TEMPLATE = "https://taulec.zapto.org:8000/user/tau/notebooks/rsync/{filename}"
+    if progress_viewer_config:
+        SYNC_SQLITE = progress_viewer_config.SYNC_SQLITE
+        USERS_CSV = progress_viewer_config.USERS_CSV
+        USER_ATTRS = progress_viewer_config.USER_ATTRS
+        PASSWD = progress_viewer_config.PASSWD
+        URL_TEMPLATE = progress_viewer_config.URL_TEMPLATE
+    else:
+        # default values likely to need to be overwritten
+        SYNC_SQLITE = "sync.sqlite"
+        USERS_CSV = "users.csv"
+        USER_ATTRS = ["real_name", "class", "team"]
+        PASSWD = "es1seePh"
+        URL_TEMPLATE = "https://taulec.zapto.org:8000/user/tau/notebooks/sync_dest/{filename}"
 
 ################################################
 # nuts and bolts

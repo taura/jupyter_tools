@@ -782,22 +782,14 @@ c.JupyterHub.services = [
 #  
 #          When setting this, you should also set ssl_key
 #  Default: ''
-# c.JupyterHub.ssl_cert = ''
-
-#################################
-# c.JupyterHub.ssl_cert = '/etc/letsencrypt/live/taulec.zapto.org/fullchain.pem'
-c.JupyterHub.ssl_cert = '/etc/pki/tls/certs/taulec.zapto.org/taulec.zapto.org.crt'
-#################################
+import os
+c.JupyterHub.ssl_cert = '/etc/pki/tls/certs/{FQDN}/{FQDN}.crt'.format(FQDN=os.environ["FQDN"])
 
 ## Path to SSL key file for the public facing interface of the proxy
 #  
 #          When setting this, you should also set ssl_cert
 #  Default: ''
-# c.JupyterHub.ssl_key = ''
-#################################
-# c.JupyterHub.ssl_key = '/etc/letsencrypt/live/taulec.zapto.org/privkey.pem'
-c.JupyterHub.ssl_key = '/etc/pki/tls/certs/taulec.zapto.org/taulec.zapto.org.key'
-#################################
+c.JupyterHub.ssl_key = '/etc/pki/tls/certs/{FQDN}/{FQDN}.key'.format(FQDN=os.environ["FQDN"])
 
 ## Host to send statsd metrics to. An empty string (the default) disables sending
 #  metrics.

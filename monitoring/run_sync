@@ -1,2 +1,0 @@
-#!/bin/bash -x
-sudo ./rsync_notebooks.py --users-csv all_2022_nopw.csv --dest ~/notebooks/sync_dest > ./rsync_notebooks.log
