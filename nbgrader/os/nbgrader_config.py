@@ -535,6 +535,7 @@ os.chdir(c.CourseDirectory.root)
 ## The delimiter marking the beginning of a solution
 #  Default: 'BEGIN SOLUTION'
 # c.ClearSolutions.begin_solution_delimeter = 'BEGIN SOLUTION'
+c.ClearSolutions.begin_solution_delimeter = ''
 
 ## The code snippet that will replace code solutions
 #  Default: {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'sas': '/* YOUR CODE HERE */\n %notImplemented;', 'java': '// YOUR CODE HERE'}
@@ -548,6 +549,7 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 ## The delimiter marking the end of a solution
 #  Default: 'END SOLUTION'
 # c.ClearSolutions.end_solution_delimeter = 'END SOLUTION'
+c.ClearSolutions.end_solution_delimeter = ''
 
 ## Whether or not to complain if cells containing solutions regions are not
 #  marked as solution cells. WARNING: this will potentially cause things to break

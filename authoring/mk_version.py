@@ -295,7 +295,7 @@ def mk_parser(src, mode, lang):
     fp = open(src)
     if lang is None:
         base,ext = os.path.splitext(src)
-        langs = ["c", "cc", "cu", "py", "ml", "jl", "go", "rs"]
+        langs = ["h", "c", "cc", "cu", "py", "ml", "jl", "go", "rs"]
         assert(ext[1:] in langs), ext
         lang = ext[1:]
     if lang == "gen":
