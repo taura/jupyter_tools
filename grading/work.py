@@ -89,7 +89,7 @@ def answer_cells_of_dir(submission_dir):
     of all ipynb files in a directory
     """
     cells = {}
-    files = os.listdir(submission_dir)
+    files = sorted(os.listdir(submission_dir))
     for filename in files:
         if not filename.endswith(".ipynb"):
             continue
@@ -106,9 +106,9 @@ def get_answer_cells(inbound):
     """
     submission_dirs = get_submission_dirs(inbound)
     cells = {}
-    for student, dirs_of_student in submission_dirs.items():
+    for student, dirs_of_student in sorted(submission_dirs.items()):
         cells[student] = {}
-        for assignment, dirs_of_assignment in dirs_of_student.items():
+        for assignment, dirs_of_assignment in sorted(dirs_of_student.items()):
             newest_dir = dirs_of_assignment[-1] # get the newest
             cells_of_student_assignment = answer_cells_of_dir(newest_dir)
             cells[student][assignment] = cells_of_student_assignment
@@ -284,6 +284,8 @@ def join_outputs(outputs):
     out_s = []
     for dic in outputs:
         for val in dic.get("data", {}).values():
+            out_s.extend(val)
+        for val in dic.get("text", []):
             out_s.extend(val)
     return "".join(out_s)
     

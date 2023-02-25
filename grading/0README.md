@@ -1,5 +1,8 @@
 [1] nbgrader で submission を collect する
 
+nbgrader list
+nbgrader collect assignment_name
+
 [2] nbgrader で autograde する (形式的)
 
 ssh pl@taulec
