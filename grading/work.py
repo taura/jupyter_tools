@@ -69,10 +69,23 @@ def answer_cells_of_nb(a_ipynb):
         for cell in content["cells"]:
             meta = cell["metadata"]
             nbg = meta.get("nbgrader")
-            if nbg is None or not nbg["solution"]:
-                continue
-            assert("grade_id" in nbg), (a_ipynb, cell)
-            prob_name = nbg["grade_id"] # like a1-1-1
+            if 1:               # forgot to put points=1
+                get = 0
+                source_join = "".join(cell["source"])
+                if "%%writefile mm_simd.cc" in source_join:
+                    get = 1
+                    prob_name = "mm_simd"
+                if "%%writefile mm_simd_ilp.cc" in source_join:
+                    get = 1
+                    prob_name = "mm_simd_ilp"
+                if "%%writefile mm_fast.cc" in source_join:
+                    get = 1
+                    prob_name = "mm_afst"
+            if not get:
+                if nbg is None or not nbg["solution"]:
+                    continue
+                assert("grade_id" in nbg), (a_ipynb, cell)
+                prob_name = nbg["grade_id"] # like a1-1-1
             source = cell["source"]
             outputs = cell.get("outputs", [])
             if prob_name in cells:
@@ -466,8 +479,8 @@ def run(cmd, user):
 
 def download_notebooks_and_submissions(user):
     os.makedirs("dl", exist_ok=True)
-    run("rsync -avz {user}@taulec:notebooks dl/", user)
-    run("rsync -avz {user}@taulec:/home/share/nbgrader/exchange/{user}/inbound dl/", user)
+    run("rsync -avz {user}@taulec.zapto.org:notebooks dl/", user)
+    run("rsync -avz {user}@taulec.zapto.org:/home/share/nbgrader/exchange/{user}/inbound dl/", user)
     
 def upload_gradebook_db(user):
     """

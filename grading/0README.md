@@ -9,11 +9,51 @@ ssh pl@taulec
 cd notebooks
 nbgrader autograde --assignment pl02 --no-execute
 
-autograde が失敗することがある. 一部の学生で失敗したら
+注: autograde が失敗することがある. 多くのパターンは,
 
-nbgrader autograde --assignment pl02 --no-execute --student xxx
+  [AutogradeApp | WARNING] Cell with id 'p-003' exists multiple times!
+  
+みたいなWARNING (+ [AutogradeApp | WARNING] Cell 'c-002' does not exist in the database みたいのが一杯) 出て最後に,
+
+[AutogradeApp | ERROR] One or more notebooks in the assignment use an old version
+    of the nbgrader metadata format. Please **back up your class files
+    directory** and then update the metadata using:
+
+    nbgrader update .
+
+が出る. これはどうやら学生がCell をまるごとコピーした際に起きる模様
+
+https://github.com/jupyter/nbgrader/issues/1083
+
+目視でも確認した. このパターンだった場合, editor で開いてduplicateしたセルの
+
+  "metadata": {
+    "kernel": "Bash",
+    "nbgrader": {
+     "cell_type": "code",
+     "checksum": "5047123777f5f50e378cd58b247d06eb",
+     "grade": true,
+     "grade_id": "p-003",
+     "locked": false,
+     "points": 1,
+     "schema_version": 3,
+     "solution": true,
+     "task": false
+    }
+   },
+
+の "nbgader" をまるごと削除してこんな感じにする. "Bash", の , も忘れず削除
+
+  "metadata": {
+    "kernel": "Bash"
+   },
+
+注2: それ以外の理由で失敗して直せない場合,
 
 nbgrader autograde --assignment pl02 --no-execute --CourseDirectory.student_id_exclude=...
+
+でその学生のautogradeをしない. 
+ただしこれでちゃんとそのnotebookを受け取れるのか?
 
 [3] データをダウンロード
 
@@ -34,12 +74,19 @@ pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 
 採点作業は grade.csv 上で行う
 
+2022年度更新:
+
+- notebookがたくさんあると, 巨大になりすぎるので, notebook ごとに分割してexportする方が実践的
+- それには以下のようにする
+
+./work.py export --sql "select * from grade_comment_cell where notebook_name=\"NOTEBOOK_NAME.sos\"" --csv grades/NOTEBOOK_NAME.csv
+
 [OS 2021のときにやったテキストクラスタリング]
 
 cd public_html/lecture/operating_systems/exam/2021/grading/clustering
 ./add_distance.py
 
-[5] プログラムを実行して採点
+[5] 半自動採点. プログラムを実行して採点
 
 make -f eval.mk all
 
@@ -77,6 +124,13 @@ ${cmd} ${test_prog} 2>&1
 
 これはむしろ本格的な試験で必要な仕組みか
 
+
+TODO: このやり方の代わりにあるセルに書かれた答えはすべて一度だけDLして, 問題ごとにevalようなやり方のほうがいいかもしれない. 
+
+TODO: 学生が別途作ったファイルも評価に使いたい場合があるのでその場合は, dl/notebooks/submitted/${student_id}/os15_pipe/ からコピーする.
+
+TODO: これをするならその中の ipynb から直接取ればいいという説がある
+
 これをやったあとでまた
 
 ./work.py export
@@ -102,10 +156,26 @@ grade.csv で点数をつけていくときの作業方法
 
 * autofilter を作る
 * prob_name でソートする
-* exec_output が OK となっているところに1をつける
+* eval_output が OK となっているところに1をつける
 
 * 1つのprob_name だけを表示する
 * exec_output が OK となっているところを非表示にして採点
+
+2022年度追加:
+
+eval.mk を実行してはそれを取り込むということを繰り返すので, 手作業で仕事をするシートは ods/xls にしておいて一度だけautofilterなどを作っておくのが良い. 生成するのは csv にしてそこからcopy-pasteする
+
+TODO: それをやるくらいなら既存のシートの eval_ok, eval_output, eval_err の列だけを自動で上書きするというのを work.py の機能にしたらいいのではないかという説あり
+
+./work.py --merge-export grades.ods --keys colum_names --values eval_ok,eval_output,eval_err
+
+export する
+--keys で指定された値がマッチしている行を grades.odsから探し, --valuesで指定されたものに置き換える
+
+おそらく ods を pandas で読み込んでまた吐き出す, だと手作業の結果 autofilter や wrap_text, alignment などの設定が失われる. xlsx + openpyxl でやるしかない?
+
+
+=== これ以降の作業はfeedbackを学生に返さないのなら不要 ===
 
 [7] ./work.py import で dl/notebooks/gradebook.db に反映
 
@@ -114,6 +184,7 @@ grade.csv に作業した結果を反映するのは
 ./work.py import
 
 ただしこれをやる前に, gradebook.db の backup をとっておいたほうが良いだろう
+
 
 [8] 無事 gradebook.db ができたと思ったら
 

@@ -26,8 +26,8 @@ def canonicalize_kernel_dict():
         "cpp" : "C",
         "go" : "Go",
         "golang" : "Go",
-        "jl" : "Julia 1.4.1",
-        "julia" : "Julia 1.4.1",
+        "jl" : "Julia 1.8.5",
+        "julia" : "Julia 1.8.5",
         "ocaml" : "OCaml default",
         "caml" : "OCaml default",
         "ml" : "OCaml default",
@@ -130,15 +130,15 @@ def make_metadata_julia():
     return {
         "celltoolbar": "Create Assignment",
         "kernelspec": {
-            "display_name": "Julia 1.4.1",
+            "display_name": "Julia 1.8.5",
             "language": "julia",
-            "name": "julia-1.4"
+            "name": "julia-1.8"
         },
         "language_info": {
             "file_extension": ".jl",
             "mimetype": "application/julia",
             "name": "julia",
-            "version": "1.4.1"
+            "version": "1.8.5"
         }
     }
 
@@ -209,7 +209,7 @@ def make_metadata_sos():
                 ["Bash", "bash", "bash", "", "shell"],
                 ["C", "c_kernel", "c", "", ""],
                 ["Go", "gophernotes", "go", "", ""],
-                ["Julia 1.4.1", "julia-1.4", "julia", "", ""],
+                ["Julia 1.8.5", "julia-1.8", "julia", "", ""],
                 ["OCaml default", "ocaml-jupyter", "OCaml", "", "text/x-ocaml"],
                 ["Python 3 (ipykernel)", "python3", "python3", "", {"name": "ipython", "version": 3}],
                 ["Rust", "rust", "rust", "", ""]
@@ -231,7 +231,7 @@ def make_metadata(syntax):
         "Bash" : make_metadata_bash,
         "C" : make_metadata_c,
         "Go" : make_metadata_go,
-        "Julia 1.4.1" : make_metadata_julia,
+        "Julia 1.8.5" : make_metadata_julia,
         "OCaml default" : make_metadata_ocaml,
         "Rust" : make_metadata_rust,
         "SoS" : make_metadata_sos,
