@@ -1,2 +1,2 @@
 #!/bin/bash -x
-sudo ./rsync_notebooks.py --users-csv users.csv --dest ~/notebooks/sync_dest > ./rsync_notebooks.log 2>&1
+sudo ./rsync_notebooks.py --users-csv users_nopw.csv --dest ~/notebooks/sync_dest > ./rsync_notebooks.log 2>&1
