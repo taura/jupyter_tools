@@ -1,0 +1,4 @@
+#!/bin/bash -x
+FQDN=taulecgw.zapto.org
+sudo FQDN=${FQDN} jupyterhub -f ../jupyterhub_config.py > hub.log 2>&1 
+

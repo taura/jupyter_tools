@@ -1,0 +1,225 @@
+user,grp,cn,sn,shell,uid,gid,home,home_perm,authorized_keys,groups,notebooks,real_name,class,team,id
+tau,tau,tau,tau,/bin/bash,1001,1001,/home/tau,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,,大竹和樹,全,,
+share,share,share,share,/bin/bash,1002,1002,/home/share,755,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/share/notebooks,share,share,,
+pmp,pmp,pmp,pmp,/bin/bash,1003,1003,/home/pmp,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/pmp/notebooks,数学物理プログラミングTA,pmp,,
+pl,pl,pl,pl,/bin/bash,1004,1004,/home/pl,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/pl/notebooks,プログラミング言語TA,pl,,
+csi,csi,csi,csi,/bin/bash,1005,1005,/home/csi,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/csi/notebooks,計算科学概論TA,csi,,
+os,os,os,os,/bin/bash,1006,1006,/home/os,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/os/notebooks,オペレーティングシステムTA,os,,
+pd,pd,pd,pd,/bin/bash,1007,1007,/home/pd,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/pd/notebooks,並列分散TA,pd,,
+pmp0,pmp0,pmp0,pmp0,/bin/bash,1008,1008,/home/pmp0,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/pmp0/notebooks,数学物理プログラミングTA0,pmp,,
+pl0,pl0,pl0,pl0,/bin/bash,1009,1009,/home/pl0,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/pl0/notebooks,プログラミング言語0,pl,,
+csi0,csi0,csi0,csi0,/bin/bash,1010,1010,/home/csi0,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/csi0/notebooks,計算科学概論0,csi,,
+os0,os0,os0,os0,/bin/bash,1011,1011,/home/os0,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/os0/notebooks,オペレーティングシステム0,os,,
+pd0,pd0,pd0,pd0,/bin/bash,1012,1012,/home/pd0,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/pd0/notebooks,並列分散0,pd,,
+py,py,py,py,/bin/bash,1013,1013,/home/py,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/py/notebooks,Python入門,py,,
+py0,py0,py0,py0,/bin/bash,1014,1014,/home/py0,750,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILO69azO1xpm7e28FnzY9i8a2blEECQAODXc5G8CSii4 tau@namo,ldap_sudo,/home/py0/notebooks,Python入門,py,,
+u23300,u23300,u23300,u23300,/bin/bash,23300,23300,/home/u23300,750,,,/home/u23300/notebooks,菊池 陽登,os,,01-230119
+u23301,u23301,u23301,u23301,/bin/bash,23301,23301,/home/u23301,750,,,/home/u23301/notebooks,大村 龍雪,os,,03-220409
+u23302,u23302,u23302,u23302,/bin/bash,23302,23302,/home/u23302,750,,,/home/u23302/notebooks,原 遼佑,os,,03-220443
+u23303,u23303,u23303,u23303,/bin/bash,23303,23303,/home/u23303,750,,,/home/u23303/notebooks,佐伯 崇寛,os,,03-220482
+u23304,u23304,u23304,u23304,/bin/bash,23304,23304,/home/u23304,750,,,/home/u23304/notebooks,波多野 充,os,,03-220502
+u23305,u23305,u23305,u23305,/bin/bash,23305,23305,/home/u23305,750,,,/home/u23305/notebooks,玉腰 勇司,os,,03-220557
+u23306,u23306,u23306,u23306,/bin/bash,23306,23306,/home/u23306,750,,,/home/u23306/notebooks,清田 大河,os,,03-220593
+u23307,u23307,u23307,u23307,/bin/bash,23307,23307,/home/u23307,750,,,/home/u23307/notebooks,井上 勢大,os,,03-223011
+u23308,u23308,u23308,u23308,/bin/bash,23308,23308,/home/u23308,750,,,/home/u23308/notebooks,中谷 怜威,os,,03-223013
+u23309,u23309,u23309,u23309,/bin/bash,23309,23309,/home/u23309,750,,,/home/u23309/notebooks,新井 翔太,os,,03-230254
+u23310,u23310,u23310,u23310,/bin/bash,23310,23310,/home/u23310,750,,,/home/u23310/notebooks,池谷 賢人,os,,03-230258
+u23311,u23311,u23311,u23311,/bin/bash,23311,23311,/home/u23311,750,,,/home/u23311/notebooks,鎌谷 一生,os,,03-230267
+u23312,u23312,u23312,u23312,/bin/bash,23312,23312,/home/u23312,750,,,/home/u23312/notebooks,平沼 慶人,os,,03-230287
+u23313,u23313,u23313,u23313,/bin/bash,23313,23313,/home/u23313,750,,,/home/u23313/notebooks,村山 皓平,os,,03-230290
+u23314,u23314,u23314,u23314,/bin/bash,23314,23314,/home/u23314,750,,,/home/u23314/notebooks,穐山 公宏,os,,03-230397
+u23315,u23315,u23315,u23315,/bin/bash,23315,23315,/home/u23315,750,,,/home/u23315/notebooks,伊神 勇希,os,,03-230398
+u23316,u23316,u23316,u23316,/bin/bash,23316,23316,/home/u23316,750,,,/home/u23316/notebooks,池田 大雅,os,,03-230399
+u23317,u23317,u23317,u23317,/bin/bash,23317,23317,/home/u23317,750,,,/home/u23317/notebooks,伊東 大燿,os,,03-230400
+u23318,u23318,u23318,u23318,/bin/bash,23318,23318,/home/u23318,750,,,/home/u23318/notebooks,内田 光太郎,os,,03-230404
+u23319,u23319,u23319,u23319,/bin/bash,23319,23319,/home/u23319,750,,,/home/u23319/notebooks,大佐 健人,os,,03-230406
+u23320,u23320,u23320,u23320,/bin/bash,23320,23320,/home/u23320,750,,,/home/u23320/notebooks,小野原 菖太,os,,03-230413
+u23321,u23321,u23321,u23321,/bin/bash,23321,23321,/home/u23321,750,,,/home/u23321/notebooks,柏原 玖都,os,,03-230414
+u23322,u23322,u23322,u23322,/bin/bash,23322,23322,/home/u23322,750,,,/home/u23322/notebooks,金井 瞭真,os,,03-230415
+u23323,u23323,u23323,u23323,/bin/bash,23323,23323,/home/u23323,750,,,/home/u23323/notebooks,川上 起樹,os,,03-230416
+u23324,u23324,u23324,u23324,/bin/bash,23324,23324,/home/u23324,750,,,/home/u23324/notebooks,黒田 楓馬,os,,03-230418
+u23325,u23325,u23325,u23325,/bin/bash,23325,23325,/home/u23325,750,,,/home/u23325/notebooks,坂口 健人,os,,03-230421
+u23326,u23326,u23326,u23326,/bin/bash,23326,23326,/home/u23326,750,,,/home/u23326/notebooks,佐藤 龍吾,os,,03-230422
+u23327,u23327,u23327,u23327,/bin/bash,23327,23327,/home/u23327,750,,,/home/u23327/notebooks,新谷 優菜,os,,03-230424
+u23328,u23328,u23328,u23328,/bin/bash,23328,23328,/home/u23328,750,,,/home/u23328/notebooks,杉本 将太郎,os,,03-230425
+u23329,u23329,u23329,u23329,/bin/bash,23329,23329,/home/u23329,750,,,/home/u23329/notebooks,杉山 月渚,os,,03-230426
+u23330,u23330,u23330,u23330,/bin/bash,23330,23330,/home/u23330,750,,,/home/u23330/notebooks,曹 徳宇,os,,03-230428
+u23331,u23331,u23331,u23331,/bin/bash,23331,23331,/home/u23331,750,,,/home/u23331/notebooks,曺 龍平,os,,03-230429
+u23332,u23332,u23332,u23332,/bin/bash,23332,23332,/home/u23332,750,,,/home/u23332/notebooks,曽根原 一響,os,,03-230430
+u23333,u23333,u23333,u23333,/bin/bash,23333,23333,/home/u23333,750,,,/home/u23333/notebooks,高橋 淳一郎,os,,03-230431
+u23334,u23334,u23334,u23334,/bin/bash,23334,23334,/home/u23334,750,,,/home/u23334/notebooks,瀧口 流星,os,,03-230432
+u23335,u23335,u23335,u23335,/bin/bash,23335,23335,/home/u23335,750,,,/home/u23335/notebooks,竹嶋 唯真,os,,03-230433
+u23336,u23336,u23336,u23336,/bin/bash,23336,23336,/home/u23336,750,,,/home/u23336/notebooks,武田 朋久,os,,03-230434
+u23337,u23337,u23337,u23337,/bin/bash,23337,23337,/home/u23337,750,,,/home/u23337/notebooks,田邉 克晃,os,,03-230437
+u23338,u23338,u23338,u23338,/bin/bash,23338,23338,/home/u23338,750,,,/home/u23338/notebooks,坪井 星汰,os,,03-230439
+u23339,u23339,u23339,u23339,/bin/bash,23339,23339,/home/u23339,750,,,/home/u23339/notebooks,津村 拓鋭,os,,03-230440
+u23340,u23340,u23340,u23340,/bin/bash,23340,23340,/home/u23340,750,,,/home/u23340/notebooks,朴 俊泳,os,,03-230445
+u23341,u23341,u23341,u23341,/bin/bash,23341,23341,/home/u23341,750,,,/home/u23341/notebooks,長谷川 雄飛,os,,03-230447
+u23342,u23342,u23342,u23342,/bin/bash,23342,23342,/home/u23342,750,,,/home/u23342/notebooks,浜田 瑞基,os,,03-230449
+u23343,u23343,u23343,u23343,/bin/bash,23343,23343,/home/u23343,750,,,/home/u23343/notebooks,平田 佑亮,os,,03-230450
+u23344,u23344,u23344,u23344,/bin/bash,23344,23344,/home/u23344,750,,,/home/u23344/notebooks,船越 舞斗,os,,03-230451
+u23345,u23345,u23345,u23345,/bin/bash,23345,23345,/home/u23345,750,,,/home/u23345/notebooks,宮下 泰熙,os,,03-230453
+u23346,u23346,u23346,u23346,/bin/bash,23346,23346,/home/u23346,750,,,/home/u23346/notebooks,八木 瞭,os,,03-230454
+u23347,u23347,u23347,u23347,/bin/bash,23347,23347,/home/u23347,750,,,/home/u23347/notebooks,山内 悠理子,os,,03-230456
+u23348,u23348,u23348,u23348,/bin/bash,23348,23348,/home/u23348,750,,,/home/u23348/notebooks,山中 涼雅,os,,03-230457
+u23349,u23349,u23349,u23349,/bin/bash,23349,23349,/home/u23349,750,,,/home/u23349/notebooks,渡邉 誠也,os,,03-230460
+u23350,u23350,u23350,u23350,/bin/bash,23350,23350,/home/u23350,750,,,/home/u23350/notebooks,赤坂 直樹,os,,03-230461
+u23351,u23351,u23351,u23351,/bin/bash,23351,23351,/home/u23351,750,,,/home/u23351/notebooks,井上 正博,os,,03-230467
+u23352,u23352,u23352,u23352,/bin/bash,23352,23352,/home/u23352,750,,,/home/u23352/notebooks,岩倉 康太,os,,03-230468
+u23353,u23353,u23353,u23353,/bin/bash,23353,23353,/home/u23353,750,,,/home/u23353/notebooks,小野 琢,os,,03-230472
+u23354,u23354,u23354,u23354,/bin/bash,23354,23354,/home/u23354,750,,,/home/u23354/notebooks,川浪 樹,os,,03-230473
+u23355,u23355,u23355,u23355,/bin/bash,23355,23355,/home/u23355,750,,,/home/u23355/notebooks,草将 澄秋,os,,03-230475
+u23356,u23356,u23356,u23356,/bin/bash,23356,23356,/home/u23356,750,,,/home/u23356/notebooks,久保田 航瑛,os,,03-230476
+u23357,u23357,u23357,u23357,/bin/bash,23357,23357,/home/u23357,750,,,/home/u23357/notebooks,佐々木 駿介,os,,03-230480
+u23358,u23358,u23358,u23358,/bin/bash,23358,23358,/home/u23358,750,,,/home/u23358/notebooks,嶋田 大地,os,,03-230483
+u23359,u23359,u23359,u23359,/bin/bash,23359,23359,/home/u23359,750,,,/home/u23359/notebooks,周 亮安,os,,03-230486
+u23360,u23360,u23360,u23360,/bin/bash,23360,23360,/home/u23360,750,,,/home/u23360/notebooks,鈴木 圭吾,os,,03-230488
+u23361,u23361,u23361,u23361,/bin/bash,23361,23361,/home/u23361,750,,,/home/u23361/notebooks,瀧田 紘暉,os,,03-230493
+u23362,u23362,u23362,u23362,/bin/bash,23362,23362,/home/u23362,750,,,/home/u23362/notebooks,田鍋 衛,os,,03-230496
+u23363,u23363,u23363,u23363,/bin/bash,23363,23363,/home/u23363,750,,,/home/u23363/notebooks,土屋 海斗,os,,03-230497
+u23364,u23364,u23364,u23364,/bin/bash,23364,23364,/home/u23364,750,,,/home/u23364/notebooks,鄭 風音,os,,03-230498
+u23365,u23365,u23365,u23365,/bin/bash,23365,23365,/home/u23365,750,,,/home/u23365/notebooks,仲野 太智,os,,03-230502
+u23366,u23366,u23366,u23366,/bin/bash,23366,23366,/home/u23366,750,,,/home/u23366/notebooks,西川 賢尽,os,,03-230503
+u23367,u23367,u23367,u23367,/bin/bash,23367,23367,/home/u23367,750,,,/home/u23367/notebooks,日野 玲,os,,03-230505
+u23368,u23368,u23368,u23368,/bin/bash,23368,23368,/home/u23368,750,,,/home/u23368/notebooks,松川 浩之,os,,03-230514
+u23369,u23369,u23369,u23369,/bin/bash,23369,23369,/home/u23369,750,,,/home/u23369/notebooks,松原 大悟,os,,03-230515
+u23370,u23370,u23370,u23370,/bin/bash,23370,23370,/home/u23370,750,,,/home/u23370/notebooks,見附 昂紀,os,,03-230517
+u23371,u23371,u23371,u23371,/bin/bash,23371,23371,/home/u23371,750,,,/home/u23371/notebooks,元山 直也,os,,03-230519
+u23372,u23372,u23372,u23372,/bin/bash,23372,23372,/home/u23372,750,,,/home/u23372/notebooks,森上 巧,os,,03-230522
+u23373,u23373,u23373,u23373,/bin/bash,23373,23373,/home/u23373,750,,,/home/u23373/notebooks,山上 航輝,os,,03-230523
+u23374,u23374,u23374,u23374,/bin/bash,23374,23374,/home/u23374,750,,,/home/u23374/notebooks,山下 倫宏,os,,03-230524
+u23375,u23375,u23375,u23375,/bin/bash,23375,23375,/home/u23375,750,,,/home/u23375/notebooks,馬場 雄大,os,,03-230558
+u23376,u23376,u23376,u23376,/bin/bash,23376,23376,/home/u23376,750,,,/home/u23376/notebooks,高田 賢太,os,,03-230620
+u23377,u23377,u23377,u23377,/bin/bash,23377,23377,/home/u23377,750,,,/home/u23377/notebooks,馬場 凱渡,os,,03-230631
+u23378,u23378,u23378,u23378,/bin/bash,23378,23378,/home/u23378,750,,,/home/u23378/notebooks,塩田 涼介,os,,03-230894
+u23379,u23379,u23379,u23379,/bin/bash,23379,23379,/home/u23379,750,,,/home/u23379/notebooks,伊藤 黎,os,,03-230916
+u23380,u23380,u23380,u23380,/bin/bash,23380,23380,/home/u23380,750,,,/home/u23380/notebooks,藤川 直人,os,,03-230942
+u23381,u23381,u23381,u23381,/bin/bash,23381,23381,/home/u23381,750,,,/home/u23381/notebooks,米本 竜馬,os,,03-230952
+u23382,u23382,u23382,u23382,/bin/bash,23382,23382,/home/u23382,750,,,/home/u23382/notebooks,山崎 寛,os,,04-170117
+u23383,u23383,u23383,u23383,/bin/bash,23383,23383,/home/u23383,750,,,/home/u23383/notebooks,片岡 龍盛,os,,05-231516
+u23384,u23384,u23384,u23384,/bin/bash,23384,23384,/home/u23384,750,,,/home/u23384/notebooks,清水 哲哉,os,,05-235506
+u23385,u23385,u23385,u23385,/bin/bash,23385,23385,/home/u23385,750,,,/home/u23385/notebooks,田村 恵,os,,08-232018
+u23386,u23386,u23386,u23386,/bin/bash,23386,23386,/home/u23386,750,,,/home/u23386/notebooks,富永 直弥,os,,45-216021
+u23387,u23387,u23387,u23387,/bin/bash,23387,23387,/home/u23387,750,,,/home/u23387/notebooks,樋川 達郎,os,,45-237018
+u23388,u23388,u23388,u23388,/bin/bash,23388,23388,/home/u23388,750,,,/home/u23388/notebooks,近藤 信二,os,,47-217648
+u23389,u23389,u23389,u23389,/bin/bash,23389,23389,/home/u23389,750,,,/home/u23389/notebooks,福田 創紀,os,,51-228062
+u23390,u23390,u23390,u23390,/bin/bash,23390,23390,/home/u23390,750,,,/home/u23390/notebooks,田村 傑,os,,5A-183021
+u23391,u23391,u23391,u23391,/bin/bash,23391,23391,/home/u23391,750,,,/home/u23391/notebooks,HARTANTO KWEE Jeffrey,os,,7V-239416
+u23392,u23392,u23392,u23392,/bin/bash,23392,23392,/home/u23392,750,,,/home/u23392/notebooks,KIM Minsoo,os,,7V-239427
+u23393,u23393,u23393,u23393,/bin/bash,23393,23393,/home/u23393,750,,,/home/u23393/notebooks,久木原 楓太,os,,J4-210618
+u23394,u23394,u23394,u23394,/bin/bash,23394,23394,/home/u23394,750,,,/home/u23394/notebooks,山縣 浩隆,os,,J4-220766
+u23395,u23395,u23395,u23395,/bin/bash,23395,23395,/home/u23395,750,,,/home/u23395/notebooks,杉山 詩歩,os,,03-220431
+u23396,u23396,u23396,u23396,/bin/bash,23396,23396,/home/u23396,750,,,/home/u23396/notebooks,内田 雅大,os,,03-223012
+u23397,u23397,u23397,u23397,/bin/bash,23397,23397,/home/u23397,750,,,/home/u23397/notebooks,太田 駿,os,,03-230259
+u23398,u23398,u23398,u23398,/bin/bash,23398,23398,/home/u23398,750,,,/home/u23398/notebooks,井上 貴之,os,,03-230403
+u23399,u23399,u23399,u23399,/bin/bash,23399,23399,/home/u23399,750,,,/home/u23399/notebooks,海野 大輔,os,,03-230405
+u23400,u23400,u23400,u23400,/bin/bash,23400,23400,/home/u23400,750,,,/home/u23400/notebooks,大西 啓介,os,,03-230408
+u23401,u23401,u23401,u23401,/bin/bash,23401,23401,/home/u23401,750,,,/home/u23401/notebooks,大星 温音,os,,03-230410
+u23402,u23402,u23402,u23402,/bin/bash,23402,23402,/home/u23402,750,,,/home/u23402/notebooks,奥村 亮太,os,,03-230412
+u23403,u23403,u23403,u23403,/bin/bash,23403,23403,/home/u23403,750,,,/home/u23403/notebooks,川田 高輝,os,,03-230417
+u23404,u23404,u23404,u23404,/bin/bash,23404,23404,/home/u23404,750,,,/home/u23404/notebooks,古賀 允基,os,,03-230419
+u23405,u23405,u23405,u23405,/bin/bash,23405,23405,/home/u23405,750,,,/home/u23405/notebooks,須田 浩平,os,,03-230427
+u23406,u23406,u23406,u23406,/bin/bash,23406,23406,/home/u23406,750,,,/home/u23406/notebooks,中嶋 光太,os,,03-230442
+u23407,u23407,u23407,u23407,/bin/bash,23407,23407,/home/u23407,750,,,/home/u23407/notebooks,西下 享佑,os,,03-230444
+u23408,u23408,u23408,u23408,/bin/bash,23408,23408,/home/u23408,750,,,/home/u23408/notebooks,橋本 宏熙,os,,03-230446
+u23409,u23409,u23409,u23409,/bin/bash,23409,23409,/home/u23409,750,,,/home/u23409/notebooks,羽鳥 智裕,os,,03-230448
+u23410,u23410,u23410,u23410,/bin/bash,23410,23410,/home/u23410,750,,,/home/u23410/notebooks,三窪 大智,os,,03-230452
+u23411,u23411,u23411,u23411,/bin/bash,23411,23411,/home/u23411,750,,,/home/u23411/notebooks,井爪 優輔,os,,03-230464
+u23412,u23412,u23412,u23412,/bin/bash,23412,23412,/home/u23412,750,,,/home/u23412/notebooks,高口 英成,os,,03-230477
+u23413,u23413,u23413,u23413,/bin/bash,23413,23413,/home/u23413,750,,,/home/u23413/notebooks,鈴木 大翔,os,,03-230489
+u23414,u23414,u23414,u23414,/bin/bash,23414,23414,/home/u23414,750,,,/home/u23414/notebooks,深田 翔,os,,03-230509
+u23415,u23415,u23415,u23415,/bin/bash,23415,23415,/home/u23415,750,,,/home/u23415/notebooks,水口 時和,os,,03-230516
+u23416,u23416,u23416,u23416,/bin/bash,23416,23416,/home/u23416,750,,,/home/u23416/notebooks,山本 麻由美,os,,03-230525
+u23417,u23417,u23417,u23417,/bin/bash,23417,23417,/home/u23417,750,,,/home/u23417/notebooks,若井 祐樹,os,,03-230637
+u23418,u23418,u23418,u23418,/bin/bash,23418,23418,/home/u23418,750,,,/home/u23418/notebooks,和泉 衛,os,,03-230874
+u23419,u23419,u23419,u23419,/bin/bash,23419,23419,/home/u23419,750,,,/home/u23419/notebooks,大坪 航,os,,05-221513
+u23420,u23420,u23420,u23420,/bin/bash,23420,23420,/home/u23420,750,,,/home/u23420/notebooks,内田 有咲,os,,09-231303
+u23421,u23421,u23421,u23421,/bin/bash,23421,23421,/home/u23421,750,,,/home/u23421/notebooks,安達 充慶,os,,45-237001
+u23422,u23422,u23422,u23422,/bin/bash,23422,23422,/home/u23422,750,,,/home/u23422/notebooks,井波 玄龍,os,,47-226686
+u23423,u23423,u23423,u23423,/bin/bash,23423,23423,/home/u23423,750,,,/home/u23423/notebooks,山下 優樹,os,,48-216627
+u23424,u23424,u23424,u23424,/bin/bash,23424,23424,/home/u23424,750,,,/home/u23424/notebooks,浅野 笙,os,,02-231003
+u23425,u23425,u23425,u23425,/bin/bash,23425,23425,/home/u23425,750,,,/home/u23425/notebooks,大西 元樹,os,,03-230469
+u23426,u23426,u23426,u23426,/bin/bash,23426,23426,/home/u23426,750,,,/home/u23426/notebooks,立花 卓遠,os,,03-230495
+u23427,u23427,u23427,u23427,/bin/bash,23427,23427,/home/u23427,750,,,/home/u23427/notebooks,河田 顕帆,os,,03-230966
+u23428,u23428,u23428,u23428,/bin/bash,23428,23428,/home/u23428,750,,,/home/u23428/notebooks,本郷 颯人,os,,J5-220397
+u23429,u23429,u23429,u23429,/bin/bash,23429,23429,/home/u23429,750,,,/home/u23429/notebooks,豊井 美雪,os,,03-230499
+u23430,u23430,u23430,u23430,/bin/bash,23430,23430,/home/u23430,750,,,/home/u23430/notebooks,北村 光流,os,,03-230474
+u23431,u23431,u23431,u23431,/bin/bash,23431,23431,/home/u23431,750,,,/home/u23431/notebooks,柴田 竜輔,os,,37-236221
+u23432,u23432,u23432,u23432,/bin/bash,23432,23432,/home/u23432,750,,,/home/u23432/notebooks,川原 佑太,os,,03-220187
+u23433,u23433,u23433,u23433,/bin/bash,23433,23433,/home/u23433,750,,,/home/u23433/notebooks,真鍋 洸生,os,,03-220509
+u23434,u23434,u23434,u23434,/bin/bash,23434,23434,/home/u23434,750,,,/home/u23434/notebooks,渡具知 可偉,os,,03-220630
+u23435,u23435,u23435,u23435,/bin/bash,23435,23435,/home/u23435,750,,,/home/u23435/notebooks,日高 祐哉,os,,03-220633
+u23436,u23436,u23436,u23436,/bin/bash,23436,23436,/home/u23436,750,,,/home/u23436/notebooks,石橋 英一郎,os,,03-230166
+u23437,u23437,u23437,u23437,/bin/bash,23437,23437,/home/u23437,750,,,/home/u23437/notebooks,梶栗 勇人,os,,03-230181
+u23438,u23438,u23438,u23438,/bin/bash,23438,23438,/home/u23438,750,,,/home/u23438/notebooks,新井 良季,os,,03-230255
+u23439,u23439,u23439,u23439,/bin/bash,23439,23439,/home/u23439,750,,,/home/u23439/notebooks,荒木 有志,os,,03-230256
+u23440,u23440,u23440,u23440,/bin/bash,23440,23440,/home/u23440,750,,,/home/u23440/notebooks,池嶋 壮太,os,,03-230257
+u23441,u23441,u23441,u23441,/bin/bash,23441,23441,/home/u23441,750,,,/home/u23441/notebooks,多田 皓海,os,,03-230275
+u23442,u23442,u23442,u23442,/bin/bash,23442,23442,/home/u23442,750,,,/home/u23442/notebooks,伊藤 寛子,os,,03-230401
+u23443,u23443,u23443,u23443,/bin/bash,23443,23443,/home/u23443,750,,,/home/u23443/notebooks,井上 景太,os,,03-230402
+u23444,u23444,u23444,u23444,/bin/bash,23444,23444,/home/u23444,750,,,/home/u23444/notebooks,大場 健斗,os,,03-230409
+u23445,u23445,u23445,u23445,/bin/bash,23445,23445,/home/u23445,750,,,/home/u23445/notebooks,風澤 宥吾,os,,03-230508
+u23446,u23446,u23446,u23446,/bin/bash,23446,23446,/home/u23446,750,,,/home/u23446/notebooks,古川 準之助,os,,03-230511
+u23447,u23447,u23447,u23447,/bin/bash,23447,23447,/home/u23447,750,,,/home/u23447/notebooks,鷲見 直,os,,37-235078
+u23448,u23448,u23448,u23448,/bin/bash,23448,23448,/home/u23448,750,,,/home/u23448/notebooks,牛丸 智晶,os,,37-236467
+u23449,u23449,u23449,u23449,/bin/bash,23449,23449,/home/u23449,750,,,/home/u23449/notebooks,鎌田 晃稔,os,,03-230266
+u23450,u23450,u23450,u23450,/bin/bash,23450,23450,/home/u23450,750,,,/home/u23450/notebooks,井波 竜介,os,,03-230465
+u23451,u23451,u23451,u23451,/bin/bash,23451,23451,/home/u23451,750,,,/home/u23451/notebooks,喜多 康介,os,,03-230969
+u23452,u23452,u23452,u23452,/bin/bash,23452,23452,/home/u23452,750,,,/home/u23452/notebooks,玉川 建和,os,,35-226259
+u23453,u23453,u23453,u23453,/bin/bash,23453,23453,/home/u23453,750,,,/home/u23453/notebooks,CAO Han,os,,7V-239401
+u23454,u23454,u23454,u23454,/bin/bash,23454,23454,/home/u23454,750,,,/home/u23454/notebooks,市川 響己,os,,03-230462
+u23455,u23455,u23455,u23455,/bin/bash,23455,23455,/home/u23455,750,,,/home/u23455/notebooks,清水 亮佑,os,,03-230484
+u23456,u23456,u23456,u23456,/bin/bash,23456,23456,/home/u23456,750,,,/home/u23456/notebooks,MI Mingliang,os,,29-226201
+u23457,u23457,u23457,u23457,/bin/bash,23457,23457,/home/u23457,750,,,/home/u23457/notebooks,浜野 晃太朗,os,,37-226670
+u23458,u23458,u23458,u23458,/bin/bash,23458,23458,/home/u23458,750,,,/home/u23458/notebooks,羅 蘭,os,,47-236787
+u23459,u23459,u23459,u23459,/bin/bash,23459,23459,/home/u23459,750,,,/home/u23459/notebooks,,os,,
+u23460,u23460,u23460,u23460,/bin/bash,23460,23460,/home/u23460,750,,,/home/u23460/notebooks,,os,,
+u23461,u23461,u23461,u23461,/bin/bash,23461,23461,/home/u23461,750,,,/home/u23461/notebooks,,os,,
+u23462,u23462,u23462,u23462,/bin/bash,23462,23462,/home/u23462,750,,,/home/u23462/notebooks,,os,,
+u23463,u23463,u23463,u23463,/bin/bash,23463,23463,/home/u23463,750,,,/home/u23463/notebooks,,os,,
+u23464,u23464,u23464,u23464,/bin/bash,23464,23464,/home/u23464,750,,,/home/u23464/notebooks,,os,,
+u23465,u23465,u23465,u23465,/bin/bash,23465,23465,/home/u23465,750,,,/home/u23465/notebooks,,os,,
+u23466,u23466,u23466,u23466,/bin/bash,23466,23466,/home/u23466,750,,,/home/u23466/notebooks,,os,,
+u23467,u23467,u23467,u23467,/bin/bash,23467,23467,/home/u23467,750,,,/home/u23467/notebooks,,os,,
+u23468,u23468,u23468,u23468,/bin/bash,23468,23468,/home/u23468,750,,,/home/u23468/notebooks,,os,,
+u23469,u23469,u23469,u23469,/bin/bash,23469,23469,/home/u23469,750,,,/home/u23469/notebooks,,os,,
+u23470,u23470,u23470,u23470,/bin/bash,23470,23470,/home/u23470,750,,,/home/u23470/notebooks,,os,,
+u23471,u23471,u23471,u23471,/bin/bash,23471,23471,/home/u23471,750,,,/home/u23471/notebooks,,os,,
+u23472,u23472,u23472,u23472,/bin/bash,23472,23472,/home/u23472,750,,,/home/u23472/notebooks,,os,,
+u23473,u23473,u23473,u23473,/bin/bash,23473,23473,/home/u23473,750,,,/home/u23473/notebooks,,os,,
+u23474,u23474,u23474,u23474,/bin/bash,23474,23474,/home/u23474,750,,,/home/u23474/notebooks,,os,,
+u23475,u23475,u23475,u23475,/bin/bash,23475,23475,/home/u23475,750,,,/home/u23475/notebooks,,os,,
+u23476,u23476,u23476,u23476,/bin/bash,23476,23476,/home/u23476,750,,,/home/u23476/notebooks,,os,,
+u23477,u23477,u23477,u23477,/bin/bash,23477,23477,/home/u23477,750,,,/home/u23477/notebooks,,os,,
+u23478,u23478,u23478,u23478,/bin/bash,23478,23478,/home/u23478,750,,,/home/u23478/notebooks,,os,,
+u23479,u23479,u23479,u23479,/bin/bash,23479,23479,/home/u23479,750,,,/home/u23479/notebooks,,os,,
+u23480,u23480,u23480,u23480,/bin/bash,23480,23480,/home/u23480,750,,,/home/u23480/notebooks,,os,,
+u23481,u23481,u23481,u23481,/bin/bash,23481,23481,/home/u23481,750,,,/home/u23481/notebooks,,os,,
+u23482,u23482,u23482,u23482,/bin/bash,23482,23482,/home/u23482,750,,,/home/u23482/notebooks,,os,,
+u23483,u23483,u23483,u23483,/bin/bash,23483,23483,/home/u23483,750,,,/home/u23483/notebooks,,os,,
+u23484,u23484,u23484,u23484,/bin/bash,23484,23484,/home/u23484,750,,,/home/u23484/notebooks,,os,,
+u23485,u23485,u23485,u23485,/bin/bash,23485,23485,/home/u23485,750,,,/home/u23485/notebooks,,os,,
+u23486,u23486,u23486,u23486,/bin/bash,23486,23486,/home/u23486,750,,,/home/u23486/notebooks,,os,,
+u23487,u23487,u23487,u23487,/bin/bash,23487,23487,/home/u23487,750,,,/home/u23487/notebooks,,os,,
+u23488,u23488,u23488,u23488,/bin/bash,23488,23488,/home/u23488,750,,,/home/u23488/notebooks,,os,,
+u23489,u23489,u23489,u23489,/bin/bash,23489,23489,/home/u23489,750,,,/home/u23489/notebooks,,os,,
+u23490,u23490,u23490,u23490,/bin/bash,23490,23490,/home/u23490,750,,,/home/u23490/notebooks,,os,,
+u23491,u23491,u23491,u23491,/bin/bash,23491,23491,/home/u23491,750,,,/home/u23491/notebooks,,os,,
+u23492,u23492,u23492,u23492,/bin/bash,23492,23492,/home/u23492,750,,,/home/u23492/notebooks,,os,,
+u23493,u23493,u23493,u23493,/bin/bash,23493,23493,/home/u23493,750,,,/home/u23493/notebooks,,os,,
+u23494,u23494,u23494,u23494,/bin/bash,23494,23494,/home/u23494,750,,,/home/u23494/notebooks,,os,,
+u23495,u23495,u23495,u23495,/bin/bash,23495,23495,/home/u23495,750,,,/home/u23495/notebooks,,os,,
+u23496,u23496,u23496,u23496,/bin/bash,23496,23496,/home/u23496,750,,,/home/u23496/notebooks,,os,,
+u23497,u23497,u23497,u23497,/bin/bash,23497,23497,/home/u23497,750,,,/home/u23497/notebooks,,os,,
+u23498,u23498,u23498,u23498,/bin/bash,23498,23498,/home/u23498,750,,,/home/u23498/notebooks,,os,,
+u23499,u23499,u23499,u23499,/bin/bash,23499,23499,/home/u23499,750,,,/home/u23499/notebooks,,os,,
+u23500,u23500,u23500,u23500,/bin/bash,23500,23500,/home/u23500,750,,,/home/u23500/notebooks,,os,,
+u23501,u23501,u23501,u23501,/bin/bash,23501,23501,/home/u23501,750,,,/home/u23501/notebooks,,os,,
+u23502,u23502,u23502,u23502,/bin/bash,23502,23502,/home/u23502,750,,,/home/u23502/notebooks,,os,,
+u23503,u23503,u23503,u23503,/bin/bash,23503,23503,/home/u23503,750,,,/home/u23503/notebooks,,os,,
+u23504,u23504,u23504,u23504,/bin/bash,23504,23504,/home/u23504,750,,,/home/u23504/notebooks,,os,,
+u23505,u23505,u23505,u23505,/bin/bash,23505,23505,/home/u23505,750,,,/home/u23505/notebooks,,os,,
+u23506,u23506,u23506,u23506,/bin/bash,23506,23506,/home/u23506,750,,,/home/u23506/notebooks,,os,,
+u23507,u23507,u23507,u23507,/bin/bash,23507,23507,/home/u23507,750,,,/home/u23507/notebooks,,os,,
+u23508,u23508,u23508,u23508,/bin/bash,23508,23508,/home/u23508,750,,,/home/u23508/notebooks,,os,,
+u23509,u23509,u23509,u23509,/bin/bash,23509,23509,/home/u23509,750,,,/home/u23509/notebooks,,os,,
