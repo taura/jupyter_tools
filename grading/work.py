@@ -13,6 +13,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import pandas as pd
 
 #     submitted_assignment.id == submitted_notebook.assignment_id
 # and submitted_notebook.id == grade.notebook_id
@@ -275,12 +276,16 @@ def get_eval_result(exec_dir, assignment, notebook, prob, student):
         eval_result[ext] = ""
         f = "{}.{}".format(base, ext)
         if os.path.exists(f):
+            # print(f"{f} exists!")
             fp = open(f, errors="replace")
             output = fp.read()
             fp.close()
             max_cell_sz = 30 * 1024
             output = output[:max_cell_sz]
-            eval_result[ext] = "== {} ==\n{}".format(ext, output)
+            eval_result[ext] = "--- {} ---\n{}".format(ext, output)
+        else:
+            continue
+            print(f"{f} does not exist")
     return eval_result
 
 def join_outputs(outputs):
@@ -353,6 +358,14 @@ def connect_to_db(gradebook_db, inbound, exec_dir):
     do_sql(conn, SQL_JOIN_GRADE_COMMENT_CELL)
     return conn
 
+def remove_nonalpha_from_dict(dic):
+    new_dic = {}
+    for k, v in dic.items():
+        if isinstance(v, type("")):
+            v = v.replace('\x00', '\n')
+        new_dic[k] = v
+    return new_dic
+
 def query(gradebook_db, inbound, exec_dir, sql):
     """
     open database and inbound folder and run sql
@@ -362,7 +375,104 @@ def query(gradebook_db, inbound, exec_dir, sql):
         yield row
     conn.close()
 
-def export_csv(gradebook_db, inbound, exec_dir, sql, header, out_csv):
+def safe_query(gradebook_db, inbound, exec_dir, sql):
+    """
+    open database and inbound folder and run sql
+    """
+    conn = connect_to_db(gradebook_db, inbound, exec_dir)
+    for row in do_sql(conn, sql):
+        yield remove_nonalpha_from_dict(dict(row))
+    conn.close()
+
+def read_xlsx_or_csv(a, xlsx_or_csv):
+    if xlsx_or_csv == "xlsx":
+        return pd.read_excel(a, sheet_name="Sheet1")
+    elif xlsx_or_csv == "csv":
+        return pd.read_csv(a)
+    else:
+        assert(xlsx_or_csv in ["xlsx", "csv"]), xlsx_or_csv
+
+def make_xlsx_or_csv(df, header, a, xlsx_or_csv):
+    if xlsx_or_csv == "xlsx":
+        df.to_excel(a, header=header, index=False)
+    elif xlsx_or_csv == "csv":
+        df.to_csv(a, header=header, index=False)
+    else:
+        assert(xlsx_or_csv in ["xlsx", "csv"]), xlsx_or_csv
+
+def write_to_xlsx_or_csv(df, header, a, xlsx_or_csv):
+    if xlsx_or_csv == "xlsx":
+        t = f"tmp_{a}"
+        shutil.copyfile(a, t)
+        with pd.ExcelWriter(t, mode="a", if_sheet_exists="overlay",
+                            engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name="Sheet1", header=header, index=False)
+        os.replace(t, a)
+    elif xlsx_or_csv == "csv":
+        df.to_csv(a, header=header, index=False)
+    else:
+        assert(xlsx_or_csv in ["xlsx", "csv"]), xlsx_or_csv
+
+def export_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql, header, out, force, xlsx_or_csv):
+    """
+    export notebook info into csv
+    """
+    rows_gen = safe_query(gradebook_db, inbound, exec_dir, sql)
+    rows = list(rows_gen)
+    df = pd.DataFrame(rows)
+    if force or not os.path.exists(out):
+        make_xlsx_or_csv(df, header, out, xlsx_or_csv)
+        print("{} lines written into {}".format(len(rows), out))
+    else:
+        print("error: {} exists. remove it first or give --force".format(out))
+
+def export_xlsx(gradebook_db, inbound, exec_dir, sql, header, out_xlsx, force):
+    """
+    export notebook info into csv
+    """
+    export_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql, header, out_xlsx,
+                       force, "xlsx")
+
+def export_csv(gradebook_db, inbound, exec_dir, sql, header, out_csv, force):
+    """
+    export notebook info into csv
+    """
+    export_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql, header, out_csv,
+                       force, "csv")
+
+# on_cols = ["student_id", "assignment_name", "notebook_name", "prob_name"]
+# update_cols = ["eval_ok", "eval_out", "eval_err", "eval_diff"]
+
+def update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
+                      on_cols, update_cols, header,
+                      inout, xlsx_or_csv):
+    """
+    export notebook info into csv
+    """
+    rows_gen = safe_query(gradebook_db, inbound, exec_dir, sql)
+    rows = list(rows_gen)
+    df = pd.DataFrame(rows)
+    orig_df = read_xlsx_or_csv(inout, xlsx_or_csv)
+    assert(len(df) == len(orig_df)), (len(df), len(orig_df))
+    merged = pd.merge(orig_df, df,
+                      on=on_cols, suffixes=("", "_new"), how="left")
+    update_cols_new = [f"{c}_new" for c in update_cols]
+    merged[update_cols] = merged[update_cols_new]
+    result = merged[orig_df.columns]
+    write_to_xlsx_or_csv(result, header, inout, xlsx_or_csv)
+    print("{} lines written into {}".format(len(rows), inout))
+
+def update_xlsx(gradebook_db, inbound, exec_dir, sql,
+                on_cols, update_cols, header, inout):
+    update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
+                       on_cols, update_cols, header, inout, "xlsx")
+
+def update_csv(gradebook_db, inbound, exec_dir, sql,
+              on_cols, update_cols, header, inout):
+    update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
+                       on_cols, update_cols, header, inout, "csv")
+    
+def export_csv_old(gradebook_db, inbound, exec_dir, sql, header, out_csv):
     """
     export notebook info into csv
     """
@@ -372,27 +482,29 @@ def export_csv(gradebook_db, inbound, exec_dir, sql, header, out_csv):
     else:
         out_wp = open(out_csv, "w")
     csv_wp = None
+    n = 0
     for row in do_sql(conn, sql):
         if csv_wp is None:
             fields = row.keys()
             csv_wp = csv.DictWriter(out_wp, fields)
             if header:
                 csv_wp.writeheader()
-        csv_wp.writerow(dict(row))
+        csv_wp.writerow(remove_nonalpha_from_dict(dict(row)))
+        n += 1
     if out_wp is not sys.stdout:
         out_wp.close()
+    print("{} lines written into {}".format(n, out_csv))
 
 def export_txt(gradebook_db, inbound, exec_dir, sql, sep, out_txt):
     """
     export notebook info into txt
     """
-    conn = connect_to_db(gradebook_db, inbound, exec_dir)
     if out_txt == "-":
         out_wp = sys.stdout
     else:
         out_wp = open(out_txt, "w")
-    for row in do_sql(conn, sql):
-        for val in dict(row).values():
+    for row in safe_query(gradebook_db, inbound, exec_dir, sql):
+        for val in row.values():
             out_wp.write(val)
             out_wp.write("\n" + sep + "\n")
     if out_wp is not sys.stdout:
@@ -439,41 +551,60 @@ def make_sql_val(val):
         return None
     return float(val)
 
-def import_grade_csv(grade_csv, gradebook_db):
+def make_row_enumerator(grade_csv_xlsx_ods, ext=None):
+    if ext is None:
+       if grade_csv_xlsx_ods.endswith(".csv"):
+           ext = "csv"
+       elif grade_csv_xlsx_ods.endswith(".xlsx"):
+           ext = "xlsx"
+       elif grade_csv_xlsx_ods.endswith(".ods"):
+           ext = "ods"
+    if ext == "csv":
+        grade_fp = open(grade_csv_xlsx_ods)
+        csv_fp = csv.DictReader(grade_fp)
+        return enumerate(csv_fp)
+    elif ext == "xlsx":
+        df = pd.read_excel(grade_csv_xlsx_ods, keep_default_na=False)
+        return df.iterrows()
+    elif ext == "ods":
+        df = pd.read_excel(grade_csv_xlsx_ods, keep_default_na=False, engine="odf")
+        return df.iterrows()
+    else:
+        assert(ext in ["csv", "xlsx", "ods"]), ext
+
+def import_grade_csv_xlsx_ods(grade_csv_xlsx_ods, gradebook_db):
     """
     import scores in grade_csv into gradebook_db
     """
     conn = sqlite3.connect(gradebook_db)
     conn.row_factory = sqlite3.Row
-    with open(grade_csv) as grade_fp:
-        csv_fp = csv.DictReader(grade_fp)
-        for i, row in enumerate(csv_fp):
-            manual_score = make_sql_val(row["manual_score"])
-            extra_credit = make_sql_val(row["extra_credit"])
-            needs_manual_grade = make_sql_val(row["needs_manual_grade"])
-            grade_id = row["grade_id"]
-            manual_comment = row["manual_comment"]
-            comment_id = row["comment_id"]
-            if manual_score is not None:
-                needs_manual_grade = 0
+    for i, row in make_row_enumerator(grade_csv_xlsx_ods):
+        manual_score = make_sql_val(row["manual_score"])
+        extra_credit = make_sql_val(row["extra_credit"])
+        needs_manual_grade = make_sql_val(row["needs_manual_grade"])
+        grade_id = row["grade_id"]
+        manual_comment = row["manual_comment"]
+        comment_id = row["comment_id"]
+        if manual_score is not None:
+            needs_manual_grade = 0
+        do_sql(conn,
+               """
+               update grade set
+               manual_score = ?,
+               extra_credit = ?,
+               needs_manual_grade = ?
+               where id = ?
+               """,
+               manual_score, extra_credit, needs_manual_grade, grade_id)
+        if comment_id is not None:
             do_sql(conn,
-                   """
-                   update grade set
-                   manual_score = ?,
-                   extra_credit = ?,
-                   needs_manual_grade = ?
-                   where id = ?
-                   """,
-                   manual_score, extra_credit, needs_manual_grade, grade_id)
-            if comment_id is not None:
-                do_sql(conn,
-                       """update comment set
-                       manual_comment = ?
-                       where id = ?""",
-                       manual_comment, comment_id)
+                   """update comment set
+                   manual_comment = ?
+                   where id = ?""",
+                   manual_comment, comment_id)
     conn.commit()
     conn.close()
-
+    
 def run(cmd, user):
     subprocess.run(cmd.format(user=user), check=True, shell=True)
 
@@ -488,6 +619,9 @@ def upload_gradebook_db(user):
     """
     run("ssh {user}@taulec cp notebooks/gradebook.db notebooks/gradebook.bak.db", user)
     run("scp dl/notebooks/gradebook.db {user}@taulec:notebooks/", user)
+
+def split_and_strip(s):
+    return [x.strip() for x in s.split(",")]
     
 def parse_args(argv):
     """
@@ -500,12 +634,24 @@ def parse_args(argv):
     psr.add_argument("--sql", metavar="SQL_STATEMENT",
                      default=SQL_SELECT_ALL_GRADE_COMMENT_CELL,
                      help="output csv file")
+    psr.add_argument("--on-cols", metavar="COLUMNS",
+                     default="student_id,assignment_name,notebook_name,prob_name",
+                     help="join existing xlsx/csv and updates on these columns")
+    psr.add_argument("--update-cols", metavar="UPDATE-COLUMNS",
+                     default="eval_ok,eval_out,eval_err,eval_diff",
+                     help="update these columns of existing xlsx/csv")
     psr.add_argument("--header", metavar="0/1",
                      default=1, type=int,
-                     help="output header")
+                     help="output header or not")
+    psr.add_argument("--force", metavar="0/1",
+                     default=0, type=int,
+                     help="force overwriting existing file on export or export-xlsx")
     psr.add_argument("--csv", metavar="GRADE_CSV",
                      default="grade.csv",
                      help="csv file for export")
+    psr.add_argument("--xlsx", metavar="OUT_XLSX",
+                     default="grade.xlsx",
+                     help="xlsx file for export-xlsx")
     psr.add_argument("--txt", metavar="OUT_TXT",
                      default="out.txt",
                      help="txt file for export-txt")
@@ -538,10 +684,12 @@ def parse_args(argv):
                      help="program output directory")
     psr.add_argument("command", metavar="COMMAND", nargs=1)
     args = psr.parse_args(argv[1:])
-    args.student_id = args.student_id.split(",")
-    args.assignment_name = args.assignment_name.split(",")
-    args.notebook_name = args.notebook_name.split(",")
-    args.prob_name = args.prob_name.split(",")
+    args.student_id      = split_and_strip(args.student_id)
+    args.assignment_name = split_and_strip(args.assignment_name)
+    args.notebook_name   = split_and_strip(args.notebook_name)
+    args.prob_name       = split_and_strip(args.prob_name)
+    args.on_cols         = split_and_strip(args.on_cols)
+    args.update_cols     = split_and_strip(args.update_cols)
     return args
 
 def main():
@@ -551,9 +699,20 @@ def main():
     args = parse_args(sys.argv)
     command = args.command[0]
     if command == "export":
-        export_csv(args.gradebook, args.inbound, args.exec_dir, args.sql, args.header, args.csv)
+        export_csv(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                   args.header, args.csv, args.force)
+    elif command == "export-xlsx":
+        export_xlsx(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                    args.header, args.xlsx, args.force)
     elif command == "export-txt":
-        export_txt(args.gradebook, args.inbound, args.exec_dir, args.sql, args.separater, args.txt)
+        export_txt(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                   args.separater, args.txt)
+    elif command == "update":
+        merge_csv(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                  args.on_cols, args.update_cols, args.header, args.csv)
+    elif command == "update-xlsx":
+        update_xlsx(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                    args.on_cols, args.update_cols, args.header, args.xlsx)
     elif command == "export-source": # to be removed
         export_source(args.gradebook, args.inbound, args.exec_dir,
                       args.student_id, args.assignment_name,

@@ -64,15 +64,19 @@ nbgrader autograde --assignment pl02 --no-execute --CourseDirectory.student_id_e
 pl@taulec:notebooks 下のデータ(submitされたnotebook と gradebook.db)と
 pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 
-[4] ./work.py export
+[4] ./work.py export-xlsx
 
 * dl/notebooks/gradebook.db のデータを色々join
 * dl/inboundの下に提出されたipynbからsource, outputsを読む
 * exec/assignment_name/prob_name/student.{ok,err} の出力を読む (-> eval_output 列)
 
-それらをすべてgrade.csvに書き出す.
+それらをすべてgrade.xlsxに書き出す.
 
-採点作業は grade.csv 上で行う
+採点作業は grade.xlsx 上で行う
+
+2023年度更新:
+
+色々作業をするのにcsvよりもxlsxのほうが良さげなのでそうする
 
 2022年度更新:
 
@@ -124,7 +128,6 @@ ${cmd} ${test_prog} 2>&1
 
 これはむしろ本格的な試験で必要な仕組みか
 
-
 TODO: このやり方の代わりにあるセルに書かれた答えはすべて一度だけDLして, 問題ごとにevalようなやり方のほうがいいかもしれない. 
 
 TODO: 学生が別途作ったファイルも評価に使いたい場合があるのでその場合は, dl/notebooks/submitted/${student_id}/os15_pipe/ からコピーする.
@@ -152,7 +155,7 @@ make -f eval.mk prob_names="p-003"
 
 [6] libreoffice でできる工夫
 
-grade.csv で点数をつけていくときの作業方法
+grade.{csv,xlsx,ods} で点数をつけていくときの作業方法
 
 * autofilter を作る
 * prob_name でソートする
@@ -161,7 +164,12 @@ grade.csv で点数をつけていくときの作業方法
 * 1つのprob_name だけを表示する
 * exec_output が OK となっているところを非表示にして採点
 
-2022年度追加:
+2023年度追加:
+
+始めから xlsx を生成することにしたので以下のコメントは大部分不要
+
+<!--
+2022年度追加: 
 
 eval.mk を実行してはそれを取り込むということを繰り返すので, 手作業で仕事をするシートは ods/xls にしておいて一度だけautofilterなどを作っておくのが良い. 生成するのは csv にしてそこからcopy-pasteする
 
@@ -173,11 +181,78 @@ export する
 --keys で指定された値がマッチしている行を grades.odsから探し, --valuesで指定されたものに置き換える
 
 おそらく ods を pandas で読み込んでまた吐き出す, だと手作業の結果 autofilter や wrap_text, alignment などの設定が失われる. xlsx + openpyxl でやるしかない?
+ -->
+ 
+=== ITC-LMSなどとの結合 ===
+
+[7] UTASのデータをダウンロード
+
+   UTAS 
+-> 成績・定期試験
+-> 成績登録 
+-> 講義を選ぶ 
+-> Excel出力 
+=> data/utas.xlsx という名前で保存
+
+そのままではパスワード付きで, libreofficeで開けない.
+
+   WindowsのExcel
+-> 情報 
+-> ブックの保護 
+-> パスワードによる暗号化
+=> data/utas.xlsx という名前のまま保存
+
+
+<!--
+[8] ITC-LMSデータのダウンロード
+   ITC-LMS 
+-> 課題 
+-> 全体提出状況確認 
+-> ダウンロード
+=> data/lms.xlsx に保存
+
+UTAS [7] 同様に, WindowsのExcelでパスワードを解除
+-->
+
+[8] UTOLデータのダウンロード
+
+   UTOL
+-> 課題 
+-> 全履修者の提出物確認
+-> zipダウンロード
+=> data/20xx....zip に保存
+
+unar で解凍
+中にExcelファイルと、テキストが入っている
+
+UTAS [7] 同様に, WindowsのExcelでパスワードを解除?
+
+[9] JupyterのユーザExcel (学生番号とuxxxxx の対応) 
+
+cd ~/lectures/operating-systems/docs/jupyter
+./mnt 
+
+すると users.csv が読めるようになるのでそれを libreoffice で開き,
+=> data/jupyter.xlsx
+に保存.
+
+その後で, この授業に関係ない行を削除.
+削除しないと, 同じ人が複数の授業を受けていたときに取り違える可能性がある
+
+[10] 
+
+./join_utas_lms_jupyter_nbg.py
+
+は, [7]-[9]のデータと, grade.xlsx をすべて結合する
+
+[11] 最終的にutasにアップロードする際は, utasの
+
+採点表データ出力
 
 
 === これ以降の作業はfeedbackを学生に返さないのなら不要 ===
 
-[7] ./work.py import で dl/notebooks/gradebook.db に反映
+[11] ./work.py import で dl/notebooks/gradebook.db に反映
 
 grade.csv に作業した結果を反映するのは
 
@@ -186,7 +261,7 @@ grade.csv に作業した結果を反映するのは
 ただしこれをやる前に, gradebook.db の backup をとっておいたほうが良いだろう
 
 
-[8] 無事 gradebook.db ができたと思ったら
+[12] 無事 gradebook.db ができたと思ったら
 
 ./work.py upload --user pl # --user を適宜変える
 
@@ -194,7 +269,7 @@ grade.csv に作業した結果を反映するのは
 
 scp dl/notebooks/gradebook.db pl@taulec:notebooks/
 
-[9] feedback を送る
+[13] feedback を送る
 
 $ ssh pl@taulec
 taulec$ cd notebooks/
