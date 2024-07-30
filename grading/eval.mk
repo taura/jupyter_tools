@@ -123,7 +123,7 @@ results_prob:=$(patsubst %,$(work_dir)/$(assignment_name)/$(notebook_name)/$(pro
 #$(error "rsults_prob = $(results_prob)")
 
 $(results_prob) : $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/%.ok : $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/created
-	test_dir=$(test_dir) work_dir=$(work_dir) assignment_name=$(assignment_name) notebook_name=$(notebook_name) prob_name=$(prob_name) student_id=$* $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh # > $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.out 2> $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.err
+	test_dir=$(test_dir) work_dir=$(work_dir) assignment_name=$(assignment_name) notebook_name=$(notebook_name) prob_name=$(prob_name) student_id=$* $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh > $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.out 2> $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.err
 	touch $@
 endif
 endif
@@ -147,7 +147,7 @@ ifdef prob_name
 ifdef student
 results_student := $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$(student).ok
 $(results_student) : $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/created # $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh 
-	test_dir=$(test_dir) work_dir=$(work_dir) assignment_name=$(assignment_name) notebook_name=$(notebook_name) prob_name=$(prob_name) student_id=$* $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh # > $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.out 2> $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.err
+	test_dir=$(test_dir) work_dir=$(work_dir) assignment_name=$(assignment_name) notebook_name=$(notebook_name) prob_name=$(prob_name) student_id=$* $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh > $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.out 2> $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.err
 	touch $@
 endif
 endif
