@@ -7,23 +7,30 @@ this_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
 #
 # default source files
 #
-nb_srcs  ?= $(wildcard nb_src/source/*/*.{ml,c,py,sos})
-aux_srcs ?= $(wildcard nb_src/source/*/img/*.svg) $(wildcard nb_src/source/*/img/*.png)
+nb_srcs  ?= $(wildcard nb/source/*/*.{ml,c,py,sos})
+aux_srcs ?= $(wildcard nb/source/*/img/*.svg) $(wildcard nb/source/*/img/*.png)
+ans_aux_srcs ?= 
 mk_nb_flags ?= 
 
+
+ifeq (a,b)
 # users on behhalf of which we run jupyter servers
-users_csv ?= all_users.csv
+users_csv ?= users.csv
 users     ?= $(shell awk '{if(NR>1) print $$1}' FS=, $(users_csv))
+endif
 
 #
 # target files
 #
 ipynbs        :=
-ipynbs        += $(patsubst nb_src/source/%,notebooks/source/%.ipynb,$(nb_srcs))
+ipynbs        += $(patsubst nb/source/%,notebooks/source/%.ipynb,$(nb_srcs))
 ipynb_answers := 
-ipynb_answers += $(patsubst nb_src/source/%,notebooks/source/ans_%.ans.ipynb,$(nb_srcs))
-aux           := $(patsubst nb_src/source/%,notebooks/source/%,$(aux_srcs))
-aux_answers   := $(patsubst nb_src/source/%,notebooks/source/ans_%,$(aux_srcs))
+ipynb_answers += $(patsubst nb/source/%,notebooks/source/ans_%.ans.ipynb,$(nb_srcs))
+aux           := $(patsubst nb/source/%,notebooks/source/%,$(aux_srcs))
+aux_answers   := $(patsubst nb/source/%,notebooks/source/ans_%,$(aux_srcs)) $(patsubst nb/source/%,notebooks/source/ans_%,$(ans_aux_srcs))
+
+#aux2          := $(patsubst nb/source/os2023_exam/include/vers/2/%,notebooks/source/os2023_exam/%.encrypted,$(aux_srcs))
+#aux2_answers  := $(patsubst nb/source/os2023_exam/include/vers/2/%,notebooks/source/ans_os2023_exam/%.encrypted,$(aux_srcs))
 
 #
 # compile
@@ -32,19 +39,27 @@ compile : $(ipynbs) $(ipynb_answers) $(aux) $(aux_answers)
 prob : $(ipynbs) $(aux)
 ans : $(ipynb_answers) $(aux_answers)
 
-$(ipynbs) : notebooks/source/%.ipynb : nb_src/source/% notebooks/created
+$(ipynbs) : notebooks/source/%.ipynb : nb/source/% notebooks/created
 	mkdir -p $(dir $@)
 	$(this_dir)mk_nb.py $(mk_nb_flags) --output $@ $< 
 
-$(ipynb_answers) : notebooks/source/ans_%.ans.ipynb : nb_src/source/% notebooks/created
+$(ipynb_answers) : notebooks/source/ans_%.ans.ipynb : nb/source/% notebooks/created
 	mkdir -p $(dir $@)
 	$(this_dir)mk_nb.py $(mk_nb_flags) --output $@ --labels ans $< 
 
-$(aux) : notebooks/source/% : nb_src/source/% notebooks/created
+$(aux) : notebooks/source/% : nb/source/% notebooks/created
 	install --mode=0644 -D $< $@
 
-$(aux_answers) : notebooks/source/ans_% : nb_src/source/% notebooks/created
+$(aux_answers) : notebooks/source/ans_% : nb/source/% notebooks/created
 	install --mode=0644 -D $< $@
+
+
+
+$(aux2) : notebooks/source/os2023_exam/%.encrypted : nb/source/os2023_exam/include/vers/2/% notebooks/created
+	openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 -in $< -out $@ -k Eew9Ee
+
+$(aux2_answers) : notebooks/source/ans_os2023_exam/%.encrypted : nb/source/os2023_exam/include/vers/2/% notebooks/created
+	openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 -in $< -out $@ -k Eew9Ee
 
 notebooks/created :
 	mkdir -p $@
@@ -52,6 +67,8 @@ notebooks/created :
 #
 # passwd (generate passwords for users)
 #
+ifeq (a,b)
+
 passwds := $(foreach user,$(users),passwd_$(user))
 
 $(passwds) : passwd_% :
@@ -95,5 +112,6 @@ nb : $(notebooks_dirs) $(nbgrader_configs)
 #
 feedback_class ?= pl
 feedback :
-	sqlite3 $(users_sqlite) 'select "user="||user||"   passwd="||password from a where class="$(feedback_class)"'
+	sqlite3 $(users_sqlite) 'select "access https://taulec.zapto.org:8000/ with user="||user||"   passwd="||password from a where class="$(feedback_class)"'
+endif
 

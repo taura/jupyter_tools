@@ -26,8 +26,8 @@ def canonicalize_kernel_dict():
         "cpp" : "C",
         "go" : "Go",
         "golang" : "Go",
-        "jl" : "Julia 1.8.5",
-        "julia" : "Julia 1.8.5",
+        "jl" : "Julia 1.10.2",
+        "julia" : "Julia 1.10.2",
         "ocaml" : "OCaml default",
         "caml" : "OCaml default",
         "ml" : "OCaml default",
@@ -130,15 +130,15 @@ def make_metadata_julia():
     return {
         "celltoolbar": "Create Assignment",
         "kernelspec": {
-            "display_name": "Julia 1.8.5",
+            "display_name": "Julia 1.10.2",
             "language": "julia",
-            "name": "julia-1.8"
+            "name": "julia-1.10"
         },
         "language_info": {
             "file_extension": ".jl",
             "mimetype": "application/julia",
             "name": "julia",
-            "version": "1.8.5"
+            "version": "1.10.2"
         }
     }
 
@@ -209,7 +209,7 @@ def make_metadata_sos():
                 ["Bash", "bash", "bash", "", "shell"],
                 ["C", "c_kernel", "c", "", ""],
                 ["Go", "gophernotes", "go", "", ""],
-                ["Julia 1.8.5", "julia-1.8", "julia", "", ""],
+                ["Julia 1.10.2", "julia-1.10", "julia", "", ""],
                 ["OCaml default", "ocaml-jupyter", "OCaml", "", "text/x-ocaml"],
                 ["Python 3 (ipykernel)", "python3", "python3", "", {"name": "ipython", "version": 3}],
                 ["Rust", "rust", "rust", "", ""]
@@ -231,7 +231,7 @@ def make_metadata(syntax):
         "Bash" : make_metadata_bash,
         "C" : make_metadata_c,
         "Go" : make_metadata_go,
-        "Julia 1.8.5" : make_metadata_julia,
+        "Julia 1.10.2" : make_metadata_julia,
         "OCaml default" : make_metadata_ocaml,
         "Rust" : make_metadata_rust,
         "SoS" : make_metadata_sos,
@@ -491,10 +491,14 @@ class ParserBase:
         # process label=ans; if not given, defaults to label=prob
         # if the specified label is not in labels in command line
         # (--labels, which again defaults to prob), it is skipped
-        ok = 0
-        for label in attrs_dict.get("label", "prob").split(","):
-            if label in self.labels:
-                ok = 1
+        labels = attrs_dict.get("label")
+        if labels is None:
+            ok = 1
+        else:
+            ok = 0
+            for label in labels.split(","):
+                if label in self.labels:
+                    ok = 1
         if ok == 0:
             return None
         cell_type = "markdown" if "md" in attrs_dict else "code"
@@ -618,7 +622,7 @@ class ParserBase:
         self.eat(self.tok_other)
         if not self.is_md:
             return line
-        matched = re.match("(?P<hashes>#*)(?P<ast>\*?)(?P<sym>[^ ]*)(?P<rest>.*)", line)
+        matched = re.match(r"(?P<hashes>#*)(?P<ast>\*?)(?P<sym>[^ ]*)(?P<rest>.*)", line)
         hashes = matched["hashes"]
         level = len(hashes)
         ast = matched["ast"]
