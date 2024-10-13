@@ -1,7 +1,7 @@
 #!/bin/bash
-begin=24000
-end=24099
-class=pl
+begin=24500
+end=24699
+class=pd
 
 users="$(for x in $(seq ${begin} ${end}); do echo u${x}; done) ${class} ${class}0"
 #users=$(for x in $(seq ${begin} ${end}); do echo u${x}; done) 
