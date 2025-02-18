@@ -48,6 +48,9 @@ https://github.com/jupyter/nbgrader/issues/1083
     "kernel": "Bash"
    },
 
+これをやるためのツール
+
+
 注2: それ以外の理由で失敗して直せない場合,
 
 nbgrader autograde --assignment pl02 --no-execute --CourseDirectory.student_id_exclude=...
@@ -72,8 +75,9 @@ pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 
 それらをすべてgrade.xlsxに書き出す.
 
-採点作業は grade.xlsx 上で行う
+採点結果は grade.xlsx に記入
 
+<!---
 2023年度更新:
 
 色々作業をするのにcsvよりもxlsxのほうが良さげなのでそうする
@@ -89,6 +93,7 @@ pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 
 cd public_html/lecture/operating_systems/exam/2021/grading/clustering
 ./add_distance.py
+--->
 
 [5] 半自動採点. プログラムを実行して採点
 
@@ -183,7 +188,7 @@ export する
 おそらく ods を pandas で読み込んでまた吐き出す, だと手作業の結果 autofilter や wrap_text, alignment などの設定が失われる. xlsx + openpyxl でやるしかない?
  -->
  
-=== ITC-LMSなどとの結合 ===
+=== UTAS, LMSなどとの結合 ===
 
 [7] UTASのデータをダウンロード
 
@@ -223,9 +228,30 @@ UTAS [7] 同様に, WindowsのExcelでパスワードを解除
 => data/20xx....zip に保存
 
 unar で解凍
+=> data/20xx..../ フォルダができる
+
+data/20xx..../
+  Excelファイル
+  student/
+   assignment/submissionText.txt
+   assignment/submissionText.txt
+   assignment/submissionText.txt
+    ...
+  student/
+   assignment/submissionText.txt
+   assignment/submissionText.txt
+   assignment/submissionText.txt
+    ...
+  student/
+   assignment/submissionText.txt
+   assignment/submissionText.txt
+   assignment/submissionText.txt
+    ...
+   ...
+
 中にExcelファイルと、テキストが入っている
 
-UTAS [7] 同様に, WindowsのExcelでパスワードを解除?
+UTAS [7] 同様に, WindowsのExcelでパスワードを解除 -> data/lms.xlsx として保存
 
 [9] JupyterのユーザExcel (学生番号とuxxxxx の対応) 
 
@@ -236,7 +262,7 @@ cd ~/lectures/operating-systems/docs/jupyter
 => data/jupyter.xlsx
 に保存.
 
-その後で, この授業に関係ない行を削除.
+*その後で, この授業に関係ない行を削除.*
 削除しないと, 同じ人が複数の授業を受けていたときに取り違える可能性がある
 
 [10] 
@@ -245,9 +271,55 @@ cd ~/lectures/operating-systems/docs/jupyter
 
 は, [7]-[9]のデータと, grade.xlsx をすべて結合する
 
+utas_lms_jupyter_nbgrader.xlsx
+
+というファイルができる
+
 [11] 最終的にutasにアップロードする際は, utasの
 
-採点表データ出力
+採点表データ [出力] でDLする
+
+暗号化されていてWindowsじゃないと開けないので
+utas_lms_jupyter_nbgrader.xlsx を A列 でソートして
+Windows上でコピペする
+
+[12] 電気系(池田先生)の成績報告
+
+メールがやってくる
+
+科目名: プログラミング言語
+成績プログラムのダウンロード:
+http://www.mos.t.u-tokyo.ac.jp/~ikeda/EEScore/2024_FEN-EE4d19L1_6Kz.7z
+
+成績ファイルのアップロード:
+http://www.mos.t.u-tokyo.ac.jp/ikeda-cgi/EEScore/EEScore.cgi?Lec=2024_FEN-EE4d19L1_6Kz
+
+田浦健次朗先生
+ユーザ名:   24S_tau@eidos.ic.i.u-tokyo.ac.jp
+パスワード:  xxxxxxxxxxxxxx
+
+みたいな
+
+xxxxx.7z みたいなファイルをDLする
+
+7za xxxxx.7z
+
+でパスワードは「いつもの」(メールで送られてきたやつではなく)
+
+utas_lms_jupyter_nbgrader.xlsx の成績を100点満点で10段階に変換
+
+A1 ... 100
+A  ... 90, 80, 70
+B  ... 60, 50
+C  ... 40, 30
+
+でつける
+
+学生証番号の列と上記の点数を2列コピー
+
+学生証番号は下5桁のみ(6桁以上有ると全部見つからないとなる)
+タブをスペースにする必要が有るかもしれない(試行錯誤している過程でスペースにした. タブのままでも良かったかも)
+
 
 
 === これ以降の作業はfeedbackを学生に返さないのなら不要 ===

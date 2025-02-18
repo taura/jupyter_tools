@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 
 """
 work.py
@@ -362,7 +362,9 @@ def remove_nonalpha_from_dict(dic):
     new_dic = {}
     for k, v in dic.items():
         if isinstance(v, type("")):
-            v = v.replace('\x00', '\n')
+            # v = v.replace('\x00', '\n')
+            pattern = r'[\x00-\x1F\x7F-\x9F]'
+            v = re.sub(pattern, '', v)
         new_dic[k] = v
     return new_dic
 
