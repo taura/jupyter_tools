@@ -26,16 +26,20 @@ ipynbs        :=
 ipynbs        += $(patsubst nb/source/%,notebooks/source/%.ipynb,$(nb_srcs))
 ipynb_answers := 
 ipynb_answers += $(patsubst nb/source/%,notebooks/source/ans_%.ans.ipynb,$(nb_srcs))
+
+htmls        :=
+htmls        += $(patsubst nb/source/%,notebooks/source/%.html,$(nb_srcs))
+html_answers := 
+html_answers += $(patsubst nb/source/%,notebooks/source/ans_%.ans.html,$(nb_srcs))
+
 aux           := $(patsubst nb/source/%,notebooks/source/%,$(aux_srcs))
 aux_answers   := $(patsubst nb/source/%,notebooks/source/ans_%,$(aux_srcs)) $(patsubst nb/source/%,notebooks/source/ans_%,$(ans_aux_srcs))
-
-#aux2          := $(patsubst nb/source/os2023_exam/include/vers/2/%,notebooks/source/os2023_exam/%.encrypted,$(aux_srcs))
-#aux2_answers  := $(patsubst nb/source/os2023_exam/include/vers/2/%,notebooks/source/ans_os2023_exam/%.encrypted,$(aux_srcs))
 
 #
 # compile
 #
 compile : $(ipynbs) $(ipynb_answers) $(aux) $(aux_answers)
+html : $(htmls) $(html_answers)
 prob : $(ipynbs) $(aux)
 ans : $(ipynb_answers) $(aux_answers)
 
@@ -46,6 +50,12 @@ $(ipynbs) : notebooks/source/%.ipynb : nb/source/% notebooks/created
 $(ipynb_answers) : notebooks/source/ans_%.ans.ipynb : nb/source/% notebooks/created
 	mkdir -p $(dir $@)
 	$(this_dir)mk_nb.py $(mk_nb_flags) --output $@ --labels ans $< 
+
+$(htmls) : notebooks/source/%.html : notebooks/source/%.ipynb
+	jupyter nbconvert --to html $<
+
+$(html_answers) : notebooks/source/ans_%.ans.html : notebooks/source/ans_%.ans.ipynb
+	jupyter nbconvert --to html $<
 
 $(aux) : notebooks/source/% : nb/source/% notebooks/created
 	install --mode=0644 -D $< $@

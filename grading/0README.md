@@ -255,7 +255,7 @@ UTAS [7] 同様に, WindowsのExcelでパスワードを解除 -> data/lms.xlsx 
 
 [9] JupyterのユーザExcel (学生番号とuxxxxx の対応) 
 
-cd ~/lectures/operating-systems/docs/jupyter
+cd ~/lectures/programming-languages/docs/jupyter
 ./mnt 
 
 すると users.csv が読めるようになるのでそれを libreoffice で開き,

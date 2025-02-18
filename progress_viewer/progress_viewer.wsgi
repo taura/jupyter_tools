@@ -1,3 +1,3 @@
 import os
-os.chdir("/home/tau/public_html/lecture/jupyter_tools/monitoring")
+os.chdir("/home/tau/jupyter_tools/progress_viewer")
 from progress_viewer import application

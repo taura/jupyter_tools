@@ -1,7 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 
 import argparse
 import csv
+import os
 import sys
 import pandas as pd
 import openpyxl
@@ -36,32 +37,6 @@ def make_xlsx_rows(rows):
     for row in rows:
         ws.append(row)
     return ws.rows
-
-def xxx_load_and_pivot_csv(a_csv, row_fields, col_fields, val_field):
-    data = {}
-    all_row_keys = set()
-    all_col_keys = set()
-    csv.field_size_limit(100 * 1000 * 1000)
-    with open(a_csv) as csv_fp:
-        fp = csv.DictReader(csv_fp)
-        for row in fp:
-            row_keys = tuple([row[field] for field in row_fields])
-            col_keys = tuple([row[field] for field in col_fields])
-            val = row[val_field]
-            all_row_keys.add(row_keys)
-            all_col_keys.add(col_keys)
-            assert((row_keys + col_keys) not in data)
-            data[row_keys + col_keys] = val
-    rows = []
-    all_row_keys = sorted(list(all_row_keys))
-    all_col_keys = sorted(list(all_col_keys))
-    for row_keys in all_row_keys:
-        row = [row_keys[i] for i in range(len(row_fields))]
-        for col_keys in all_col_keys:
-            row.append(data.get(row_keys + col_keys, ""))
-        rows.append(row)
-    header = row_fields + ["-".join(col_keys) for col_keys in all_col_keys]
-    return header, make_xlsx_rows(rows)
 
 def read_csv_xlsx_ods(a_file, ext=None):
     """
@@ -219,7 +194,16 @@ def make_joined_wb(utas_file, utas_header, utas_rows,
     jupyter_user_col = jupyter_header.index("user")
     # jupyter_user_col = jupyter_header.index("uid")
     def jupyter_id_key(row):
-        return cell_val(row[jupyter_id_col]).replace("-", "")
+        oval = cell_val(row[jupyter_id_col])
+        if isinstance(oval, type(0)):
+            val = str(oval)
+        else:
+            val = oval
+        val = val.replace("-", "")
+        assert(len(val) in [0, 7, 8]), oval
+        if len(val) > 0:
+            val = "0" * (8 - len(val)) + val
+        return val
     # join UTAL and LMS with UTAS 学生証番号 = LMS 学生証番号
     utas_lms_rows = merge_rows(utas_file, utas_rows, utas_key,
                                lms_file, lms_rows, lms_key)
@@ -253,6 +237,48 @@ def save_xlsx(header, rows, a_xlsx):
         ws.append([cell.value if cell is not None else None for cell in row])
     wb.save(a_xlsx)
 
+def read_file(filename):
+    with open(filename) as fp:
+        return fp.read()
+
+def common_prefix_length(str1, str2):
+    min_length = min(len(str1), len(str2))
+    for i in range(min_length):
+        if str1[i] != str2[i]:
+            return i
+    return min_length
+
+# find a directory in TOP that looks like the directory for ASSIGNMENT
+# 
+def find_assignment_dir(top, assignment):
+    assignment_key = assignment.replace("/", "_")
+    assignment_dirs = os.listdir(top)
+    for d in assignment_dirs:
+        if assignment_key.startswith(d):
+            return d
+    assert(0), (top, assignment)
+    
+def find_submission_text(directory, student_id, assignment):
+    student_top = f"data/utol/{directory}/{student_id}"
+    assignment_dir = find_assignment_dir(student_top, assignment)
+    return f"{student_top}/{assignment_dir}/{student_id}_submissionText.txt"
+    
+def read_submission_texts(header, rows, directory):
+    submission_text_cols = {}
+    for j, assignment in enumerate(header):
+        if j % 4 == 3: # 3, 7, 11, ...
+            submission_text_cols[j + 2] = assignment
+    student_id_col = header.index("学生証番号")
+    # 03220431_submissionText.txt
+    for row in rows:
+        student_id = row[student_id_col].value
+        for j, assignment in submission_text_cols.items():
+            val = row[j].value
+            if "submissionText.txt" in val:
+                sub_txt = find_submission_text(directory, student_id, assignment)
+                row[j].value = read_file(sub_txt)
+    return header, rows
+    
 def parse_args(argv):
     psr = argparse.ArgumentParser()
     psr.add_argument("--utas", metavar="UTAS_XLSX",
@@ -283,8 +309,14 @@ def parse_args(argv):
 def main():
     args = parse_args(sys.argv)
     utas_header, utas_rows = load_worksheet(args.utas, header_row=3)
-    lms_header, lms_rows = load_worksheet(args.lms, sheet='課題全体提出状況',
-                                          header_row=1)
+    lms_header, lms_rows = load_worksheet(args.lms,
+                                          #sheet='課題全体提出状況',
+                                          sheet=0,
+                                          header_row=0,
+                                          start_row=2)
+    # TODO get directory from command line
+    directory = "2024_0340_FEN-EE4d19L1_プログラミング言語_課題提出状況一覧"
+    lms_header, lms_rows = read_submission_texts(lms_header, lms_rows, directory)
     jupyter_header, jupyter_rows = load_worksheet(args.jupyter, header_row=0)
     # nbg_header, nbg_rows = load_worksheet(args.nbg, header_row=4)
     # nbg_header, nbg_rows = load_and_pivot_csv(args.grade, ["student_id"], ["assignment_name", "notebook_name", "prob_name"], "manual_score")

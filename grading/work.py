@@ -358,13 +358,29 @@ def connect_to_db(gradebook_db, inbound, exec_dir):
     do_sql(conn, SQL_JOIN_GRADE_COMMENT_CELL)
     return conn
 
-def remove_nonalpha_from_dict(dic):
+def remove_nonalpha_from_dict_xxx(dic):
     new_dic = {}
     for k, v in dic.items():
         if isinstance(v, type("")):
             # v = v.replace('\x00', '\n')
             pattern = r'[\x00-\x1F\x7F-\x9F]'
             v = re.sub(pattern, '', v)
+        new_dic[k] = v
+    return new_dic
+
+def remove_unsafe_from_str(s):
+    unprintable = re.compile(r'[\x00-\x08]')
+    ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+    # エスケープシーケンスを取り除く
+    s_ = unprintable.sub('\n', s)
+    s__ = ansi_escape.sub('', s_)
+    return s__
+    
+def remove_nonalpha_from_dict(dic):
+    new_dic = {}
+    for k, v in dic.items():
+        if isinstance(v, type("")):
+            v = remove_unsafe_from_str(v)
         new_dic[k] = v
     return new_dic
 
@@ -415,13 +431,38 @@ def write_to_xlsx_or_csv(df, header, a, xlsx_or_csv):
     else:
         assert(xlsx_or_csv in ["xlsx", "csv"]), xlsx_or_csv
 
+def remove_escape_sequence(s):
+    if s is None:
+        return None
+    ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+    # エスケープシーケンスを取り除く
+    clean_s = ansi_escape.sub('', s)
+    return clean_s
+        
 def export_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql, header, out, force, xlsx_or_csv):
     """
     export notebook info into csv
     """
     rows_gen = safe_query(gradebook_db, inbound, exec_dir, sql)
     rows = list(rows_gen)
+    if 0:
+        n = len(rows)
+        a = 723
+        b = 724
+        print(n, a, b)
+        rows = rows[a:b]
     df = pd.DataFrame(rows)
+    #df["errors"] = df["errors"].apply(remove_escape_sequence)
+    #df["outputs"] = df["outputs"].apply(remove_escape_sequence)
+    if 0:
+        cols = list(df.columns)
+        cols.remove("outputs")
+        #df = df[cols]
+        df = df[["outputs"]]
+        s = df["outputs"][0]
+        n = len(s)
+        print(n)
+        df.loc[0,"outputs"] = s[224:225]
     if force or not os.path.exists(out):
         make_xlsx_or_csv(df, header, out, xlsx_or_csv)
         print("{} lines written into {}".format(len(rows), out))
@@ -507,7 +548,8 @@ def export_txt(gradebook_db, inbound, exec_dir, sql, sep, out_txt):
         out_wp = open(out_txt, "w")
     for row in safe_query(gradebook_db, inbound, exec_dir, sql):
         for val in row.values():
-            out_wp.write(val)
+            if val is not None:
+                out_wp.write(val)
             out_wp.write("\n" + sep + "\n")
     if out_wp is not sys.stdout:
         out_wp.close()
