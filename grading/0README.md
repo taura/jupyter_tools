@@ -220,17 +220,18 @@ UTAS [7] 同様に, WindowsのExcelでパスワードを解除
 -> 課題 
 -> 全履修者の提出物確認
 -> zipダウンロード
-=> data/20xx....zip に保存
+=> data/20xx..xx.zip に保存
 
-unar で解凍
-中にExcelファイルと、テキストが入っている
+unar 20xx..xx.zip
+mv 20xx..xx utol
 
-UTAS [7] 同様に, WindowsのExcelでパスワードを解除?
+UTAS [7] 同様に, WindowsのExcelでパスワードを解除 --> utol.xlsx
 
 [9] JupyterのユーザExcel (学生番号とuxxxxx の対応) 
 
-cd ~/lectures/programming-languages/docs/jupyter
-./mnt 
+    ssh -t taulec-ansible gocryptfs make_env/ansible/files/enc make_env/ansible/files/plain
+    sshfs taulec-ansible: taulec-ansible
+    ln -s taulec-ansible/make_env/ansible/files/plain/taulec_ldap_users.csv users.csv
 
 すると users.csv が読めるようになるのでそれを libreoffice で開き,
 => data/jupyter.xlsx

@@ -259,15 +259,17 @@ def find_assignment_dir(top, assignment):
     assert(0), (top, assignment)
     
 def find_submission_text(directory, student_id, assignment):
-    student_top = f"data/utol/{directory}/{student_id}"
+    student_top = f"{directory}/{student_id}"
     assignment_dir = find_assignment_dir(student_top, assignment)
     return f"{student_top}/{assignment_dir}/{student_id}_submissionText.txt"
     
 def read_submission_texts(header, rows, directory):
     submission_text_cols = {}
     for j, assignment in enumerate(header):
-        if j % 4 == 3: # 3, 7, 11, ...
-            submission_text_cols[j + 2] = assignment
+        if assignment is not None:
+            # Assignment 0: Jupyter password|None|None|None|None|
+            # 提出状況|評価|コメント|成果物ファイル名|最終更新日時
+            submission_text_cols[j + 3] = assignment
     student_id_col = header.index("学生証番号")
     # 03220431_submissionText.txt
     for row in rows:
@@ -285,8 +287,11 @@ def parse_args(argv):
                      default="data/utas.xlsx",
                      help="UTAS Excel (UTAS -> 成績登録 -> select your lecture -> Excel出力 -> Excel (和文)); remove password by opening it with Windows Excel and File -> 情報 -> ブックの保護 -> パスワードによる暗号化")
     psr.add_argument("--lms", metavar="LMS_XLSX",
-                     default="data/lms.xlsx",
-                     help="LMS assignment Excel (ITC-LMS -> 課題 -> 全体提出状況確認 -> ダウンロード)")
+                     default="data/utol.xlsx",
+                     help="LMS assignment Excel (UTOL -> 課題 -> 全履修者の提出物確認 -> zipダウンロード -> zip解凍 -> ExcelをWindowsのExcelで開く -> 情報 -> ブックの保護 -> パスワードによる暗号化 -> パスワードを空にして保存)")
+    psr.add_argument("--lms-submission-files-dir", metavar="DIR",
+                     default="data/utol",
+                     help="Directory of submitted files (上記zipの解凍してできたフォルダ)")
     psr.add_argument("--jupyter", metavar="JUPYTER_XLSX",
                      default="data/jupyter.xlsx",
                      help="Jupyter Excel (Jupyter Googlesheet)")
@@ -315,7 +320,7 @@ def main():
                                           header_row=0,
                                           start_row=2)
     # TODO get directory from command line
-    directory = "2024_0340_FEN-EE4d19L1_プログラミング言語_課題提出状況一覧"
+    directory = args.lms_submission_files_dir # "2024_0340_FEN-EE4d19L1_プログラミング言語_課題提出状況一覧"
     lms_header, lms_rows = read_submission_texts(lms_header, lms_rows, directory)
     jupyter_header, jupyter_rows = load_worksheet(args.jupyter, header_row=0)
     # nbg_header, nbg_rows = load_worksheet(args.nbg, header_row=4)
