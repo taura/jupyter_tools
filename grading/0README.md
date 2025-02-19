@@ -48,15 +48,29 @@ https://github.com/jupyter/nbgrader/issues/1083
     "kernel": "Bash"
    },
 
-これをやるためのツール
+これをやるためのツール `fix_broken_ipynb.py` を作った
 
+```
+./fix_broken_ipynb.py a.ipynb
+```
 
-注2: それ以外の理由で失敗して直せない場合,
+で `a.ipynb` を直す. 元ファイルは `a.ipynb.bak` にcp
+
+もともと`a.ipynb.bak` があったら上書きされるので, 事故のときにオリジナルを失わないようにするには, 
+
+```
+cp a.ipynb a.ipynb.org
+```
+
+とでもしてから作業を始めるのが良い
+
+注2: それ以外の理由で失敗して直せない場合, マニュアルで直す
+
+どうしても直せないものは
 
 nbgrader autograde --assignment pl02 --no-execute --CourseDirectory.student_id_exclude=...
 
-でその学生のautogradeをしない. 
-ただしこれでちゃんとそのnotebookを受け取れるのか?
+とするとその学生のautogradeをしないで飛ばせるがこれでちゃんとそのnotebookを受け取れるのかわからないので極力やらない
 
 [3] データをダウンロード
 
@@ -129,6 +143,16 @@ test_prog=${work_dir}/${assignment_name}/${notebook_name}/${prob_name}/${student
 
 ${cmd} ${test_prog} 2>&1
 
+test を走らせたら
+
+```
+./work.py update-xlsx
+```
+
+
+<!---
+
+
 なお, これをやらなくてはいけない理由の一部は, test セルの結果が export した中に入ってこないからという説もある. それが入ってくればその結果を見て信用すればわざわざプログラムを取り出して実行するほどのことはないかもしれない.
 
 これはむしろ本格的な試験で必要な仕組みか
@@ -157,6 +181,7 @@ make -f eval.mk prob_names="p-003"
 ./work.py export --csv g003.csv
 
 みたいなことをやっては g003.csv の出力を grade.csv に反映させる
+--->
 
 [6] libreoffice でできる工夫
 

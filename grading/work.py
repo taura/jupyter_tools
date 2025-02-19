@@ -358,23 +358,21 @@ def connect_to_db(gradebook_db, inbound, exec_dir):
     do_sql(conn, SQL_JOIN_GRADE_COMMENT_CELL)
     return conn
 
-def remove_nonalpha_from_dict_xxx(dic):
-    new_dic = {}
-    for k, v in dic.items():
-        if isinstance(v, type("")):
-            # v = v.replace('\x00', '\n')
-            pattern = r'[\x00-\x1F\x7F-\x9F]'
-            v = re.sub(pattern, '', v)
-        new_dic[k] = v
-    return new_dic
-
 def remove_unsafe_from_str(s):
-    unprintable = re.compile(r'[\x00-\x08]')
-    ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+    # unprintable = re.compile(r'[\x00-\x08]')
+    # ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+    #
     # エスケープシーケンスを取り除く
-    s_ = unprintable.sub('\n', s)
-    s__ = ansi_escape.sub('', s_)
-    return s__
+    # s_ = unprintable.sub('\n', s)
+    # s__ = ansi_escape.sub('', s_)
+    pattern = re.compile(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\xFF]')
+    s_ = pattern.sub('', s)
+    len_s = len(s)
+    len_s_ = len(s_)
+    n_removed = len_s - len_s_
+    if n_removed > 0:
+        print(f"removed {n_removed} chars {len_s} -> {len_s_}")
+    return s_
     
 def remove_nonalpha_from_dict(dic):
     new_dic = {}
