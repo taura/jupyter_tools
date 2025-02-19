@@ -250,38 +250,39 @@ UTAS [7] 同様に, WindowsのExcelでパスワードを解除
 -> 課題 
 -> 全履修者の提出物確認
 -> zipダウンロード
-=> data/20xx....zip に保存
+=> data/20xx..xx.zip に保存
 
-unar で解凍
-=> data/20xx..../ フォルダができる
+```
+cd data
+unar 20xx..xx.zip
+```
 
-data/20xx..../
-  Excelファイル
-  student/
-   assignment/submissionText.txt
-   assignment/submissionText.txt
-   assignment/submissionText.txt
-    ...
-  student/
-   assignment/submissionText.txt
-   assignment/submissionText.txt
-   assignment/submissionText.txt
-    ...
-  student/
-   assignment/submissionText.txt
-   assignment/submissionText.txt
-   assignment/submissionText.txt
-    ...
-   ...
+`data/20xx..xx/授業名.xlsx` というファイルがあるので, UTAS 同様に, WindowsのExcelで開いてパスワードを解除したものを --> `data/utol.xlsx` として保存
 
-中にExcelファイルと、テキストが入っている
+zip を解凍してできたフォルダは `utol` に改名
 
-UTAS [7] 同様に, WindowsのExcelでパスワードを解除 -> data/lms.xlsx として保存
+```
+mv 20xx..xx utol
+```
+
+=> 最終的に以下のような状態にする (`data/utol.xlsx`, `data/utol/` がある状態)
+
+```
+data/
+  utol.xlsx
+  utol/
+    3124xxxx/
+    3124xxxx/
+    3124xxxx/
+      ...
+```
+
 
 [9] JupyterのユーザExcel (学生番号とuxxxxx の対応) 
 
-cd ~/lectures/programming-languages/docs/jupyter
-./mnt 
+    ssh -t taulec-ansible gocryptfs make_env/ansible/files/enc make_env/ansible/files/plain
+    sshfs taulec-ansible: taulec-ansible
+    ln -s taulec-ansible/make_env/ansible/files/plain/taulec_ldap_users.csv users.csv
 
 すると users.csv が読めるようになるのでそれを libreoffice で開き,
 => data/jupyter.xlsx

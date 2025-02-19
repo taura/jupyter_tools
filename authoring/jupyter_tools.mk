@@ -63,8 +63,6 @@ $(aux) : notebooks/source/% : nb/source/% notebooks/created
 $(aux_answers) : notebooks/source/ans_% : nb/source/% notebooks/created
 	install --mode=0644 -D $< $@
 
-
-
 $(aux2) : notebooks/source/os2023_exam/%.encrypted : nb/source/os2023_exam/include/vers/2/% notebooks/created
 	openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 -in $< -out $@ -k Eew9Ee
 
