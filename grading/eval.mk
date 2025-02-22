@@ -51,26 +51,31 @@ usage :
 
 # evaluate all students of all problems of all notebooks of all assignments
 
-# echo select distinct assignment_name 1>&2; 
+# echo select distinct assignment_name 1>&2;
+ifndef assignment_name
 assignment_names?=$(shell ./work.py export-txt --sql 'select distinct(assignment_name) from grade_comment_cell order by assignment_name' --txt -)
 results_all:=$(patsubst %,make-%,$(assignment_names))
 
 $(results_all) : make-% :
 	$(MAKE) -f eval.mk assignment_names= assignment_name=$* assignment
+endif
 
+ifdef results_all
 all : $(results_all)
+endif
 
 # -------------------
 
 # evaluate all students of all problems of all notebooks of a particular assignment
 
 ifdef assignment_name
-# echo select distinct notebook_name 1>&2; 
+ifndef notebook_name
 notebook_names?=$(shell ./work.py export-txt --sql 'select distinct(notebook_name) from grade_comment_cell where assignment_name = "$(assignment_name)" order by notebook_name' --txt -)
 results_assignment:=$(patsubst %,make-$(assignment_name)-%,$(notebook_names))
 
 $(results_assignment) : make-$(assignment_name)-% :
 	$(MAKE) -f eval.mk assignment_names= assignment_name=$(assignment_name) notebook_names= notebook_name=$* notebook
+endif
 endif
 
 ifdef results_assignment
@@ -86,12 +91,14 @@ endif
 # evaluate all students of all problems of a particular notebook of a particular assignment
 ifdef assignment_name
 ifdef notebook_name
+ifndef prob_name
 # echo select distinct prob_name 1>&2; 
 prob_names?=$(shell ./work.py export-txt --sql 'select distinct(prob_name) from grade_comment_cell where assignment_name = "$(assignment_name)" and notebook_name = "$(notebook_name)" order by prob_name' --txt -)
 results_notebook:=$(patsubst %,make-$(notebook_name)-%,$(prob_names))
 
 $(results_notebook) : make-$(notebook_name)-% :
 	$(MAKE) -f eval.mk assignment_names= assignment_name=$(assignment_name) notebook_names= notebook_name=$(notebook_name) prob_names= prob_name=$* problem
+endif
 endif
 endif
 
@@ -110,21 +117,16 @@ endif
 ifdef assignment_name
 ifdef notebook_name
 ifdef prob_name
-# echo select student_id 1>&2; 
-students?=$(shell ./work.py export-txt --sql 'select student_id from grade_comment_cell where assignment_name = "$(assignment_name)" and notebook_name = "$(notebook_name)" and prob_name = "$(prob_name)" order by student_id' --txt -)
-# results_prob:=$(patsubst %,make-$(prob_name)-%,$(students))
+ifndef student
 
-#$(results_prob) : make-$(prob_name)-% :
-#	$(MAKE) -f eval.mk assignment_names= assignment_name=$(assignment_name) notebook_names= notebook_name=$(notebook_name) prob_names= prob_name=$(prob_name) students= student=$* student
+students?=$(shell ./work.py export-txt --sql 'select student_id from grade_comment_cell where assignment_name = "$(assignment_name)" and notebook_name = "$(notebook_name)" and prob_name = "$(prob_name)" order by student_id' --txt -)
 
 results_prob:=$(patsubst %,$(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/%.ok,$(students))
-
-# $(error "students = $(students)")
-#$(error "rsults_prob = $(results_prob)")
 
 $(results_prob) : $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/%.ok : $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/created
 	test_dir=$(test_dir) work_dir=$(work_dir) assignment_name=$(assignment_name) notebook_name=$(notebook_name) prob_name=$(prob_name) student_id=$* $(test_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/test.sh > $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.out 2> $(work_dir)/$(assignment_name)/$(notebook_name)/$(prob_name)/$*.err
 	touch $@
+endif
 endif
 endif
 endif

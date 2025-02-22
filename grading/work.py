@@ -70,30 +70,16 @@ def answer_cells_of_nb(a_ipynb):
         for cell in content["cells"]:
             meta = cell["metadata"]
             nbg = meta.get("nbgrader")
-            if 1:               # forgot to put points=1
-                get = 0
-                source_join = "".join(cell["source"])
-                if "%%writefile mm_simd.cc" in source_join:
-                    get = 1
-                    prob_name = "mm_simd"
-                if "%%writefile mm_simd_ilp.cc" in source_join:
-                    get = 1
-                    prob_name = "mm_simd_ilp"
-                if "%%writefile mm_fast.cc" in source_join:
-                    get = 1
-                    prob_name = "mm_afst"
-            if not get:
-                if nbg is None or not nbg["solution"]:
-                    continue
-                assert("grade_id" in nbg), (a_ipynb, cell)
-                prob_name = nbg["grade_id"] # like a1-1-1
+            if nbg is None or not nbg["solution"]:
+                continue
+            assert("grade_id" in nbg), (a_ipynb, cell)
+            prob_name = nbg["grade_id"] # like a1-1-1
             source = cell["source"]
             outputs = cell.get("outputs", [])
-            if prob_name in cells:
-                if 0:
+            if 0:
+                if prob_name in cells:
                     print("WARNING: duplicated problem label {} in {}"
                           .format(prob_name, a_ipynb), file=sys.stderr)
-                # assert(prob_name not in cells), prob_name
             cells[prob_name] = source, outputs
     return cells
 
@@ -274,7 +260,7 @@ def get_eval_result(exec_dir, assignment, notebook, prob, student):
     eval_result = {}
     for ext in ["ok", "out", "err", "diff"]:
         eval_result[ext] = ""
-        f = "{}.{}".format(base, ext)
+        f = f"{base}/{ext}.txt"
         if os.path.exists(f):
             # print(f"{f} exists!")
             fp = open(f, errors="replace")
@@ -323,10 +309,11 @@ def join_errors(outputs):
         out_s.extend(dic.get("traceback", []))
     return "".join(out_s)
     
-def make_table_of_cells(conn, cells, exec_dir):
+def make_table_of_cells(conn, inbound, exec_dir):
     """
     make a table of cells
     """
+    cells = get_answer_cells(inbound)
     do_sql(conn, SQL_ANSWER_CELL)
     for student, cells_of_student in cells.items():
         for assignment, cells_of_student_notebook in cells_of_student.items():
@@ -348,17 +335,16 @@ def connect_to_db(gradebook_db, inbound, exec_dir):
     """
     connect db and make temporary tables
     """
-    cells = get_answer_cells(inbound)
     conn = sqlite3.connect(gradebook_db)
     conn.row_factory = sqlite3.Row
     do_sql(conn, SQL_CREATE_COMMENT)
     do_sql(conn, SQL_CREATE_GRADE)
     do_sql(conn, SQL_JOIN_GRADE_COMMENT)
-    make_table_of_cells(conn, cells, exec_dir)
+    make_table_of_cells(conn, inbound, exec_dir)
     do_sql(conn, SQL_JOIN_GRADE_COMMENT_CELL)
     return conn
 
-def remove_unsafe_from_str(s):
+def remove_unsafe_from_str(k, s):
     # unprintable = re.compile(r'[\x00-\x08]')
     # ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
     #
@@ -367,18 +353,20 @@ def remove_unsafe_from_str(s):
     # s__ = ansi_escape.sub('', s_)
     pattern = re.compile(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\xFF]')
     s_ = pattern.sub('', s)
-    len_s = len(s)
-    len_s_ = len(s_)
-    n_removed = len_s - len_s_
-    if n_removed > 0:
-        print(f"removed {n_removed} chars {len_s} -> {len_s_}")
+    if 0:
+        len_s = len(s)
+        len_s_ = len(s_)
+        n_removed = len_s - len_s_
+        if n_removed > 0:
+            print(f"removed {n_removed} chars from key={k} s={s[:30]}... : {len_s} -> {len_s_}")
     return s_
     
 def remove_nonalpha_from_dict(dic):
     new_dic = {}
     for k, v in dic.items():
         if isinstance(v, type("")):
-            v = remove_unsafe_from_str(v)
+            #print(f" === k={k} v={v[:100]} ... ===")
+            v = remove_unsafe_from_str(k, v)
         new_dic[k] = v
     return new_dic
 
@@ -396,7 +384,8 @@ def safe_query(gradebook_db, inbound, exec_dir, sql):
     open database and inbound folder and run sql
     """
     conn = connect_to_db(gradebook_db, inbound, exec_dir)
-    for row in do_sql(conn, sql):
+    for i, row in enumerate(do_sql(conn, sql)):
+        #print(f"=== line {i} ===")
         yield remove_nonalpha_from_dict(dict(row))
     conn.close()
 
@@ -443,24 +432,9 @@ def export_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql, header, out, force,
     """
     rows_gen = safe_query(gradebook_db, inbound, exec_dir, sql)
     rows = list(rows_gen)
-    if 0:
-        n = len(rows)
-        a = 723
-        b = 724
-        print(n, a, b)
-        rows = rows[a:b]
     df = pd.DataFrame(rows)
     #df["errors"] = df["errors"].apply(remove_escape_sequence)
     #df["outputs"] = df["outputs"].apply(remove_escape_sequence)
-    if 0:
-        cols = list(df.columns)
-        cols.remove("outputs")
-        #df = df[cols]
-        df = df[["outputs"]]
-        s = df["outputs"][0]
-        n = len(s)
-        print(n)
-        df.loc[0,"outputs"] = s[224:225]
     if force or not os.path.exists(out):
         make_xlsx_or_csv(df, header, out, xlsx_or_csv)
         print("{} lines written into {}".format(len(rows), out))
@@ -513,29 +487,6 @@ def update_csv(gradebook_db, inbound, exec_dir, sql,
     update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
                        on_cols, update_cols, header, inout, "csv")
     
-def export_csv_old(gradebook_db, inbound, exec_dir, sql, header, out_csv):
-    """
-    export notebook info into csv
-    """
-    conn = connect_to_db(gradebook_db, inbound, exec_dir)
-    if out_csv == "-":
-        out_wp = sys.stdout
-    else:
-        out_wp = open(out_csv, "w")
-    csv_wp = None
-    n = 0
-    for row in do_sql(conn, sql):
-        if csv_wp is None:
-            fields = row.keys()
-            csv_wp = csv.DictWriter(out_wp, fields)
-            if header:
-                csv_wp.writeheader()
-        csv_wp.writerow(remove_nonalpha_from_dict(dict(row)))
-        n += 1
-    if out_wp is not sys.stdout:
-        out_wp.close()
-    print("{} lines written into {}".format(n, out_csv))
-
 def export_txt(gradebook_db, inbound, exec_dir, sql, sep, out_txt):
     """
     export notebook info into txt
@@ -552,7 +503,8 @@ def export_txt(gradebook_db, inbound, exec_dir, sql, sep, out_txt):
     if out_wp is not sys.stdout:
         out_wp.close()
 
-def export_source(gradebook_db, inbound, exec_dir, student_id, assignment_name, notebook_name, prob_name, sep, out_txt):
+def export_source(gradebook_db, inbound, exec_dir,
+                  student_id, assignment_name, notebook_name, prob_name, sep, out_txt):
     student_id_list = ",".join(['"{}"'.format(s) for s in student_id])
     assignment_name_list = ",".join(['"{}"'.format(s) for s in assignment_name])
     notebook_name_list = ",".join(['"{}"'.format(s) for s in notebook_name])
@@ -740,7 +692,7 @@ def main():
     """
     args = parse_args(sys.argv)
     command = args.command[0]
-    if command == "export":
+    if command == "export-csv":
         export_csv(args.gradebook, args.inbound, args.exec_dir, args.sql,
                    args.header, args.csv, args.force)
     elif command == "export-xlsx":
@@ -749,13 +701,13 @@ def main():
     elif command == "export-txt":
         export_txt(args.gradebook, args.inbound, args.exec_dir, args.sql,
                    args.separater, args.txt)
-    elif command == "update":
-        merge_csv(args.gradebook, args.inbound, args.exec_dir, args.sql,
-                  args.on_cols, args.update_cols, args.header, args.csv)
+    elif command == "update-csv":
+        update_csv(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                   args.on_cols, args.update_cols, args.header, args.csv)
     elif command == "update-xlsx":
         update_xlsx(args.gradebook, args.inbound, args.exec_dir, args.sql,
                     args.on_cols, args.update_cols, args.header, args.xlsx)
-    elif command == "export-source": # to be removed
+    elif command == "export-source":
         export_source(args.gradebook, args.inbound, args.exec_dir,
                       args.student_id, args.assignment_name,
                       args.notebook_name, args.prob_name,
@@ -772,9 +724,9 @@ def main():
             print("specify user with --user", file=sys.stderr)
             return
         upload_gradebook_db(args.user)
-    elif command == "export_score":
+    elif command == "export-score":
         # not sure what this is for
-        query(args.gradebook, args.inbound, args.exec_dir, SQL_TOTAL_SCORE, args.out_csv)
+        safe_query(args.gradebook, args.inbound, args.exec_dir, SQL_TOTAL_SCORE, args.out_csv)
     elif command == "export-program": # to be removed
         export_program(args.inbound, args.prog)
     else:
