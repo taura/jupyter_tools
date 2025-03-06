@@ -252,7 +252,6 @@ order by assignment_name, student_id
 
 SQL_SELECT_ALL_GRADE_COMMENT_CELL = """
 select * from grade_comment_cell
-
 """
 
 def get_eval_result(exec_dir, assignment, notebook, prob, student):
@@ -407,7 +406,11 @@ def make_xlsx_or_csv(df, header, a, xlsx_or_csv):
 
 def write_to_xlsx_or_csv(df, header, a, xlsx_or_csv):
     if xlsx_or_csv == "xlsx":
-        t = f"tmp_{a}"
+        di,base = os.path.split(a)
+        if di == "":
+            t = f"tmp_{a}"
+        else:
+            t = f"{di}/tmp_{base}"
         shutil.copyfile(a, t)
         with pd.ExcelWriter(t, mode="a", if_sheet_exists="overlay",
                             engine='openpyxl') as writer:
@@ -566,36 +569,37 @@ def make_row_enumerator(grade_csv_xlsx_ods, ext=None):
     else:
         assert(ext in ["csv", "xlsx", "ods"]), ext
 
-def import_grade_csv_xlsx_ods(grade_csv_xlsx_ods, gradebook_db):
+def import_grade_csv_xlsx_ods(grade_csv_xlsx_ods_list, gradebook_db):
     """
     import scores in grade_csv into gradebook_db
     """
     conn = sqlite3.connect(gradebook_db)
     conn.row_factory = sqlite3.Row
-    for i, row in make_row_enumerator(grade_csv_xlsx_ods):
-        manual_score = make_sql_val(row["manual_score"])
-        extra_credit = make_sql_val(row["extra_credit"])
-        needs_manual_grade = make_sql_val(row["needs_manual_grade"])
-        grade_id = row["grade_id"]
-        manual_comment = row["manual_comment"]
-        comment_id = row["comment_id"]
-        if manual_score is not None:
-            needs_manual_grade = 0
-        do_sql(conn,
-               """
-               update grade set
-               manual_score = ?,
-               extra_credit = ?,
-               needs_manual_grade = ?
-               where id = ?
-               """,
-               manual_score, extra_credit, needs_manual_grade, grade_id)
-        if comment_id is not None:
-            do_sql(conn,
-                   """update comment set
-                   manual_comment = ?
-                   where id = ?""",
-                   manual_comment, comment_id)
+    for grade_csv_xlsx_ods in grade_csv_xlsx_ods_list:
+        for i, row in make_row_enumerator(grade_csv_xlsx_ods):
+            manual_score = make_sql_val(row["manual_score"])
+            extra_credit = make_sql_val(row["extra_credit"])
+            needs_manual_grade = make_sql_val(row["needs_manual_grade"])
+            grade_id = row["grade_id"]
+            manual_comment = row["manual_comment"]
+            comment_id = row["comment_id"]
+            if manual_score is not None:
+                needs_manual_grade = 0
+                do_sql(conn,
+                       """
+                       update grade set
+                       manual_score = ?,
+                       extra_credit = ?,
+                       needs_manual_grade = ?
+                       where id = ?
+                       """,
+                       manual_score, extra_credit, needs_manual_grade, grade_id)
+            if comment_id is not None:
+                do_sql(conn,
+                       """update comment set
+                       manual_comment = ?
+                       where id = ?""",
+                       manual_comment, comment_id)
     conn.commit()
     conn.close()
     
@@ -677,6 +681,7 @@ def parse_args(argv):
                      default="programs",
                      help="program output directory")
     psr.add_argument("command", metavar="COMMAND", nargs=1)
+    psr.add_argument("inputs", metavar="FILE.{CSV/XLSX/ODS}", nargs="*")
     args = psr.parse_args(argv[1:])
     args.student_id      = split_and_strip(args.student_id)
     args.assignment_name = split_and_strip(args.assignment_name)
@@ -713,7 +718,7 @@ def main():
                       args.notebook_name, args.prob_name,
                       args.separater, args.txt)
     elif command == "import":
-        import_grade_csv(args.csv, args.gradebook)
+        import_grade_csv_xlsx_ods(args.inputs, args.gradebook)
     elif command == "download":
         if args.user is None:
             print("specify user with --user", file=sys.stderr)
