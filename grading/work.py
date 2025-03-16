@@ -583,6 +583,8 @@ def import_grade_csv_xlsx_ods(grade_csv_xlsx_ods_list, gradebook_db):
             grade_id = row["grade_id"]
             manual_comment = row["manual_comment"]
             comment_id = row["comment_id"]
+            if grade_id == "543db9bf6b80436ea7c962541a4e6fe7":
+                print(row)
             if manual_score is not None:
                 needs_manual_grade = 0
                 do_sql(conn,

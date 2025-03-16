@@ -64,7 +64,7 @@ cp a.ipynb a.ipynb.org
 
 とでもしてから作業を始めるのが良い
 
-注2: それ以外の理由で失敗して直せない場合, マニュアルで直す
+注2: それ以外の理由で失敗して直せない場合, エラーメッセージを見ながらマニュアルで直す
 
 どうしても直せないものは
 
@@ -89,35 +89,27 @@ pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 
 それらをすべてgrade.xlsxに書き出す.
 
-採点結果は grade.xlsx に記入
+採点結果は grade.xlsx に記入していく
 
-<!---
-2023年度更新:
+2024年度情報:
 
-色々作業をするのにcsvよりもxlsxのほうが良さげなのでそうする
-
-2022年度更新:
-
-- notebookがたくさんあると, 巨大になりすぎるので, notebook ごとに分割してexportする方が実践的
-- それには以下のようにする
-
-./work.py export --sql "select * from grade_comment_cell where notebook_name=\"NOTEBOOK_NAME.sos\"" --csv grades/NOTEBOOK_NAME.csv
-
-[OS 2021のときにやったテキストクラスタリング]
-
-cd public_html/lecture/operating_systems/exam/2021/grading/clustering
-./add_distance.py
---->
+少しデータが大きくなると Libreoffice の spreadsheet は死ぬほど遅いので使わない
+一つ操作をするたびに「反応なし」状態になる
+Windows の Excel は何のもないもないので Windows での作業が推奨
 
 [5] 半自動採点. プログラムを実行して採点
 
-make -f eval.mk all
+## 2025/02/23 eval.mk がおそすぎるのを改良して eval2.mk に
 
-は, 全課題(pl02), 全問題(p-001, p-001, ..), 全学生(u21080, ...)に対して
+make -f eval2.mk all
 
-assignment_name=pl02 prob_name=p-001 student=u21080 test/pl02/p-001/test.sh
+は, `test/assignment_name/notebook_name/prob_name/test.sh`
 
-みたいなコマンドを実行する. よって test/pl02/p-xxx/test.sh の中で好きなことをすれば良い.
+が存在するすべての `assignent_name`, `notebook_name`, `prob_name` の組とすべての学生に対して, 
+
+`assignment_name=os02_process notebook_name=os02_process.sos prob_name=p-001 student=u24xxx test/os02_process/os02_process.sos/p-001/test.sh` 
+
+みたいなコマンドを実行する. よって test/os02_process/os02_process.sos/p-001/test.sh の中で好きなことをすれば良い.
 
 「好きなこと」ではいくつかのセルから書かれたプログラムを読み出してテストを実行するみたいなことをする.
 複雑なケースでは前に遡って読み出さないといけない (p-012 の答えが p-011 の答えに依存している).
@@ -149,70 +141,22 @@ test を走らせたら
 ./work.py update-xlsx
 ```
 
+するとコマンドの出力や, 成功したかどうか (ok.txt と言うファイルの存在で確認) が grade.xlsx に書き込まれる
 
-<!---
+2024年度に死ぬほど苦労した話
+
+自動採点は学生が自由な形式で答えたときに, 自動実行では実はそれが正解だとわからないので, 正解と不正解の間の線引きが難しい
 
 
-なお, これをやらなくてはいけない理由の一部は, test セルの結果が export した中に入ってこないからという説もある. それが入ってくればその結果を見て信用すればわざわざプログラムを取り出して実行するほどのことはないかもしれない.
-
-これはむしろ本格的な試験で必要な仕組みか
-
-TODO: このやり方の代わりにあるセルに書かれた答えはすべて一度だけDLして, 問題ごとにevalようなやり方のほうがいいかもしれない. 
-
-TODO: 学生が別途作ったファイルも評価に使いたい場合があるのでその場合は, dl/notebooks/submitted/${student_id}/os15_pipe/ からコピーする.
-
-TODO: これをするならその中の ipynb から直接取ればいいという説がある
-
-これをやったあとでまた
-
-./work.py export
-
-で grade.csv に書き出す
-
-ただし途中まで grade.csv にscoreを書き込んだあとだとそれが失われるので, 
-
-./work.py export --csv hoge.csv
-
-とでもして必要な部分だけを hoge.csv -> grade.csv にコピーするのが良い
-
-プログラムのtest方法は必ず試行錯誤(やり直し)が必要になるので,
-
-make -f eval.mk prob_names="p-003"
-./work.py export --csv g003.csv
-
-みたいなことをやっては g003.csv の出力を grade.csv に反映させる
---->
-
-[6] libreoffice でできる工夫
-
-grade.{csv,xlsx,ods} で点数をつけていくときの作業方法
+[6] Excel に仕込んでいおくと良い仕掛け
 
 * autofilter を作る
 * prob_name でソートする
-* eval_output が OK となっているところに1をつける
+* eval_ok が --- ok --- となっているところに1をつける
 
 * 1つのprob_name だけを表示する
 * exec_output が OK となっているところを非表示にして採点
 
-2023年度追加:
-
-始めから xlsx を生成することにしたので以下のコメントは大部分不要
-
-<!--
-2022年度追加: 
-
-eval.mk を実行してはそれを取り込むということを繰り返すので, 手作業で仕事をするシートは ods/xls にしておいて一度だけautofilterなどを作っておくのが良い. 生成するのは csv にしてそこからcopy-pasteする
-
-TODO: それをやるくらいなら既存のシートの eval_ok, eval_output, eval_err の列だけを自動で上書きするというのを work.py の機能にしたらいいのではないかという説あり
-
-./work.py --merge-export grades.ods --keys colum_names --values eval_ok,eval_output,eval_err
-
-export する
---keys で指定された値がマッチしている行を grades.odsから探し, --valuesで指定されたものに置き換える
-
-おそらく ods を pandas で読み込んでまた吐き出す, だと手作業の結果 autofilter や wrap_text, alignment などの設定が失われる. xlsx + openpyxl でやるしかない?
- -->
- 
 === UTAS, LMSなどとの結合 ===
 
 [7] UTASのデータをダウンロード
@@ -301,6 +245,10 @@ utas_lms_jupyter_nbgrader.xlsx
 
 というファイルができる
 
+2025/02/25 更新
+
+これまでは必ず utas_lms_jupyter_nbgrader.xlsx を作り直していたが同ファイルへ施した種々の調整(列の太さ, autofilterなど)が失われる不便を解消。utas_lms_jupyter_nbgrader.xlsx が存在していたらそのデータ部分だけを更新することにした
+
 [11] 最終的にutasにアップロードする際は, utasの
 
 採点表データ [出力] でDLする
@@ -311,26 +259,35 @@ Windows上でコピペする
 
 [12] 電気系(池田先生)の成績報告
 
-メールがやってくる
+2024年度冬学期(A1A2) 成績入力のお願い( FEN-EE3d16L1 オペレーティングシステム)
 
-科目名: プログラミング言語
+以下のパスワードをご利用いただきますようお願いいたします。
+また、7zを展開するパスワードは学科で日頃用いているものになります。
+
+成績担当　　池田　誠
+
+科目名: オペレーティングシステム
 成績プログラムのダウンロード:
-http://www.mos.t.u-tokyo.ac.jp/~ikeda/EEScore/2024_FEN-EE4d19L1_6Kz.7z
+http://www.mos.t.u-tokyo.ac.jp/~ikeda/EEScore/2024_FEN-EE3d16L1_Drc.7z
 
 成績ファイルのアップロード:
-http://www.mos.t.u-tokyo.ac.jp/ikeda-cgi/EEScore/EEScore.cgi?Lec=2024_FEN-EE4d19L1_6Kz
+http://www.mos.t.u-tokyo.ac.jp/ikeda-cgi/EEScore/EEScore.cgi?Lec=2024_FEN-EE3d16L1_Drc
 
 田浦健次朗先生
-ユーザ名:   24S_tau@eidos.ic.i.u-tokyo.ac.jp
-パスワード:  xxxxxxxxxxxxxx
+ユーザ名:   24A_tau@eidos.ic.i.u-tokyo.ac.jp
+パスワード:  ndZirkSpfBFoekst
 
-みたいな
+みたいなメールがやってくる.
+ダウンロードリンクを開くと上記のユーザ名, パスワードを要求されるので入れて, xxxxx.7z みたいなファイルをDLする
+apt install 7zip 
+して
+7za e xxxxx.7z
+でパスワードは「いつもの」(メールで送られてきたやつではなく) で解凍
+-> usb.tar ができる
 
-xxxxx.7z みたいなファイルをDLする
+tar usb.tar
 
-7za xxxxx.7z
-
-でパスワードは「いつもの」(メールで送られてきたやつではなく)
+するとファイルがその場にぶちまけられるので注意
 
 utas_lms_jupyter_nbgrader.xlsx の成績を100点満点で10段階に変換
 
@@ -339,14 +296,15 @@ A  ... 90, 80, 70
 B  ... 60, 50
 C  ... 40, 30
 
-でつける
+でつける. 学生証番号の列と上記の点数2列をテキストファイルにコピー(Excelでは間の列を非表示にするとできる).
+学生証番号は下5桁のみ(6桁以上有ると全部見つからないとなる)にする.
+それを data.txt とでも名付けてぶちまけられた場所にでも保存
 
-学生証番号の列と上記の点数を2列コピー
+rate.exe を Windows から起動して, 
+(3) ファイルから入力
+をおしてファイル名を指定する.
 
-学生証番号は下5桁のみ(6桁以上有ると全部見つからないとなる)
-タブをスペースにする必要が有るかもしれない(試行錯誤している過程でスペースにした. タブのままでも良かったかも)
-
-
+終了すると ratedata.txt というファイルができるのでそれを上記のアップロードリンクからアップロード
 
 === これ以降の作業はfeedbackを学生に返さないのなら不要 ===
 

@@ -4,6 +4,7 @@ import argparse
 import csv
 import os
 import sys
+import shutil
 import pandas as pd
 import openpyxl
 
@@ -94,6 +95,8 @@ def load_and_pivot(files, row_fields, col_fields, val_field):
             all_row_keys.add(row_keys)
             all_col_keys.add(col_keys)
             assert((row_keys + col_keys) not in data)
+            if row_keys + col_keys == ("u24209", 'os2024_exam', 'problem_3.sos', 'p-013'):
+                print(row_keys, col_keys, val, row)
             data[row_keys + col_keys] = val
     rows = []
     all_row_keys = sorted(list(all_row_keys))
@@ -229,14 +232,111 @@ def make_joined_wb(utas_file, utas_header, utas_rows,
     all_header = utas_header + lms_header + jupyter_header + nbg_header
     return all_header, all_rows
 
-def save_xlsx(header, rows, a_xlsx):
+def create_xlsx(header, rows, a_xlsx):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.append(header)
     for row in rows:
         ws.append([cell.value if cell is not None else None for cell in row])
     wb.save(a_xlsx)
+    n_rows = ws.max_row
+    n_cols = ws.max_column
+    print(f"{n_rows} x {n_cols} cells written to {a_xlsx}")
+    return 1
 
+def update_xlsx(header, rows, a_xlsx):
+    wb = openpyxl.load_workbook(a_xlsx)
+    ws = wb.active
+    M = ws.max_row
+    N = ws.max_column
+    # number of rows + 1 (for the header) must match the number of lines in the file
+    if len(rows) + 1 != M:
+        print(f"the number of rows in data ({len(rows)})"
+              f" does not match rows in the file ({M - 1})",
+              file=sys.stderr)
+        return 0                # NG
+    # the leftmost column of the file is the sequential number not to be overwritten
+    if len(header) > N:
+        print(f"the number of columns in data ({len(header)}) exceeds columns in the file ({N})",
+              file=sys.stderr)
+        return 0                # NG
+    # the first line in the file must match the header
+    # col_map[i] is the column number in the file corresponding to the i-th column in header
+    col_map = []
+    jj = 1
+    for j, h in enumerate(header):
+        while jj <= N:
+            v = ws.cell(row=1, column=jj).value
+            if v == h:
+                # print(f"{j}-th header ({h}) -> {jj}")
+                break
+            # print(f"skip {jj}-column ({v})")
+            jj += 1
+        if jj > N:
+            print(f"could not find a column {h} in the header row of {a_xlsx}",
+                  file=sys.stderr)
+            return 0            # NG
+        col_map.append(jj)
+        jj += 1
+    assert(len(col_map) == len(header)), (len(col_map), len(header))
+    # we write rows -> cells[2:M,2:N] (indices are 1-origin)
+    n_cells = len(rows) * len(header)
+    n_updated = 0
+    for i, row in enumerate(rows):
+        assert(len(row) == len(header)), (len(row), len(header))
+        for j, cell in enumerate(row):
+            wscell = ws.cell(row=i + 2, column=col_map[j])
+            v = None if cell is None else cell.value
+            if wscell.value == v:
+                # print(f"cell[{i},{j}] ({v}) does not change")
+                pass
+            elif wscell.value is None and v == "":
+                pass
+            else:
+                # print(f"cell[{i},{j}] ({wscell.value}) <- {v} overwritten")
+                n_updated += 1
+                wscell.value = v
+    wb.save(a_xlsx)
+    print(f"{n_updated} cells of {a_xlsx} updated")
+    return 1                    # OK
+
+def make_backup_file_name(a_xlsx):
+    b = f"{a_xlsx}~"
+    if not os.path.exists(b):
+        return b
+    for i in range(10):
+        b = f"{a_xlsx}~{i}~"
+        if not os.path.exists(b):
+            return b
+    print(f"too many backup files for {a_xlsx}. perhaps you want to (re)move them",
+          file=sys.stderr)
+    return None
+    
+def create_or_update_xlsx(header, rows, a_xlsx, force_create, backup):
+    if force_create or not os.path.exists(a_xlsx):
+        return create_xlsx(header, rows, a_xlsx)
+    else:
+        if backup:
+            b_xlsx = make_backup_file_name(a_xlsx)
+            if b_xlsx is None:
+                return 0        # NG
+            shutil.copyfile(a_xlsx, b_xlsx)
+        return update_xlsx(header, rows, a_xlsx)
+
+def write_to_xlsx_or_csv(df, header, a, xlsx_or_csv):
+    if xlsx_or_csv == "xlsx":
+        t = f"tmp_{a}"
+        shutil.copyfile(a, t)
+        with pd.ExcelWriter(t, mode="a", if_sheet_exists="overlay",
+                            engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name="Sheet1", header=header, index=False)
+        os.replace(t, a)
+    elif xlsx_or_csv == "csv":
+        df.to_csv(a, header=header, index=False)
+    else:
+        assert(xlsx_or_csv in ["xlsx", "csv"]), xlsx_or_csv
+
+    
 def read_file(filename):
     with open(filename) as fp:
         return fp.read()
@@ -295,10 +395,6 @@ def parse_args(argv):
     psr.add_argument("--jupyter", metavar="JUPYTER_XLSX",
                      default="data/jupyter.xlsx",
                      help="Jupyter Excel (Jupyter Googlesheet)")
-    if 0:
-        psr.add_argument("--nbg", metavar="NBG_XLSX",
-                         default="data/nbg.xlsx",
-                         help='nbgrader Excel (run work.py export to get grade.csv; save it as nbg.xlsx with Excel; open it with libreoffice and make a pivot table with row=student_id, column=assignment_name,notebook_name,prob_name, value=sum manual score; copy the contents to another sheet, add a row having a column name =concat(b2, "-", b3, "-", b4))')
     psr.add_argument("--grade", metavar="GRADE_CSV",
                      default="grade.csv",
                      help='grade.csv generated by work.py export')
@@ -308,6 +404,10 @@ def parse_args(argv):
     psr.add_argument("--out", metavar="UTAS_LMS_JUPYTER_NBGRADER_XLSX",
                      default="utas_lms_jupyter_nbgrader.xlsx",
                      help="Output Excel")
+    psr.add_argument("--update", metavar="0/1", type=int, default=1,
+                     help="if the output Excel file exists, update it rather than create it")
+    psr.add_argument("--backup", metavar="0/1", type=int, default=1,
+                     help="if the existing Excel file is updated, make a backup")
     args = psr.parse_args(argv[1:])
     return args
 
@@ -319,12 +419,9 @@ def main():
                                           sheet=0,
                                           header_row=0,
                                           start_row=2)
-    # TODO get directory from command line
-    directory = args.lms_submission_files_dir # "2024_0340_FEN-EE4d19L1_プログラミング言語_課題提出状況一覧"
+    directory = args.lms_submission_files_dir
     lms_header, lms_rows = read_submission_texts(lms_header, lms_rows, directory)
     jupyter_header, jupyter_rows = load_worksheet(args.jupyter, header_row=0)
-    # nbg_header, nbg_rows = load_worksheet(args.nbg, header_row=4)
-    # nbg_header, nbg_rows = load_and_pivot_csv(args.grade, ["student_id"], ["assignment_name", "notebook_name", "prob_name"], "manual_score")
     nbg_header, nbg_rows = load_and_pivot(args.grades, ["student_id"], ["assignment_name", "notebook_name", "prob_name"], "manual_score")
     header, rows = make_joined_wb(args.utas, utas_header, utas_rows,
                                   args.lms, lms_header, lms_rows,
@@ -332,9 +429,14 @@ def main():
                                   str(args.grades), nbg_header, nbg_rows)
     if header is None:
         return None
-    save_xlsx(header, rows, args.out)
-    return rows
+    #save_xlsx(header, rows, args.out)
+    ok = create_or_update_xlsx(header, rows, args.out, not args.update, args.backup)
+    if ok:
+        return 0
+    else:
+        return 1
     
-main()
+sys.exit(main())
+
 
 
