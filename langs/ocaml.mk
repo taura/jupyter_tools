@@ -8,7 +8,7 @@ install:
 	opam switch create $(switch)
 	eval $$(opam env --set-switch --switch=$(switch)) && opam install --yes jupyter menhir
 	~/.opam/$(switch)/bin/ocaml-jupyter-opam-genspec
-	. ~share/venv/jupyter/bin/activate && jupyter kernelspec install --user --name ocaml-jupyter ~/.opam/jupyter/share/jupyter
+	. ~share/venv/jupyter/bin/activate && jupyter kernelspec install --user --name ocaml-jupyter ~/.opam/$(switch)/share/jupyter
 
 uninstall:
 	rm -rf ~/.opam
