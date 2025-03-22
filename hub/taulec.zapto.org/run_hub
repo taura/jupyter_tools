@@ -1,5 +1,0 @@
-#!/bin/bash -x
-. ~share/venv/jupyter/bin/activate
-FQDN=taulec.zapto.org
-FQDN=${FQDN} jupyterhub -f ../jupyterhub_config.py > hub.log 2>&1 
-
