@@ -1,0 +1,5 @@
+#!/bin/bash -x
+. ~share/venv/jupyter/bin/activate
+FQDN=$1
+FQDN=${FQDN} jupyterhub -f ../jupyterhub_config.py > hub.log 2>&1 
+

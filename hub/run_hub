@@ -1,0 +1,6 @@
+#!/bin/bash -x
+if [ "$1" = "" ]; then
+   echo "usage: $0 FQDN"
+fi
+cd $1
+sudo ../run_hub_sub $1
