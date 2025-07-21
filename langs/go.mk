@@ -1,5 +1,5 @@
-# targz:=go1.22.1.linux-amd64.tar.gz
-targz:=go1.24.1.linux-arm64.tar.gz
+targz:=go1.24.1.linux-amd64.tar.gz
+#targz:=go1.24.1.linux-arm64.tar.gz
 
 install:
 	wget -O ~/$(targz) https://go.dev/dl/$(targz)

@@ -26,11 +26,11 @@ def canonicalize_kernel_dict():
         "cpp" : "C",
         "go" : "Go",
         "golang" : "Go",
-        "jl" : "Julia 1.10.2",
-        "julia" : "Julia 1.10.2",
-        "ocaml" : "OCaml default",
-        "caml" : "OCaml default",
-        "ml" : "OCaml default",
+        "jl" : "Julia 1.11.4",
+        "julia" : "Julia 1.11.4",
+        "ocaml" : "OCaml 4.14.2",
+        "caml" : "OCaml 4.14.2",
+        "ml" : "OCaml 4.14.2",
         "rs" : "Rust",
         "rust" : "Rust",
         "sos" : "SoS"
@@ -130,15 +130,15 @@ def make_metadata_julia():
     return {
         "celltoolbar": "Create Assignment",
         "kernelspec": {
-            "display_name": "Julia 1.10.2",
+            "display_name": "Julia 1.11.4",
             "language": "julia",
-            "name": "julia-1.10"
+            "name": "julia-1.11"
         },
         "language_info": {
             "file_extension": ".jl",
             "mimetype": "application/julia",
             "name": "julia",
-            "version": "1.10.2"
+            "version": "1.11.4"
         }
     }
 
@@ -149,7 +149,7 @@ def make_metadata_ocaml():
     return {
         "celltoolbar": "Create Assignment",
         "kernelspec": {
-            "display_name": "OCaml default",
+            "display_name": "OCaml 4.14.2",
             "language": "OCaml",
             "name": "ocaml-jupyter"
         },
@@ -160,7 +160,7 @@ def make_metadata_ocaml():
             "name": "OCaml",
             "nbconverter_exporter": null,
             "pygments_lexer": "OCaml",
-            "version": "4.08.1"
+            "version": "4.14.2"
         }
     }
 
@@ -209,8 +209,8 @@ def make_metadata_sos():
                 ["Bash", "bash", "bash", "", "shell"],
                 ["C", "c_kernel", "c", "", ""],
                 ["Go", "gophernotes", "go", "", ""],
-                ["Julia 1.10.2", "julia-1.10", "julia", "", ""],
-                ["OCaml default", "ocaml-jupyter", "OCaml", "", "text/x-ocaml"],
+                ["Julia 1.11.4", "julia-1.11", "julia", "", ""],
+                ["OCaml 4.14.2", "ocaml-jupyter", "OCaml", "", "text/x-ocaml"],
                 ["Python 3 (ipykernel)", "python3", "python3", "", {"name": "ipython", "version": 3}],
                 ["Rust", "rust", "rust", "", ""]
             ],
@@ -231,8 +231,8 @@ def make_metadata(syntax):
         "Bash" : make_metadata_bash,
         "C" : make_metadata_c,
         "Go" : make_metadata_go,
-        "Julia 1.10.2" : make_metadata_julia,
-        "OCaml default" : make_metadata_ocaml,
+        "Julia 1.11.4" : make_metadata_julia,
+        "OCaml 4.14.2" : make_metadata_ocaml,
         "Rust" : make_metadata_rust,
         "SoS" : make_metadata_sos,
     }
@@ -360,7 +360,7 @@ class ParserBase:
                 (self.tok_eof,
                  re.compile(r'""" *eof *"""')),
             ]
-        elif self.syntax == "OCaml default":
+        elif self.syntax == "OCaml 4.14.2":
             self.patterns = [
                 (self.tok_begin_md,
                  re.compile(r'\(\*\* *(?P<cell_attrs>md.*)')),
@@ -460,7 +460,7 @@ class ParserBase:
         out_wp.write(dump)
         if self.output_file is not None:
             out_wp.close()
-    def parse_file(self):
+    def parse_file_xxx(self):
         """
         parse an entire file
 
@@ -474,6 +474,29 @@ class ParserBase:
             if cell is not None:
                 cells.append(cell)
             while self.line != "" and self.line.strip() == "":
+                self.eat(self.tok_other)
+        self.eat(self.tok_eof)
+        return cells
+    def empty_line(self):
+        return self.token != self.tok_eof and self.line.strip() == ""
+    def parse_file(self):
+        """
+        parse an entire file
+
+           file := cell*
+        """
+        cells = []
+        while self.empty_line():
+            self.eat(self.tok_other)
+        while self.token in [self.tok_begin_md, self.tok_begin_code, self.tok_other]:
+            if self.token in [self.tok_begin_md, self.tok_begin_code]:
+                cell = self.parse_cell()
+            else:
+                assert(self.token == self.tok_other), self.token
+                cell = self.parse_md_non_cell()
+            if cell is not None:
+                cells.append(cell)
+            while self.empty_line():
                 self.eat(self.tok_other)
         self.eat(self.tok_eof)
         return cells
@@ -557,6 +580,18 @@ class ParserBase:
             self.parse_end_md()
         else:
             self.parse_end_code()
+        return self.make_cell(cell_attrs, sources)
+    def parse_md_non_cell(self):
+        """
+        parse a md cell outside <--- md --->
+
+          cell := source*
+        """
+        cell_attrs = "md"
+        sources = []
+        self.is_md = 1
+        while self.token in [self.tok_include, self.tok_other]:
+            sources.extend(self.parse_source())
         return self.make_cell(cell_attrs, sources)
     def parse_begin_md(self):
         """
