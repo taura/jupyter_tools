@@ -146,6 +146,9 @@ sudo a2enmod wsgi
 
 add
 ```
+<Directory /home/tau/jupyter_tools/progress_viewer>
+  Require all granted
+</Directory>
 WSGIScriptAlias /viewer /home/tau/jupyter_tools/progress_viewer/progress_viewer.wsgi
 ```
 
