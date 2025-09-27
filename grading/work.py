@@ -81,6 +81,9 @@ def answer_cells_of_nb(a_ipynb):
                     print("WARNING: duplicated problem label {} in {}"
                           .format(prob_name, a_ipynb), file=sys.stderr)
             cells[prob_name] = source, outputs
+    if len(cells) == 0:
+        print("WARNING: {} has no answer cells"
+              .format(a_ipynb), file=sys.stderr)
     return cells
 
 def answer_cells_of_dir(submission_dir):
@@ -317,6 +320,7 @@ def make_table_of_cells(conn, inbound, exec_dir):
     for student, cells_of_student in cells.items():
         for assignment, cells_of_student_notebook in cells_of_student.items():
             for notebook, cells_of_student_notebook_assignment in cells_of_student_notebook.items():
+                pass
                 for prob, (source, outputs) in cells_of_student_notebook_assignment.items():
                     source_s = "".join(source)
                     output_s = join_outputs(outputs)
@@ -462,7 +466,7 @@ def export_csv(gradebook_db, inbound, exec_dir, sql, header, out_csv, force):
 # update_cols = ["eval_ok", "eval_out", "eval_err", "eval_diff"]
 
 def update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
-                      on_cols, update_cols, header,
+                      on_cols, no_update_cols, header,
                       inout, xlsx_or_csv):
     """
     export notebook info into csv
@@ -471,24 +475,53 @@ def update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
     rows = list(rows_gen)
     df = pd.DataFrame(rows)
     orig_df = read_xlsx_or_csv(inout, xlsx_or_csv)
-    assert(len(df) == len(orig_df)), (len(df), len(orig_df))
-    merged = pd.merge(orig_df, df,
-                      on=on_cols, suffixes=("", "_new"), how="left")
-    update_cols_new = [f"{c}_new" for c in update_cols]
-    merged[update_cols] = merged[update_cols_new]
-    result = merged[orig_df.columns]
+    # 2025/07/21 マージ方法を変更
+    # 旧:
+    #   eval_... というカラムだけを新しいもので上書き
+    #   残りは orig のまま
+    #   orig_df と df で行数が一致していないとダメ
+    #   (間違い防止のため, 新しい行が入るのを許さない)
+    # 新:
+    #   manual_score, manual_comment 以外を新しいもので上書き
+    #   新しい行もOK
+    if 0:
+        # assert(len(orig_df) == len(df)), (len(df), len(orig_df))
+        merged = pd.merge(orig_df, df, 
+                          on=on_cols, suffixes=("", "_new"), how="left")
+        update_cols_new = [f"{c}_new" for c in update_cols]
+        merged[update_cols] = merged[update_cols_new]
+        result = merged[orig_df.columns]
+    else:
+        merged = pd.merge(df, orig_df, 
+                          on=on_cols, suffixes=("", "_orig"), how="left")
+        no_update_cols_orig = [f"{c}_orig" for c in no_update_cols]
+        merged[no_update_cols] = merged[no_update_cols_orig]
+        result = merged[orig_df.columns]
+        
     write_to_xlsx_or_csv(result, header, inout, xlsx_or_csv)
     print("{} lines written into {}".format(len(rows), inout))
 
-def update_xlsx(gradebook_db, inbound, exec_dir, sql,
-                on_cols, update_cols, header, inout):
-    update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
-                       on_cols, update_cols, header, inout, "xlsx")
+if 0:
+    def update_xlsx(gradebook_db, inbound, exec_dir, sql,
+                    on_cols, update_cols, header, inout):
+        update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
+                           on_cols, update_cols, header, inout, "xlsx")
 
-def update_csv(gradebook_db, inbound, exec_dir, sql,
-              on_cols, update_cols, header, inout):
-    update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
-                       on_cols, update_cols, header, inout, "csv")
+    def update_csv(gradebook_db, inbound, exec_dir, sql,
+                   on_cols, update_cols, header, inout):
+        update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
+                           on_cols, update_cols, header, inout, "csv")
+else:
+    def update_xlsx(gradebook_db, inbound, exec_dir, sql,
+                    on_cols, no_update_cols, header, inout):
+        update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
+                           on_cols, no_update_cols, header, inout, "xlsx")
+
+    def update_csv(gradebook_db, inbound, exec_dir, sql,
+                   on_cols, no_update_cols, header, inout):
+        update_xlsx_or_csv(gradebook_db, inbound, exec_dir, sql,
+                           on_cols, no_update_cols, header, inout, "csv")
+    
     
 def export_txt(gradebook_db, inbound, exec_dir, sql, sep, out_txt):
     """
@@ -639,9 +672,16 @@ def parse_args(argv):
     psr.add_argument("--on-cols", metavar="COLUMNS",
                      default="student_id,assignment_name,notebook_name,prob_name",
                      help="join existing xlsx/csv and updates on these columns")
-    psr.add_argument("--update-cols", metavar="UPDATE-COLUMNS",
-                     default="eval_ok,eval_out,eval_err,eval_diff",
-                     help="update these columns of existing xlsx/csv")
+    if 0:
+        # update-xlsx のやり方を変更
+        # 旧: eval_ok, etc. などだけを上書き
+        # 新: manual_score, manual_comment だけを残す
+        psr.add_argument("--update-cols", metavar="UPDATE-COLUMNS",
+                         default="eval_ok,eval_out,eval_err,eval_diff",
+                         help="update these columns of existing xlsx/csv")
+    psr.add_argument("--no-update-cols", metavar="NO-UPDATE-COLUMNS",
+                     default="manual_score,manual_comment",
+                     help="do not update these columns of existing xlsx/csv")
     psr.add_argument("--header", metavar="0/1",
                      default=1, type=int,
                      help="output header or not")
@@ -692,7 +732,10 @@ def parse_args(argv):
     args.notebook_name   = split_and_strip(args.notebook_name)
     args.prob_name       = split_and_strip(args.prob_name)
     args.on_cols         = split_and_strip(args.on_cols)
-    args.update_cols     = split_and_strip(args.update_cols)
+    if 0:
+        args.update_cols     = split_and_strip(args.update_cols)
+    else:
+        args.no_update_cols  = split_and_strip(args.no_update_cols)
     return args
 
 def main():
@@ -711,11 +754,19 @@ def main():
         export_txt(args.gradebook, args.inbound, args.exec_dir, args.sql,
                    args.separater, args.txt)
     elif command == "update-csv":
-        update_csv(args.gradebook, args.inbound, args.exec_dir, args.sql,
-                   args.on_cols, args.update_cols, args.header, args.csv)
+        if 0:
+            update_csv(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                       args.on_cols, args.update_cols, args.header, args.csv)
+        else:
+            update_csv(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                       args.on_cols, args.no_update_cols, args.header, args.csv)
     elif command == "update-xlsx":
-        update_xlsx(args.gradebook, args.inbound, args.exec_dir, args.sql,
-                    args.on_cols, args.update_cols, args.header, args.xlsx)
+        if 0:
+            update_xlsx(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                        args.on_cols, args.update_cols, args.header, args.xlsx)
+        else:
+            update_xlsx(args.gradebook, args.inbound, args.exec_dir, args.sql,
+                        args.on_cols, args.no_update_cols, args.header, args.xlsx)
     elif command == "export-source":
         export_source(args.gradebook, args.inbound, args.exec_dir,
                       args.student_id, args.assignment_name,

@@ -127,6 +127,10 @@ users.csv must be the same file you gave to rsync_notebooks.py and sync.sqlite t
 
 If you want to change filenames users.csv and sync.sqlite, copy progress_viewer_config.py.example and configure them accordingly.
 
+* this method is not secure
+* block port 8050 and use portforwarding
+* put local IP address of the machine (e.g., http://10.0.0.8:8050/) to the browser; if you put http://taulec.zapto.org:8050/ the remote machine resolves this host name to get its _global_ IP address, which cannot be accessed from within the machin in Azure.
+
 ### configuration
 
 settings you might want to change are imported from progress_viewer_config.py.  If the file does not exist, default values written in the progress_viewer.py are used.
@@ -137,7 +141,7 @@ settings you might want to change are imported from progress_viewer_config.py.  
 * it is shown when you enter a correct password in the "passwd:" box
 * the correct password should be set in progress_viewer_config.py
 
-## running from apache
+## running from apache is tricky
 
 ```
 sudo apt install libapache2-mod-wsgi-py3
@@ -161,3 +165,7 @@ to
 ```
 sudo systemctl restart apache2
 ```
+
+this does not work if www-data cannot access /home/tau/jupyter_tools/progress_viewer/
+
+even if you make it readable, you need to make sure necessry modules (e.g., dash) are available from the python apache will use.

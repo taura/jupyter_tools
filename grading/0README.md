@@ -32,7 +32,11 @@ nbgrader autograde --assignment pl02 --no-execute
 
 https://github.com/jupyter/nbgrader/issues/1083
 
-目視でも確認した. このパターンだった場合, editor で開いてduplicateしたセルの
+目視でも確認した. このパターンだった場合, editor で,
+
+/home/採点者アカウント/notebooks/submitted/学生名/課題名/*.ipynb (例: /home/pl/notebooks/submitted/u25106/pl09_memory_management/pl09_memory_management.ipynb )
+
+を開いてduplicateしたセルの
 
   "metadata": {
     "kernel": "Bash",
@@ -79,20 +83,25 @@ cp a.ipynb a.ipynb.org
 
 どうしても直せないものは
 
+```
 nbgrader autograde --assignment pl02 --no-execute --CourseDirectory.student_id_exclude=...
+```
 
 とするとその学生のautogradeをしないで飛ばせるがこれでちゃんとそのnotebookを受け取れるのかわからないので極力やらない
 
 [3] データをダウンロード
 
+```
 ./work.py download --user pl # --user を適宜変える
+```
 
 実際にやることは
 
 pl@taulec:notebooks 下のデータ(submitされたnotebook と gradebook.db)と
 pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 
-[4] ./work.py export-xlsx
+[4] ./work.py export-xlsx  
+(以下の[4']も参照)
 
 * dl/notebooks/gradebook.db のデータを色々join
 * dl/inboundの下に提出されたipynbからsource, outputsを読む
@@ -107,6 +116,28 @@ pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 少しデータが大きくなると Libreoffice の spreadsheet は死ぬほど遅いので使わない
 一つ操作をするたびに「反応なし」状態になる
 Windows の Excel は何の問題もないので Windows での作業が推奨
+
+[4'] `./work.py export-xlsx` でできる Excel は作業のために色々修正が必要
+
+* 列の幅を揃える
+* 罫線
+* フィルダーを備える
+* 左寄せ、上寄せ、はみ出た文字は折返し、にする
+* manual score に条件付き書式(色を付けるなど)
+
+毎回やるのもアレなので中身が空の Excel を作ってそれにデータを追加するという方法もある.
+その空のExcel がこのフォルダの grade_template.xlsx
+
+したがって
+
+```
+cp ~/lectures/jupyter_tools/grading/grade_template.xlsx grade.xlsx 
+./work.py update-xlsx
+```
+
+としてもよい.
+
+ただし「左寄せ、上寄せ、はみ出た文字は折返し」の書式、罫線は追加された行には適用されてくれない模様
 
 [5] 半自動採点. プログラムを実行して採点
 
@@ -153,6 +184,8 @@ test を走らせたら
 ```
 
 するとコマンドの出力や, 成功したかどうか (ok.txt と言うファイルの存在で確認) が grade.xlsx に書き込まれる
+
+注: update-xlsx は grade.xlsx を更新するので間違い防止のために, grade.xlsx に元々入っている行数と結果として書き込むことになる行数が一致していないと動かない. したがってあとから追加で download したりして提出物が増えてから行うと動かない
 
 2024年度に死ぬほど苦労した話
 

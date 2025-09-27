@@ -366,7 +366,8 @@ def find_submission_text(directory, student_id, assignment):
 def read_submission_texts(header, rows, directory):
     submission_text_cols = {}
     for j, assignment in enumerate(header):
-        if assignment is not None:
+        # ignore firs three columns ('ユーザID', '学生証番号', '氏名')
+        if j >= 3 and assignment is not None:
             # Assignment 0: Jupyter password|None|None|None|None|
             # 提出状況|評価|コメント|成果物ファイル名|最終更新日時
             submission_text_cols[j + 3] = assignment
@@ -376,7 +377,7 @@ def read_submission_texts(header, rows, directory):
         student_id = row[student_id_col].value
         for j, assignment in submission_text_cols.items():
             val = row[j].value
-            if "submissionText.txt" in val:
+            if val is not None and "submissionText.txt" in val:
                 sub_txt = find_submission_text(directory, student_id, assignment)
                 row[j].value = read_file(sub_txt)
     return header, rows
