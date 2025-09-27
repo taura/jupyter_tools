@@ -1,3 +1,10 @@
+[0] nbgrader が使えるように (必要ならば)
+ssh pl@taulec
+mkdir -p venv
+python3 -m venv venv/jupyter 
+. venv/jupyter/bin/activate
+pip install nbgrader
+
 [1] nbgrader で submission を collect する
 
 nbgrader list
@@ -65,6 +72,10 @@ cp a.ipynb a.ipynb.org
 とでもしてから作業を始めるのが良い
 
 注2: それ以外の理由で失敗して直せない場合, エラーメッセージを見ながらマニュアルで直す
+よくあるエラー:
+
+ * [AutogradeApp | WARNING] Attribute 'cell_type' for cell p-001 has changed! (should be: markdown, got: raw)
+ * [AutogradeApp | ERROR] Notebook JSON is invalid: 'outputs' is a required property
 
 どうしても直せないものは
 
@@ -95,7 +106,7 @@ pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 
 少しデータが大きくなると Libreoffice の spreadsheet は死ぬほど遅いので使わない
 一つ操作をするたびに「反応なし」状態になる
-Windows の Excel は何のもないもないので Windows での作業が推奨
+Windows の Excel は何の問題もないので Windows での作業が推奨
 
 [5] 半自動採点. プログラムを実行して採点
 

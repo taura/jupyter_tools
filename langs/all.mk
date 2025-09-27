@@ -7,7 +7,8 @@ inst_targets:=$(foreach user,$(inst_users),$(foreach lang,$(langs),inst/$(user)/
 
 uninst_start:=$(inst_start)
 uninst_end:=$(inst_end)
-uninst_users:=$(addprefix u,$(shell seq $(uninst_start) $(uninst_end))) pl pl0
+uninst_users:=$(inst_users)
+#uninst_users:=$(addprefix u,$(shell seq $(uninst_start) $(uninst_end))) pl pl0
 uninst_targets:=$(foreach user,$(uninst_users),$(foreach lang,$(langs),uninst/$(user)/$(lang)))
 
 install : $(inst_targets)
