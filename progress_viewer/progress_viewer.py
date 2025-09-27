@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 """
 progress viewer
 """
@@ -422,7 +422,7 @@ def make_scatter_data(records, path_regexps, sort_criteria, show_only_latest, li
     #print(path_regexps)
     pats = [re.compile(path_regexp) for path_regexp in path_regexps]
     # filter out all non .ipynb files
-    ipynb_pat = re.compile(".*\.ipynb$")
+    ipynb_pat = re.compile(r".*\.ipynb$")
     ipynb_filenames = [filename for filename in records.keys() if ipynb_pat.match(filename) ]
     # filenames that match the specified regexp
     filenames = [filename for filename in ipynb_filenames if any(pat.search(filename) for pat in pats)]
@@ -509,4 +509,5 @@ app.layout = html.Div(
 )
 
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0")
+    #app.run_server(debug=True, host="0.0.0.0")
+    app.run(debug=True, host="0.0.0.0")

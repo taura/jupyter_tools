@@ -1,7 +1,7 @@
 langs:=go julia ocaml rust
 
 inst_start:=25000
-inst_end:=25001
+inst_end:=25149
 inst_users:=$(addprefix u,$(shell seq $(inst_start) $(inst_end))) pl pl0
 inst_targets:=$(foreach user,$(inst_users),$(foreach lang,$(langs),inst/$(user)/$(lang)))
 
