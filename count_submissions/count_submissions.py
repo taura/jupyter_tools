@@ -49,7 +49,7 @@ def output_submitted_students(D, lms_list_txt, users_nopw_csv, deadline):
 def read_dir():
     fp = sys.stdin
     # fp = open("list_submissions")
-    p = re.compile("/home/share/nbgrader/exchange/(?P<course>.*?)/inbound/(?P<user>.+)\+(?P<assignment>.*?)\+(?P<year>\d+)\-(?P<month>\d+)\-(?P<day>\d+) (?P<hour>\d+):(?P<min>\d+):(?P<sec>\d+\.\d+) (?P<hash>.*)$")
+    p = re.compile(r"/home/share/nbgrader/exchange/(?P<course>.*?)/inbound/(?P<user>.+)\+(?P<assignment>.*?)\+(?P<year>\d+)\-(?P<month>\d+)\-(?P<day>\d+) (?P<hour>\d+):(?P<min>\d+):(?P<sec>\d+\.\d+) (?P<hash>.*)$")
     D = {}
     for i, line in enumerate(fp):
         m = p.match(line)
