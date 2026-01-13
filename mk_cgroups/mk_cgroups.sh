@@ -5,7 +5,7 @@ sudo mkdir -p ${root}
 echo +memory | sudo tee ${root}/cgroup.subtree_control
 
 # 
-for u in $(ls /home); do
+for u in $(ls /home); do  # 
     if [ "${u}" = "lost+found" ]; then continue; fi
     echo "=== ${u} ==="
     sudo mkdir -p ${root}/${u}
