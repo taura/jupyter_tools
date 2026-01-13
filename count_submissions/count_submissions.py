@@ -63,12 +63,12 @@ def read_dir():
     return D
 
 def main():
-    deadline = (2024, 1, 24, 10, 15, 0)
     D = read_dir()
     lms_list_csv = "lms_list.csv"
     users_nopw_csv = "users_nopw.csv"
     course = sys.argv[1]
     assignment = sys.argv[2]
+    deadline = tuple(sys.argv[3].split("-")) # (2024, 1, 24, 10, 15, 0)
     D_ua = D.get((course,assignment), {})
     output_submitted_students(D_ua, lms_list_csv, users_nopw_csv, deadline)
     if 0:
