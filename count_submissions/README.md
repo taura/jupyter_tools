@@ -1,4 +1,10 @@
-lms_list.txt --- UTOL出席者リスト
-users_nopw.csv --- users
+~/lectures/operating-systems/exams/2025/count_check/README.md を参照
 
-modify count_submissions.sh to reflect directory names
+* `lms_list.txt`
+* `users_nopw.csv`
+
+を `os@taulec:jupyter_tools/jupyter_tools/count_submissions/` に送り込んだ状態で,
+
+```
+os@taulec$ ./count_submissions.sh
+```
