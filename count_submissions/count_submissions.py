@@ -3,6 +3,11 @@ import csv
 import re
 import sys
 
+DBG=0
+
+def dbg_print(*s):
+    print(*s, file=sys.stderr)
+
 def read_lms_list(filename):
     with open(filename) as fp:
         return [line.strip() for line in fp]
@@ -17,11 +22,14 @@ def read_users_nopw(filename):
     return U
 
 def choose_last_before(submissions, deadline):
-    year, month, day, hour, min, sec, hash, line = (None, ) * 8
+    #year, month, day, hour, min, sec, hash, line = (None, ) * 8
+    last = (None, ) * 8
     for year, month, day, hour, min, sec, hash, line in submissions:
         if (year, month, day, hour, min, sec) > deadline:
             break
-    return year, month, day, hour, min, sec, hash, line
+        else:
+            last = year, month, day, hour, min, sec, hash, line
+    return last
 
 def output_submitted_students(D, lms_list_txt, users_nopw_csv, deadline):
     students = read_lms_list(lms_list_txt)
@@ -33,22 +41,33 @@ def output_submitted_students(D, lms_list_txt, users_nopw_csv, deadline):
         row = users.get(s)
         if row is None:
             # this student has never used Jupyter
-            print(f"")
+            if DBG>=1:
+                dbg_print(f"{s} ??? NO_JUPYTER_ACCOUNT")
+            print(f"???\t0")
         else:
             # find user name in the "user" column
             u = row["user"]
             submissions = D.get(u)
             if submissions is None:
-                print(f"")
+                if DBG>=1:
+                    dbg_print(f"{s} {u} NO_SUBMISSION")
+                print(f"{u}\t0")
             else:
-                (year, month, day, hour, min, sec, hash, line) = choose_last_before(submissions, deadline)
-                print(f"{s} {year}-{month}-{day} {hour}:{min}:{sec}")
-                n_submissions += 1
+                (year, month, day, hour, min, sec, hash, line) \
+                    = choose_last_before(submissions, deadline)
+                if DBG>=1:
+                    dbg_print(f"{s} {u} {year}-{month}-{day} {hour}:{min}:{sec}")
+                if year is not None:
+                    print(f"{u}\t1")
+                    n_submissions += 1
+                else:
+                    print(f"{u}\t-1")
     print(f"{n_submissions} / {len(students)}", file=sys.stderr)
 
 def read_dir():
     fp = sys.stdin
     # fp = open("list_submissions")
+    # fp = open("inbound.txt")    # FIX
     p = re.compile(r"/home/share/nbgrader/exchange/(?P<course>.*?)/inbound/(?P<user>.+)\+(?P<assignment>.*?)\+(?P<year>\d+)\-(?P<month>\d+)\-(?P<day>\d+) (?P<hour>\d+):(?P<min>\d+):(?P<sec>\d+\.\d+) (?P<hash>.*)$")
     D = {}
     for i, line in enumerate(fp):
@@ -68,7 +87,7 @@ def main():
     users_nopw_csv = "users_nopw.csv"
     course = sys.argv[1]
     assignment = sys.argv[2]
-    deadline = tuple(sys.argv[3].split("-")) # (2024, 1, 24, 10, 15, 0)
+    deadline = tuple(int(x) for x in sys.argv[3].split("-")) # (2024, 1, 24, 10, 15, 0)
     D_ua = D.get((course,assignment), {})
     output_submitted_students(D_ua, lms_list_csv, users_nopw_csv, deadline)
     if 0:
