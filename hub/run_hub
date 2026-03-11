@@ -4,7 +4,5 @@ if [ "$1" = "" ]; then
     echo "usage: $0 FQDN"
     exit 1
 fi
-FQDN=$1
-mkdir -p ${FQDN}
-cd ${FQDN}
-sudo ../run_hub_sub ${FQDN}
+cd $1
+sudo ../run_hub_sub

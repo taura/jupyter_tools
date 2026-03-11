@@ -173,6 +173,96 @@
 #  Default: 'jupyterhub.auth.PAMAuthenticator'
 # c.JupyterHub.authenticator_class = 'jupyterhub.auth.PAMAuthenticator'
 
+import sqlite3
+import csv
+import os
+import sys
+from oauthenticator.azuread import LocalAzureAdOAuthenticator
+from multiauthenticator import MultiAuthenticator
+from jupyterhub.auth import PAMAuthenticator
+from tornado import web
+
+sys.path.append("/home/tau/jupyter_tools/hub")
+import user_map
+
+FQDN = os.environ["FQDN"]
+CLIENT_ID = os.environ["CLIENT_ID"]
+CLIENT_SECRET = os.environ["CLIENT_SECRET"]
+TENANT_ID = os.environ["TENANT_ID"]
+
+UM = user_map.user_map("user_map.sqlite")
+UM.ensure_db()
+
+
+class MyLocalAzureAdOAuthenticator(LocalAzureAdOAuthenticator):
+    def normalize_username(self, u):
+        print(f"MyLocalAzureAdOAuthenticator::normalize_username {u}")
+        if u.endswith("@utac.u-tokyo.ac.jp"):
+            local = UM.alloc(u)
+            if local is None:
+                raise web.HTTPError(403, f"cannot assign local user for {u}")
+        elif u.startswith("UTokyo Account:"):
+            local = u.split(":")[1]
+        else:
+            local = u
+        print(f" --> {local}")
+        return local
+
+class MyPAMAuthenticator(PAMAuthenticator):
+    def normalize_username(self, u):
+        print(f"MyPAMAuthenticator::normalize_username {u}")
+        if ":" in u:
+            local = u.split(":")[1]
+        else:
+            local = u
+        print(f"--> {local}")
+        return local
+    
+if 0:
+    # AzureAD
+    c.JupyterHub.authenticator_class = MyLocalAzureAdOAuthenticator
+    c.LocalAzureAdOAuthenticator.oauth_callback_url = f"https://{FQDN}:8000/hub/oauth_callback"
+    c.LocalAzureAdOAuthenticator.client_id = CLIENT_ID
+    c.LocalAzureAdOAuthenticator.client_secret = CLIENT_SECRET
+    c.LocalAzureAdOAuthenticator.tenant_id = TENANT_ID
+    c.LocalAzureAdOAuthenticator.scope = ["openid", "email"]
+    c.LocalAzureAdOAuthenticator.username_claim = "upn"
+    c.LocalAzureAdOAuthenticator.allow_all = True
+
+if 1:
+    # AzureAD + Local
+    c.JupyterHub.authenticator_class = MultiAuthenticator
+    c.MultiAuthenticator.authenticators = [
+        {
+            "authenticator_class" : MyLocalAzureAdOAuthenticator,
+            "url_prefix" : "/sso",
+            "config" : {
+                "oauth_callback_url" : f"https://{FQDN}:8000/hub/sso/oauth_callback",
+                "client_id" : CLIENT_ID,
+                "client_secret" : CLIENT_SECRET,
+                "tenant_id" : TENANT_ID,
+                "username_claim" : "upn", # "preferred_username", "email", "upn"
+                "allow_all" : True,
+                "scope" : ["openid", "email"],
+                "service_name" : "UTokyo Account",
+                "prefix" : "utokyoaccount",
+            }
+        },
+        {
+            "authenticator_class" : MyPAMAuthenticator,
+            "url_prefix" : "/local",
+            "config" : {
+                "prefix" : "",
+                "allow_all" : True,
+                "service_name" : "Local Account",
+                #"login_service" : "Local Account",
+            }
+        }
+    ]
+
+
+
+
 ## The base URL of the entire application.
 #  
 #          Add this to the beginning of all JupyterHub URLs.
@@ -783,13 +873,13 @@ c.JupyterHub.services = [
 #          When setting this, you should also set ssl_key
 #  Default: ''
 import os
-c.JupyterHub.ssl_cert = '/etc/pki/tls/certs/{FQDN}/{FQDN}.crt'.format(FQDN=os.environ["FQDN"])
+c.JupyterHub.ssl_cert = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.crt'
 
 ## Path to SSL key file for the public facing interface of the proxy
 #  
 #          When setting this, you should also set ssl_cert
 #  Default: ''
-c.JupyterHub.ssl_key = '/etc/pki/tls/certs/{FQDN}/{FQDN}.key'.format(FQDN=os.environ["FQDN"])
+c.JupyterHub.ssl_key = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.key'
 
 ## Host to send statsd metrics to. An empty string (the default) disables sending
 #  metrics.
@@ -1303,7 +1393,7 @@ c.Spawner.default_url = ''
 #  Defaults to an empty set, in which case no user has admin access.
 #  Default: set()
 # c.Authenticator.admin_users = set()
-c.Authenticator.admin_users = set()
+# c.Authenticator.admin_users = set(["tau"])
 
 ## Set of usernames that are allowed to log in.
 #  
@@ -1318,7 +1408,7 @@ c.Authenticator.admin_users = set()
 #      `Authenticator.whitelist` renamed to `allowed_users`
 #  Default: set()
 # c.Authenticator.allowed_users = set()
-c.Authenticator.allowed_users = set()
+# c.Authenticator.allowed_users = set(["tau"])
 
 ## The max age (in seconds) of authentication info
 #          before forcing a refresh of user auth info.
