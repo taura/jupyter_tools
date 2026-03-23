@@ -193,7 +193,6 @@ TENANT_ID = os.environ["TENANT_ID"]
 UM = user_map.user_map("user_map.sqlite")
 UM.ensure_db()
 
-
 class MyLocalAzureAdOAuthenticator(LocalAzureAdOAuthenticator):
     def normalize_username(self, u):
         print(f"MyLocalAzureAdOAuthenticator::normalize_username {u}")
@@ -641,21 +640,6 @@ if 1:
 #          Default roles are defined in roles.py.
 #  Default: []
 # c.JupyterHub.load_roles = []
-c.JupyterHub.load_roles = [
-    {
-        "name": "jupyterhub-idle-culler-role",
-        "scopes": [
-            "list:users",
-            "read:users:activity",
-            "read:servers",
-            "delete:servers",
-            "admin:users", # if using --cull-users
-        ],
-        # assignment of role's permissions to:
-        "services": ["jupyterhub-idle-culler-service"],
-    }
-]
-
 
 ## The date format used by logging formatters for %(asctime)s
 #  See also: Application.log_datefmt
@@ -811,35 +795,6 @@ c.JupyterHub.load_roles = [
 #              ]
 #  Default: []
 # c.JupyterHub.services = []
-import sys
-c.JupyterHub.services = [
-    {
-        "name": "jupyterhub-idle-culler-service",
-        "command": [
-            sys.executable,
-            "-m", "jupyterhub_idle_culler",
-            "--timeout=14400",  # 4h
-            "--cull-users"
-        ],
-        # "admin": True,
-    }
-]
-
-
-c.JupyterHub.services = [
-    {
-        'name': 'cull-idle',
-        'admin': True,
-        'command': [
-            '/usr/bin/python3',
-            # '/usr/local/bin/cull_idle_servers.py',
-            '/home/tau/tmp/jupyterhub-helm-chart/images/hub/cull_idle_servers.py',
-            '--timeout=400',
-            '--cull_every=10'
-        ]
-    }
-][0:0]
-
 
 ## Instead of starting the Application, dump configuration to stdout
 #  See also: Application.show_config
@@ -1107,8 +1062,9 @@ c.JupyterHub.ssl_key = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.key'
 #  - You can set this to `/lab` to have JupyterLab start by default, rather than Jupyter Notebook.
 #  Default: ''
 # c.Spawner.default_url = ''
-#c.Spawner.default_url = '/lab'
-c.Spawner.default_url = ''
+# c.Spawner.default_url = '/lab'
+
+#### c.Spawner.default_url = ''
 
 ## Disable per-user configuration of single-user servers.
 #  
@@ -1237,8 +1193,6 @@ c.Spawner.default_url = ''
 #  path! They can do so with many other means.
 #  Default: ''
 # c.Spawner.notebook_dir = ''
-
-#### c.Spawner.notebook_dir = '~/notebooks'
 
 ## Allowed roles for oauth tokens.
 #  
@@ -1608,6 +1562,9 @@ c.MappingKernelManager.cull_interval = 60
 # cull connected (e.g. Browser tab open)
 c.MappingKernelManager.cull_connected = True
 
+##
+## idle culler
+##
 
 c.JupyterHub.load_roles = [
     {
