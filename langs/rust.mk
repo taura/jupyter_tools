@@ -3,6 +3,7 @@ install:
 	sh ~/rust_install.sh -y
 	~/.cargo/bin/cargo install evcxr_jupyter
 	~/.cargo/bin/evcxr_jupyter --install
+	rm -f ~/rust_install.sh
 
 uninstall:
 	rm -rf ~/.cargo ~/.rustup
