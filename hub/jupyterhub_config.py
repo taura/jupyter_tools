@@ -1193,6 +1193,7 @@ c.JupyterHub.ssl_key = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.key'
 #  path! They can do so with many other means.
 #  Default: ''
 # c.Spawner.notebook_dir = ''
+c.Spawner.notebook_dir = '~/notebooks'
 
 ## Allowed roles for oauth tokens.
 #  
