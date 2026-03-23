@@ -19,6 +19,16 @@ ifndef students
 students:=$(shell ./work.py export-txt --sql 'select distinct(student_id) from grade_comment_cell order by student_id' --txt -)
 endif
 
+.DEFAULT_GOAL := all
+
+usage :
+	@echo usage:
+	@echo '  make -f eval.mk assignment_names=pl02 notebook_names=pl02_ocaml.ml prob_names=p-001 students=u21000'
+	@echo '  make -f eval.mk assignment_names=pl02 notebook_names=pl02_ocaml.ml prob_names=p-001'
+	@echo '  make -f eval.mk assignment_names=pl02 notebook_names=pl02_ocaml.ml'
+	@echo '  make -f eval.mk assignment_names=pl02'
+	@echo '  make -f eval.mk'
+
 all :
 
 define compile

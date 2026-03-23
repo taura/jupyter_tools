@@ -82,8 +82,9 @@ def answer_cells_of_nb(a_ipynb):
                           .format(prob_name, a_ipynb), file=sys.stderr)
             cells[prob_name] = source, outputs
     if len(cells) == 0:
-        print("WARNING: {} has no answer cells"
-              .format(a_ipynb), file=sys.stderr)
+        if 0:
+            print("WARNING: {} has no answer cells"
+                  .format(a_ipynb), file=sys.stderr)
     return cells
 
 def answer_cells_of_dir(submission_dir):

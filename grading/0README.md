@@ -18,7 +18,10 @@ nbgrader autograde --assignment pl02 --no-execute
 
 注: autograde が失敗することがある. 多くのパターンは,
 
-  [AutogradeApp | WARNING] Cell with id 'p-003' exists multiple times!
+```
+  [AutogradeApp | INFO] Converting notebook /home/os/notebooks/submitted/u25274/os02_process/os02_process.sos.ipynb
+  [AutogradeApp | WARNING] Cell with id 'p-001' exists multiple times!
+```
   
 みたいなWARNING (+ [AutogradeApp | WARNING] Cell 'c-002' does not exist in the database みたいのが一杯) 出て最後に,
 
@@ -32,11 +35,7 @@ nbgrader autograde --assignment pl02 --no-execute
 
 https://github.com/jupyter/nbgrader/issues/1083
 
-目視でも確認した. このパターンだった場合, editor で,
-
-/home/採点者アカウント/notebooks/submitted/学生名/課題名/*.ipynb (例: /home/pl/notebooks/submitted/u25106/pl09_memory_management/pl09_memory_management.ipynb )
-
-を開いてduplicateしたセルの
+目視でも確認した. このパターンだった場合, 一行上に, `Converting notebook /home/os/notebooks/submitted/u25274/os02_process/os02_process.sos.ipynb` みたいにファイル名が書いてあるのでそれを editor で開いてduplicateしたセルの
 
   "metadata": {
     "kernel": "Bash",
@@ -80,6 +79,49 @@ cp a.ipynb a.ipynb.org
 
  * [AutogradeApp | WARNING] Attribute 'cell_type' for cell p-001 has changed! (should be: markdown, got: raw)
  * [AutogradeApp | ERROR] Notebook JSON is invalid: 'outputs' is a required property
+ 
+2025年度の新傾向: 
+
+```
+[AutogradeApp | INFO] Converting notebook /home/os/notebooks/submitted/u25269/os2025_exam/problem_4.sos.ipynb
+[AutogradeApp | WARNING] Attribute 'cell_type' for cell p-002 has changed! (should be: markdown, got: raw)
+[AutogradeApp | ERROR] There was an error processing assignment: /home/os/notebooks/submitted/u25278/os2025_exam
+[AutogradeApp | ERROR] Traceback (most recent call last):
+
+                            ...
+
+    File "/home/os/venv/jupyter/lib/python3.12/site-packages/nbformat/validator.py", line 509, in validate
+        raise error
+    nbformat.validator.NotebookValidationError: 'id' is a required property
+    
+    Failed validating 'required' in notebook:
+    
+    On instance:
+    {'cell_type': 'markdown',
+     'metadata': {'deletable': False,
+                  'kernel': 'SoS',
+                  'nbgrader': {'cell_type': 'markdown',
+                               'checksum': '3c9ebad55b38098c52a27e75a384c6f9',
+                               'grade': True,
+                               'grade_id': 'p-002',
+                               'locked': False,
+                               'points': 1,
+                               'schema_version': 3,
+                               'solution': True,
+                               'task': False}},
+     'source': 'send_transactionファイルに実行権限を付与する。'}
+```
+
+修正するための有用情報は [AutogradeApp | ERROR] の一行上の WARNING:
+
+  `Attribute 'cell_type' for cell p-002 has changed! (should be: markdown, got: raw)` 
+  
+にあるとおり, どうやらあるセルのtypeを変えてしまうことにあるらしい.
+壊れたファイル名はその一行上の INFO にでている
+
+   Converting notebook /home/os/notebooks/submitted/u25269/os2025_exam/problem_4.sos.ipynb
+
+ファイルをEmacsで開いて該当するセルをエラーメッセージの文字列から見つけて, "cell_type" を直す
 
 どうしても直せないものは
 
@@ -100,7 +142,7 @@ nbgrader autograde --assignment pl02 --no-execute --CourseDirectory.student_id_e
 pl@taulec:notebooks 下のデータ(submitされたnotebook と gradebook.db)と
 pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
 
-[4] ./work.py export-xlsx  
+[4] ./work.py export-xlsx
 (以下の[4']も参照)
 
 * dl/notebooks/gradebook.db のデータを色々join
@@ -138,6 +180,19 @@ cp ~/lectures/jupyter_tools/grading/grade_template.xlsx grade.xlsx
 としてもよい.
 
 ただし「左寄せ、上寄せ、はみ出た文字は折返し」の書式、罫線は追加された行には適用されてくれない模様
+
+* TIPS: 条件付き書式
+  * 採点漏れを防ぐため, かつ行の高さが大きいところに数字だけのセルは目視が難しいため, 色を付けるのが良い
+  * 1 -> Good, "" -> Default, 0 -> Bad, !="" Note とするのが基本だが注意
+    * "" は 0 扱いされるらしく, 0 -> Bad を "" -> Default の前に置くと 空のセルも Bad になってしまう. かならず "" -> Default を先に書く
+    * 上記の書式には, vertical alignment が bottom ということが含まれているので実際にはそのまま適用してはならず, New Style で それぞれを Inherit した新しい書式を作り, その中で vertical alignment を修正して Top にしないとだめ
+      * aGood, aDefault, aBad, aNote などとするのがおすすめ
+
+* TIPS: 素早く採点
+  * 短い答えを採点する場合, 同じ答えは固まるようにするのが*圧倒的に*速い
+  * そのために source でソートして1問題だけを表示すると良い
+
+
 
 [5] 半自動採点. プログラムを実行して採点
 
@@ -334,6 +389,20 @@ tar usb.tar
 するとファイルがその場にぶちまけられるので注意
 
 utas_lms_jupyter_nbgrader.xlsx の成績を100点満点で10段階に変換
+
+学生証番号 -> 下5桁を取り出す
+10段階成績 -> 10x して 100点満点にする
+ヘッダなし, indexなし, sep=" " で csv 保存
+
+
+2025年度, ファイル入力すると RATEDATA.TXT という提出ファイルが一切保存されない (0 byteのまま) というバグに悩まされた
+ファイル入力して10点法/100点法に移ると成績は反映されているが終了すると RATEDATA.TXT が0バイト
+
+ファイル入力してからそのへんでいくつかの成績を手動でいじって元に戻す?
+最初に手動で入力してからファイル入力する?
+最初に手動で入力してからファイル入力してまた少し手動でいじる?
+
+色々やっているうちに直ってしまった
 
 A1 ... 100
 A  ... 90, 80, 70
