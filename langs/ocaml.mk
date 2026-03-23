@@ -2,11 +2,13 @@
 # and be installed by
 # bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
 
-switch=4.14.2
+#switch=4.14.2
+switch=default
 install:
 	cd && opam init --yes
-	opam switch create $(switch)
-	eval $$(opam env --set-switch --switch=$(switch)) && opam install --yes jupyter menhir
+#	opam switch create $(switch)
+#	eval $$(opam env --set-switch --switch=$(switch)) && opam install --yes jupyter menhir
+	eval $$(opam env) && opam install --yes jupyter menhir
 	~/.opam/$(switch)/bin/ocaml-jupyter-opam-genspec
 	. ~share/venv/jupyter/bin/activate && jupyter kernelspec install --user --name ocaml-jupyter ~/.opam/$(switch)/share/jupyter
 
