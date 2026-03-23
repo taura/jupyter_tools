@@ -1237,7 +1237,8 @@ c.Spawner.default_url = ''
 #  path! They can do so with many other means.
 #  Default: ''
 # c.Spawner.notebook_dir = ''
-c.Spawner.notebook_dir = '~/notebooks'
+
+#### c.Spawner.notebook_dir = '~/notebooks'
 
 ## Allowed roles for oauth tokens.
 #  

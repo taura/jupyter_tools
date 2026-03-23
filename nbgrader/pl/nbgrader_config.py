@@ -275,9 +275,10 @@ c.CourseDirectory.course_id = 'pl'
 #  Default: ''
 # c.CourseDirectory.root = ''
 
-## import os
-## c.CourseDirectory.root = os.path.expanduser('~/notebooks')
-## os.chdir(c.CourseDirectory.root)
+#### import os
+#### c.CourseDirectory.root = os.path.expanduser('~/notebooks')
+#### os.chdir(c.CourseDirectory.root)
+c.CourseDirectory.root = '~/notebooks'
 
 ## The name of the directory that contains the assignment solution after grading
 #  has been completed. This corresponds to the `nbgrader_step` variable in the
