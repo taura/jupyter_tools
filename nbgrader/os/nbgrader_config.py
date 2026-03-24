@@ -1,5 +1,16 @@
 # Configuration file for nbgrader-generate-config.
 
+c = get_config()  #noqa
+
+###############################
+
+import os
+c.CourseDirectory.course_id = 'os'
+c.CourseDirectory.root = os.path.expanduser('~/assignments')
+c.ClearSolutions.code_stub = dict(sos='') # python='', OCaml='', c='', bash='', 
+
+###############################
+
 #------------------------------------------------------------------------------
 # Application(SingletonConfigurable) configuration
 #------------------------------------------------------------------------------
@@ -17,6 +28,53 @@
 #  Choices: any of [0, 10, 20, 30, 40, 50, 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL']
 #  Default: 30
 # c.Application.log_level = 30
+
+## Configure additional log handlers.
+#  
+#  The default stderr logs handler is configured by the log_level, log_datefmt
+#  and log_format settings.
+#  
+#  This configuration can be used to configure additional handlers (e.g. to
+#  output the log to a file) or for finer control over the default handlers.
+#  
+#  If provided this should be a logging configuration dictionary, for more
+#  information see:
+#  https://docs.python.org/3/library/logging.config.html#logging-config-
+#  dictschema
+#  
+#  This dictionary is merged with the base logging configuration which defines
+#  the following:
+#  
+#  * A logging formatter intended for interactive use called
+#    ``console``.
+#  * A logging handler that writes to stderr called
+#    ``console`` which uses the formatter ``console``.
+#  * A logger with the name of this application set to ``DEBUG``
+#    level.
+#  
+#  This example adds a new handler that writes to a file:
+#  
+#  .. code-block:: python
+#  
+#     c.Application.logging_config = {
+#         "handlers": {
+#             "file": {
+#                 "class": "logging.FileHandler",
+#                 "level": "DEBUG",
+#                 "filename": "<path/to/file>",
+#             }
+#         },
+#         "loggers": {
+#             "<application-name>": {
+#                 "level": "DEBUG",
+#                 # NOTE: if you don't list the default "console"
+#                 # handler here then it will be disabled
+#                 "handlers": ["console", "file"],
+#             },
+#         },
+#     }
+#  Default: {}
+# c.Application.logging_config = {}
 
 ## Instead of starting the Application, dump configuration to stdout
 #  Default: False
@@ -58,6 +116,10 @@
 ## Set the log level by value or name.
 #  See also: Application.log_level
 # c.JupyterApp.log_level = 30
+
+## 
+#  See also: Application.logging_config
+# c.JupyterApp.logging_config = {}
 
 ## Instead of starting the Application, dump configuration to stdout
 #  See also: Application.show_config
@@ -105,6 +167,10 @@
 #  Default: ''
 # c.NbGrader.logfile = ''
 
+## 
+#  See also: Application.logging_config
+# c.NbGrader.logging_config = {}
+
 ## Instead of starting the Application, dump configuration to stdout
 #  See also: Application.show_config
 # c.NbGrader.show_config = False
@@ -151,6 +217,10 @@
 ## 
 #  See also: NbGrader.logfile
 # c.GenerateConfigApp.logfile = ''
+
+## 
+#  See also: Application.logging_config
+# c.GenerateConfigApp.logging_config = {}
 
 ## Instead of starting the Application, dump configuration to stdout
 #  See also: Application.show_config
@@ -214,7 +284,7 @@
 #  by setting the config option, or using the --course option on the command
 #  line.
 #  Default: ''
-c.CourseDirectory.course_id = 'os'
+# c.CourseDirectory.course_id = ''
 
 ## URL to the database. Defaults to sqlite:///<root>/gradebook.db, where <root>
 #  is another configurable variable.
@@ -253,6 +323,11 @@ c.CourseDirectory.course_id = 'os'
 #  Default: ['*']
 # c.CourseDirectory.include = ['*']
 
+## Maximum size of directories (in kilobytes; default: 100Mb). Upon copying
+#  directories recursively, larger files will be ignored with a warning.
+#  Default: 100000
+# c.CourseDirectory.max_dir_size = 100000
+
 ## Maximum size of files (in kilobytes; default: 100Mb). Upon copying directories
 #  recursively, larger files will be ignored with a warning.
 #  Default: 100000
@@ -274,9 +349,6 @@ c.CourseDirectory.course_id = 'os'
 #  current working directory.
 #  Default: ''
 # c.CourseDirectory.root = ''
-import os
-c.CourseDirectory.root = os.path.expanduser('~/notebooks')
-os.chdir(c.CourseDirectory.root)
 
 ## The name of the directory that contains the assignment solution after grading
 #  has been completed. This corresponds to the `nbgrader_step` variable in the
@@ -289,6 +361,13 @@ os.chdir(c.CourseDirectory.root)
 #  `directory_structure` config option.
 #  Default: 'source'
 # c.CourseDirectory.source_directory = 'source'
+
+## The name of the directory that contains notebooks with both solutions and
+#  instantiated test code (i.e., all AUTOTEST directives are removed and replaced
+#  by actual test code). This corresponds to the `nbgrader_step` variable in the
+#  `directory_structure` config option.
+#  Default: 'source_with_tests'
+# c.CourseDirectory.source_with_tests_directory = 'source_with_tests'
 
 ## File glob to match student IDs. This can be changed to filter by student.
 #  Note: this is always changed to '.' when running `nbgrader assign`, as the
@@ -537,9 +616,8 @@ os.chdir(c.CourseDirectory.root)
 # c.ClearSolutions.begin_solution_delimeter = 'BEGIN SOLUTION'
 
 ## The code snippet that will replace code solutions
-#  Default: {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'sas': '/* YOUR CODE HERE */\n %notImplemented;', 'java': '// YOUR CODE HERE'}
-# c.ClearSolutions.code_stub = {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'sas': '/* YOUR CODE HERE */\n %notImplemented;', 'java': '// YOUR CODE HERE'}
-c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
+#  Default: {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'R': '# YOUR CODE HERE\nfail()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'sas': '/* YOUR CODE HERE */\n %notImplemented;', 'java': '// YOUR CODE HERE'}
+# c.ClearSolutions.code_stub = {'python': '# YOUR CODE HERE\nraise NotImplementedError()', 'R': '# YOUR CODE HERE\nfail()', 'matlab': "% YOUR CODE HERE\nerror('No Answer Given!')", 'octave': "% YOUR CODE HERE\nerror('No Answer Given!')", 'sas': '/* YOUR CODE HERE */\n %notImplemented;', 'java': '// YOUR CODE HERE'}
 
 ## Whether to use this preprocessor when running nbgrader
 #  See also: NbGraderPreprocessor.enabled
@@ -592,9 +670,19 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 #------------------------------------------------------------------------------
 ## A preprocessor to overwrite information about grade and solution cells.
 
+## Whether or not missing grade_cells should be added back to the notebooks being
+#  graded.
+#  Default: False
+# c.OverwriteCells.add_missing_cells = False
+
 ## Whether to use this preprocessor when running nbgrader
 #  See also: NbGraderPreprocessor.enabled
 # c.OverwriteCells.enabled = True
+
+## A text to add at the beginning of every missing cell re-added to the notebook
+#  during autograding.
+#  Default: 'This cell (id:{cell_id}) was missing from the submission. It was added back by nbgrader.\n\n'
+# c.OverwriteCells.missing_cell_notification = 'This cell (id:{cell_id}) was missing from the submission. It was added back by nbgrader.\n\n'
 
 #------------------------------------------------------------------------------
 # CheckCellMetadata(NbGraderPreprocessor) configuration
@@ -925,6 +1013,18 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 #  See also: NbGraderPreprocessor.enabled
 # c.Execute.enabled = True
 
+## If a cell execution was interrupted after a timeout, don't wait for the
+#  execute_reply from the kernel (e.g. KeyboardInterrupt error). Instead, return
+#  an execute_reply with the given error, which should be of the following form::
+#  
+#      {
+#          'ename': str,  # Exception name, as a string
+#          'evalue': str,  # Exception value, as a string
+#          'traceback': list(str),  # traceback frames, as strings
+#      }
+#  Default: {'ename': 'CellTimeoutError', 'evalue': '', 'traceback': ['\x1b[0;31mCellTimeoutError\x1b[0m: No reply from kernel before timeout']}
+# c.Execute.error_on_timeout = {'ename': 'CellTimeoutError', 'evalue': '', 'traceback': ['\x1b[0;31mCellTimeoutError\x1b[0m: No reply from kernel before timeout']}
+
 ## The number of times to try re-executing the notebook before throwing an error.
 #  Generally, this shouldn't need to be set, but might be useful for CI
 #  environments when tests are flaky.
@@ -940,6 +1040,11 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 ## 
 #  See also: NotebookClient.force_raise_errors
 # c.Execute.force_raise_errors = False
+
+## If execution of a cell times out, interrupt the kernel and continue executing
+#  other cells rather than throwing an error and stopping.
+#  Default: True
+# c.Execute.interrupt_on_timeout = True
 
 ## 
 #  See also: NotebookClient.iopub_timeout
@@ -985,6 +1090,15 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 #  See also: NotebookClient.on_notebook_start
 # c.Execute.on_notebook_start = None
 
+## If ``False`` (default), then the kernel will continue waiting for iopub
+#  messages until it receives a kernel idle message, or until a timeout occurs,
+#  at which point the currently executing cell will be skipped. If ``True``, then
+#  an error will be raised after the first timeout. This option generally does
+#  not need to be used, but may be useful in contexts where there is the
+#  possibility of executing notebooks with memory-consuming infinite loops.
+#  Default: True
+# c.Execute.raise_on_iopub_timeout = True
+
 ## 
 #  See also: NotebookClient.record_timing
 # c.Execute.record_timing = True
@@ -1009,9 +1123,59 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 #  See also: NotebookClient.store_widget_state
 # c.Execute.store_widget_state = True
 
+## The time to wait (in seconds) for output from executions. If a cell execution
+#  takes longer, a TimeoutError is raised.
+#  
+#  ``None`` or ``-1`` will disable the timeout. If ``timeout_func`` is set, it
+#  overrides ``timeout``.
+#  Default: 30
+# c.Execute.timeout = 30
+
 ## 
 #  See also: NotebookClient.timeout_func
 # c.Execute.timeout_func = None
+
+#------------------------------------------------------------------------------
+# InstantiateTests(NbGraderPreprocessor) configuration
+#------------------------------------------------------------------------------
+## The delimiter prior to snippets to be autotested
+#  Default: 'AUTOTEST'
+# c.InstantiateTests.autotest_delimiter = 'AUTOTEST'
+
+## The filename where automatic testing code is stored
+#  Default: 'autotests.yml'
+# c.InstantiateTests.autotest_filename = 'autotests.yml'
+
+## A dictionary mapping each Jupyter kernel's name to the comment string for that
+#  kernel. For an example, one of the entries in this dictionary is "python" :
+#  "#", because # is the comment character in python.
+#  Default: {'ir': '#', 'python': '#', 'python3': '#'}
+# c.InstantiateTests.comment_strs = {'ir': '#', 'python': '#', 'python3': '#'}
+
+## Whether to use this preprocessor when running nbgrader
+#  See also: NbGraderPreprocessor.enabled
+# c.InstantiateTests.enabled = True
+
+## Whether or not to complain if cells containing autotest delimiters are not
+#  marked as grade cells. WARNING: disabling this will potentially cause things
+#  to break if you are using the full nbgrader pipeline. ONLY disable this option
+#  if you are only ever planning to use nbgrader assign.
+#  Default: True
+# c.InstantiateTests.enforce_metadata = True
+
+## The delimiter prior to an autotest block if snippet results should be
+#  protected by a hash function
+#  Default: 'HASHED'
+# c.InstantiateTests.hashed_delimiter = 'HASHED'
+
+## A dictionary mapping each Jupyter kernel's name to the function that is used
+#  to sanitize the output from the kernel within InstantiateTests.
+#  Default: {'ir': <function InstantiateTests.<lambda> at 0xe966359656c0>, 'python': <function InstantiateTests.<lambda> at 0xe966359f31a0>, 'python3': <function InstantiateTests.<lambda> at 0xe966359f3420>}
+# c.InstantiateTests.sanitizers = {'ir': <function InstantiateTests.<lambda> at 0xe966359656c0>, 'python': <function InstantiateTests.<lambda> at 0xe966359f31a0>, 'python3': <function InstantiateTests.<lambda> at 0xe966359f3420>}
+
+## Whether to add a salt to digested answers
+#  Default: True
+# c.InstantiateTests.use_salt = True
 
 #------------------------------------------------------------------------------
 # GetGrades(NbGraderPreprocessor) configuration
@@ -1106,15 +1270,20 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 #------------------------------------------------------------------------------
 # ClearMarkScheme(NbGraderPreprocessor) configuration
 #------------------------------------------------------------------------------
-## The delimiter marking the beginning of hidden tests cases
+## The delimiter marking the beginning of a marking scheme region
 #  Default: 'BEGIN MARK SCHEME'
 # c.ClearMarkScheme.begin_mark_scheme_delimeter = 'BEGIN MARK SCHEME'
+
+## Whether or not to check if a marking scheme region contains an attachment, in
+#  order to prevent leakage to student version of notebooks.
+#  Default: True
+# c.ClearMarkScheme.check_attachment_leakage = True
 
 ## Whether to use this preprocessor when running nbgrader
 #  See also: NbGraderPreprocessor.enabled
 # c.ClearMarkScheme.enabled = True
 
-## The delimiter marking the end of hidden tests cases
+## The delimiter marking the end of a marking scheme region
 #  Default: 'END MARK SCHEME'
 # c.ClearMarkScheme.end_mark_scheme_delimeter = 'END MARK SCHEME'
 
@@ -1133,6 +1302,19 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 ## Whether to use this preprocessor when running nbgrader
 #  See also: NbGraderPreprocessor.enabled
 # c.OverwriteKernelspec.enabled = True
+
+#------------------------------------------------------------------------------
+# IgnorePattern(NbGraderPreprocessor) configuration
+#------------------------------------------------------------------------------
+## Preprocessor for removing cell outputs that match a particular pattern
+
+## Whether to use this preprocessor when running nbgrader
+#  Default: False
+# c.IgnorePattern.enabled = False
+
+## The regular expression to remove from stderr
+#  Default: ''
+# c.IgnorePattern.pattern = ''
 
 #------------------------------------------------------------------------------
 # Exchange(LoggingConfigurable) configuration
@@ -1400,8 +1582,8 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 #  See also: BaseConverter.pre_convert_hook
 # c.GenerateAssignment.pre_convert_hook = None
 
-#  Default: [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearsolutions.ClearSolutions'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.savecells.SaveCells'>, <class 'nbgrader.preprocessors.clearhiddentests.ClearHiddenTests'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
-# c.GenerateAssignment.preprocessors = [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearsolutions.ClearSolutions'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.savecells.SaveCells'>, <class 'nbgrader.preprocessors.clearhiddentests.ClearHiddenTests'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+#  Default: [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.instantiatetests.InstantiateTests'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearsolutions.ClearSolutions'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.savecells.SaveCells'>, <class 'nbgrader.preprocessors.clearhiddentests.ClearHiddenTests'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+# c.GenerateAssignment.preprocessors = [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.instantiatetests.InstantiateTests'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearsolutions.ClearSolutions'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.savecells.SaveCells'>, <class 'nbgrader.preprocessors.clearhiddentests.ClearHiddenTests'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
 
 #------------------------------------------------------------------------------
 # Assign(GenerateAssignment) configuration
@@ -1434,13 +1616,13 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 # c.Assign.pre_convert_hook = None
 
 #  See also: GenerateAssignment.preprocessors
-# c.Assign.preprocessors = [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearsolutions.ClearSolutions'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.savecells.SaveCells'>, <class 'nbgrader.preprocessors.clearhiddentests.ClearHiddenTests'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+# c.Assign.preprocessors = [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.instantiatetests.InstantiateTests'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearsolutions.ClearSolutions'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.savecells.SaveCells'>, <class 'nbgrader.preprocessors.clearhiddentests.ClearHiddenTests'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.computechecksums.ComputeChecksums'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
 
 #------------------------------------------------------------------------------
 # Autograde(BaseConverter) configuration
 #------------------------------------------------------------------------------
-#  Default: [<class 'nbgrader.preprocessors.execute.Execute'>, <class 'nbconvert.preprocessors.clearmetadata.ClearMetadataPreprocessor'>, <class 'nbgrader.preprocessors.limitoutput.LimitOutput'>, <class 'nbgrader.preprocessors.saveautogrades.SaveAutoGrades'>, <class 'nbgrader.preprocessors.latesubmissions.AssignLatePenalties'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
-# c.Autograde.autograde_preprocessors = [<class 'nbgrader.preprocessors.execute.Execute'>, <class 'nbconvert.preprocessors.clearmetadata.ClearMetadataPreprocessor'>, <class 'nbgrader.preprocessors.limitoutput.LimitOutput'>, <class 'nbgrader.preprocessors.saveautogrades.SaveAutoGrades'>, <class 'nbgrader.preprocessors.latesubmissions.AssignLatePenalties'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+#  Default: [<class 'nbgrader.preprocessors.execute.Execute'>, <class 'nbgrader.preprocessors.ignorepattern.IgnorePattern'>, <class 'nbconvert.preprocessors.clearmetadata.ClearMetadataPreprocessor'>, <class 'nbgrader.preprocessors.limitoutput.LimitOutput'>, <class 'nbgrader.preprocessors.saveautogrades.SaveAutoGrades'>, <class 'nbgrader.preprocessors.latesubmissions.AssignLatePenalties'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+# c.Autograde.autograde_preprocessors = [<class 'nbgrader.preprocessors.execute.Execute'>, <class 'nbgrader.preprocessors.ignorepattern.IgnorePattern'>, <class 'nbconvert.preprocessors.clearmetadata.ClearMetadataPreprocessor'>, <class 'nbgrader.preprocessors.limitoutput.LimitOutput'>, <class 'nbgrader.preprocessors.saveautogrades.SaveAutoGrades'>, <class 'nbgrader.preprocessors.latesubmissions.AssignLatePenalties'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
 
 ## Whether to create the student at runtime if it does not already exist.
 #  Default: True
@@ -1553,3 +1735,31 @@ c.ClearSolutions.code_stub = dict(python='', OCaml='', c='', bash='', sos='')
 
 #  Default: [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.execute.Execute'>]
 # c.GenerateSolution.preprocessors = [<class 'nbgrader.preprocessors.headerfooter.IncludeHeaderFooter'>, <class 'nbgrader.preprocessors.lockcells.LockCells'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.clearmarkingscheme.ClearMarkScheme'>, <class 'nbgrader.preprocessors.execute.Execute'>]
+
+#------------------------------------------------------------------------------
+# GenerateSourceWithTests(BaseConverter) configuration
+#------------------------------------------------------------------------------
+#  See also: BaseConverter.exporter_class
+# c.GenerateSourceWithTests.exporter_class = 'nbconvert.exporters.notebook.NotebookExporter'
+
+## Whether to overwrite existing assignments/submissions
+#  See also: BaseConverter.force
+# c.GenerateSourceWithTests.force = False
+
+## 
+#  See also: BaseConverter.permissions
+# c.GenerateSourceWithTests.permissions = 0
+
+## 
+#  See also: BaseConverter.post_convert_hook
+# c.GenerateSourceWithTests.post_convert_hook = None
+
+## 
+#  See also: BaseConverter.pre_convert_hook
+# c.GenerateSourceWithTests.pre_convert_hook = None
+
+#  Default: [<class 'nbgrader.preprocessors.instantiatetests.InstantiateTests'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+# c.GenerateSourceWithTests.preprocessors = [<class 'nbgrader.preprocessors.instantiatetests.InstantiateTests'>, <class 'nbgrader.preprocessors.clearoutput.ClearOutput'>, <class 'nbgrader.preprocessors.checkcellmetadata.CheckCellMetadata'>]
+
+
+
