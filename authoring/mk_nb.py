@@ -26,11 +26,13 @@ def canonicalize_kernel_dict():
         "cpp" : "C",
         "go" : "Go",
         "golang" : "Go",
-        "jl" : "Julia 1.11.4",
-        "julia" : "Julia 1.11.4",
-        "ocaml" : "OCaml 4.14.2",
-        "caml" : "OCaml 4.14.2",
-        "ml" : "OCaml 4.14.2",
+        #"jl" : "Julia 1.12.5",
+        "jl" : "Julia 1.12",
+        #"julia" : "Julia 1.12.5",
+        "julia" : "Julia 1.12",
+        "ocaml" : "OCaml default",
+        "caml" : "OCaml default",
+        "ml" : "OCaml default",
         "rs" : "Rust",
         "rust" : "Rust",
         "sos" : "SoS"
@@ -130,15 +132,15 @@ def make_metadata_julia():
     return {
         "celltoolbar": "Create Assignment",
         "kernelspec": {
-            "display_name": "Julia 1.11.4",
+            "display_name": "Julia 1.12.5",
             "language": "julia",
-            "name": "julia-1.11"
+            "name": "julia-1.12"
         },
         "language_info": {
             "file_extension": ".jl",
             "mimetype": "application/julia",
             "name": "julia",
-            "version": "1.11.4"
+            "version": "1.12.5"
         }
     }
 
@@ -149,7 +151,7 @@ def make_metadata_ocaml():
     return {
         "celltoolbar": "Create Assignment",
         "kernelspec": {
-            "display_name": "OCaml 4.14.2",
+            "display_name": "OCaml default",
             "language": "OCaml",
             "name": "ocaml-jupyter"
         },
@@ -160,7 +162,7 @@ def make_metadata_ocaml():
             "name": "OCaml",
             "nbconverter_exporter": null,
             "pygments_lexer": "OCaml",
-            "version": "4.14.2"
+            "version": "default"
         }
     }
 
@@ -209,8 +211,8 @@ def make_metadata_sos():
                 ["Bash", "bash", "bash", "", "shell"],
                 ["C", "c_kernel", "c", "", ""],
                 ["Go", "gophernotes", "go", "", ""],
-                ["Julia 1.11.4", "julia-1.11", "julia", "", ""],
-                ["OCaml 4.14.2", "ocaml-jupyter", "OCaml", "", "text/x-ocaml"],
+                ["Julia 1.12.5", "julia-1.12", "julia", "", ""],
+                ["OCaml default", "ocaml-jupyter", "OCaml", "", "text/x-ocaml"],
                 ["Python 3 (ipykernel)", "python3", "python3", "", {"name": "ipython", "version": 3}],
                 ["Rust", "rust", "rust", "", ""]
             ],
@@ -231,8 +233,8 @@ def make_metadata(syntax):
         "Bash" : make_metadata_bash,
         "C" : make_metadata_c,
         "Go" : make_metadata_go,
-        "Julia 1.11.4" : make_metadata_julia,
-        "OCaml 4.14.2" : make_metadata_ocaml,
+        "Julia 1.12.5" : make_metadata_julia,
+        "OCaml default" : make_metadata_ocaml,
         "Rust" : make_metadata_rust,
         "SoS" : make_metadata_sos,
     }
@@ -318,6 +320,7 @@ class ParserBase:
         self.make_patterns()
     tok_begin_md = "tok_begin_md"
     tok_begin_code = "tok_begin_code"
+    tok_begin_code_in_comment = "tok_begin_code_in_comment"
     tok_end_md = "tok_end_md"
     tok_end_code = "tok_end_code"
     tok_include = "tok_include"
@@ -355,12 +358,16 @@ class ParserBase:
                  re.compile(r'""" *(?P<cell_attrs>code.*)"""')),
                 (self.tok_end_code,
                  re.compile(r'""" """')),
+                # code in comment (used to output special cells while maintaining 
+                # it being regular python file)
+                (self.tok_begin_code_in_comment, 
+                 re.compile(r'""" *(?P<cell_attrs>codex.*)')),
                 (self.tok_include,
                  re.compile(r'""" *(?P<cmd>(include|exec-include).*)"""')),
                 (self.tok_eof,
                  re.compile(r'""" *eof *"""')),
             ]
-        elif self.syntax == "OCaml 4.14.2":
+        elif self.syntax == "OCaml default":
             self.patterns = [
                 (self.tok_begin_md,
                  re.compile(r'\(\*\* *(?P<cell_attrs>md.*)')),
@@ -434,11 +441,19 @@ class ParserBase:
         if self.token != tok:
             self.parse_error("expected %s but got %s" % (tok, self.token))
         self.next()
+    def eats(self, toks):
+        """
+        eat the current token if it matches the specified kind.
+        otherwise it raises a parse error
+        """
+        if self.token not in toks:
+            self.parse_error("expected %s but got %s" % (toks, self.token))
+        self.next()
     def parse(self):
         """
         parse
         """
-        if self.input_file is None:
+        if self.input_file == "-": # is None
             self.in_fp = sys.stdin
         else:
             self.in_fp = open(self.input_file)
@@ -460,23 +475,6 @@ class ParserBase:
         out_wp.write(dump)
         if self.output_file is not None:
             out_wp.close()
-    def parse_file_xxx(self):
-        """
-        parse an entire file
-
-           file := cell*
-        """
-        cells = []
-        while self.line == "\n":
-            self.eat(self.tok_other)
-        while self.token in [self.tok_begin_md, self.tok_begin_code]:
-            cell = self.parse_cell()
-            if cell is not None:
-                cells.append(cell)
-            while self.line != "" and self.line.strip() == "":
-                self.eat(self.tok_other)
-        self.eat(self.tok_eof)
-        return cells
     def empty_line(self):
         return self.token != self.tok_eof and self.line.strip() == ""
     def parse_file(self):
@@ -488,8 +486,9 @@ class ParserBase:
         cells = []
         while self.empty_line():
             self.eat(self.tok_other)
-        while self.token in [self.tok_begin_md, self.tok_begin_code, self.tok_other]:
-            if self.token in [self.tok_begin_md, self.tok_begin_code]:
+        while self.token in [self.tok_begin_md, self.tok_begin_code,
+                             self.tok_begin_code_in_comment, self.tok_other]:
+            if self.token in [self.tok_begin_md, self.tok_begin_code, self.tok_begin_code_in_comment]:
                 cell = self.parse_cell()
             else:
                 assert(self.token == self.tok_other), self.token
@@ -534,7 +533,8 @@ class ParserBase:
         if grade:
             self.grade_id += 1
             grade_id = "p-%03d" % self.grade_id
-            sources = ["BEGIN SOLUTION\n", "END SOLUTION\n"] + sources
+            #sources = ["BEGIN SOLUTION\n", "END SOLUTION\n"] + sources
+            sources = sources
         else:
             self.cell_id += 1
             grade_id = "c-%03d" % self.cell_id
@@ -568,15 +568,19 @@ class ParserBase:
 
           cell := begin | source* | end
         """
-        self.is_md = (self.token == self.tok_begin_md)
-        if self.is_md:
+        #self.is_md = (self.token == self.tok_begin_md)
+        self.cell_type = self.token
+        # if self.is_md:
+        if self.cell_type == self.tok_begin_md:
             cell_attrs = self.parse_begin_md()
         else:
             cell_attrs = self.parse_begin_code()
         sources = []
         while self.token in [self.tok_include, self.tok_other]:
             sources.extend(self.parse_source())
-        if self.is_md:
+        # if self.is_md:
+        if self.cell_type in [self.tok_begin_md, self.tok_begin_code_in_comment]:
+            # odd, but "code in comment" in python source ends with """, which is tok_end_md
             self.parse_end_md()
         else:
             self.parse_end_code()
@@ -589,7 +593,8 @@ class ParserBase:
         """
         cell_attrs = "md"
         sources = []
-        self.is_md = 1
+        #self.is_md = 1
+        self.cell_type = self.tok_begin_md
         while self.token in [self.tok_include, self.tok_other]:
             sources.extend(self.parse_source())
         return self.make_cell(cell_attrs, sources)
@@ -625,7 +630,7 @@ class ParserBase:
                       | /** --- cell_attr*
         """
         matched = self.matched
-        self.eat(self.tok_begin_code)
+        self.eats([self.tok_begin_code, self.tok_begin_code_in_comment])
         return matched.group("cell_attrs")
     def parse_end_code(self):
         """
@@ -655,7 +660,8 @@ class ParserBase:
         """
         line = self.line
         self.eat(self.tok_other)
-        if not self.is_md:
+        #if not self.is_md:
+        if self.cell_type != self.tok_begin_md:
             return line
         matched = re.match(r"(?P<hashes>#*)(?P<ast>\*?)(?P<sym>[^ ]*)(?P<rest>.*)", line)
         hashes = matched["hashes"]

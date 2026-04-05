@@ -7,7 +7,8 @@ c = get_config()  #noqa
 import os
 c.CourseDirectory.course_id = 'pl'
 c.CourseDirectory.root = os.path.expanduser('~/assignments')
-c.ClearSolutions.code_stub = dict(sos='') # python='', OCaml='', c='', bash='', 
+# Pythonが無いというエラーになる. デフォルトでPythonは入っている
+#c.ClearSolutions.code_stub = dict(sos='') # python='', OCaml='', c='', bash='', 
 
 ###############################
 
