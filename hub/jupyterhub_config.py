@@ -50,6 +50,10 @@ class MyPAMAuthenticator(PAMAuthenticator):
             local = u
         print(f"--> {local}")
         return local
+
+# API key を環境変数で nbgrader で各ユーザにわたるようにする
+# 値そのものは run_hub_sub で . cfg.sh でセットされる
+c.Spawner.env_keep += ["HEYTUTOR_ENDPOINT", "HEYTUTOR_API_KEY", "HEYTUTOR_API_VERSION", "HEYTUTOR_MODEL"]
     
 if 0:
     # AzureAD
