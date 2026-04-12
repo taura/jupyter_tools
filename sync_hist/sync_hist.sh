@@ -1,9 +1,13 @@
 #!/bin/bash
 
-src=/home
+src=/home/u26099
 dst=hist
-hist=${dst}/hist_files.txt
+mkdir -p ${dst}
 
-find ${src} -name "hist.sqlite" -type f > ${hist}
-rsync -avR --files-from=${hist} / ${dst}/
+shopt -s nullglob
+printf "%s\n" ${src}/notebooks/pl/*/hist.sqlite ${src}/notebooks/pl/*/problems/*/*/hist.sqlite
+
+# | rsync -avR --files-from=- / "${dst}/"
+shopt -u nullglob
+
 sudo chown -R tau:tau ${dst}
