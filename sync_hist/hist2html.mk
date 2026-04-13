@@ -14,13 +14,13 @@ note_htmls:=$(patsubst html/%/dir,html/%/hist.html,$(prob_dirs))
 # $(warning $(note_htmls))
 # $(warning $(prob_htmls))
 
-index.html : $(note_htmls) $(prob_htmls) make_table.py
+index.html : $(note_htmls) $(prob_htmls) make_index.py
 	./make_index.py > $@
 
 $(note_dirs) $(prob_dirs) : html/%/dir :
 	mkdir -p $@
 
-$(note_htmls) $(prob_htmls) : html/%/hist.html : hist/%/hist.sqlite html/%/dir dump_hist.py
+$(note_htmls) $(prob_htmls) : html/%/hist.html : hist/%/hist.sqlite html/%/dir hist2html.py
 	./hist2html.py $< > $@
 
 .DELETE_ON_ERROR:

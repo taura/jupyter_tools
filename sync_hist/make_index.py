@@ -210,7 +210,7 @@ trailer = """
 
 def main():
     D = make_dict()
-    wp = open("log.html", "w")
+    wp = sys.stdout
     wp.write(header)
     gen_table(USERS, PROBLEM_INDEX, D, wp)
     wp.write(trailer)
