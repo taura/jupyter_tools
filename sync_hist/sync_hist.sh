@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 dst=hist
 mkdir -p ${dst}
 
