@@ -1,7 +1,6 @@
 #!/bin/bash
 
-
-dst=hist
+dst=/home/tau/jupyter_tools/sync_hist/hist
 mkdir -p ${dst}
 
 shopt -s nullglob

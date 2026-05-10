@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import csv
 import glob
 import os
 import re
@@ -11,6 +12,20 @@ PROBLEM_INDEX = problem_index.PROBLEM_INDEX
 USERS = [f"u{x}" for x in range(26000, 26099)]
 
 def analyze_sqlite(hist_sqlite):
+    """
+    read hist.sqlite and count how many times a user has
+    experienced compile errors or runtime errors for each language on
+    each problem, and how many times a user has called the AI tutor.
+    returned as a dictionary
+       C["hey"]
+       C["writefile",lang]
+       C[magic,lang,cmd,ok]
+    where
+    - magic is "bash" or "hey",
+    - lang is "go", "jl", "ml", "rs" or "?",
+    - cmd is "compile" or "run" or "?", and
+    - ok is 0 or 1.
+    """
     co = sqlite3.connect(hist_sqlite)
     langs = ["go", "jl", "ml", "rs"]
     C = {"hey" : 0}
@@ -71,26 +86,16 @@ def info2cell(html, C, individual):
     jl_ok = "✅️" if individual and C["bash","jl","run",1] > 0 else ""
     ml_ok = "✅️" if individual and C["bash","ml","run",1] > 0 else ""
     rs_ok = "✅️" if individual and C["bash","rs","run",1] > 0 else ""
-    if 1:
-        return f"""<table>
-        <tr><td>{R(C["bash","go","compile",0])}</td><td>{R(C["bash","go","run",0])}</td><td>{go_ok}</td></tr>
-        <tr><td>{R(C["bash","jl","compile",0])}</td><td>{R(C["bash","jl","run",0])}</td><td>{jl_ok}</td></tr>
-        <tr><td>{R(C["bash","ml","compile",0])}</td><td>{R(C["bash","ml","run",0])}</td><td>{ml_ok}</td></tr>
-        <tr><td>{R(C["bash","rs","compile",0])}</td><td>{R(C["bash","rs","run",0])}</td><td>{rs_ok}</td></tr>
-        <tr><td>{B(C["bash","?","?",1])}</td><td>{R(C["bash","?","?",0])}</td></tr>
-        <tr><td>{R(C["hey"])}</td></tr>
-        <tr><td>{html_s}</td></tr>
-        </table>
-        """
-    else:
-        return f"""
-        {B(C["writefile","go"])}/{B(C["bash","go","compile",1])}/{R(C["bash","go","compile",0])}/{B(C["bash","go","run",1])}/{R(C["bash","go","run",0])}{go_ok}<br/>
-        {B(C["writefile","jl"])}/{B(C["bash","jl","compile",1])}/{R(C["bash","jl","compile",0])}/{B(C["bash","jl","run",1])}/{R(C["bash","jl","run",0])}{jl_ok}<br/>
-        {B(C["writefile","ml"])}/{B(C["bash","ml","compile",1])}/{R(C["bash","ml","compile",0])}/{B(C["bash","ml","run",1])}/{R(C["bash","ml","run",0])}{ml_ok}<br/>
-        {B(C["writefile","rs"])}/{B(C["bash","rs","compile",1])}/{R(C["bash","rs","compile",0])}/{B(C["bash","rs","run",1])}/{R(C["bash","rs","run",0])}{rs_ok}<br/>
-        {B(C["bash","?","?",1])}/{R(C["bash","?","?",0])}<br/>
-        {R(C["hey"])}
-        {html_s}
+    return f"""<table>
+    <tr><td><br/></td><td>C</td><td>R</td><td><br/></td></tr>
+    <tr><td>go</td><td>{R(C["bash","go","compile",0])}</td><td>{R(C["bash","go","run",0])}</td><td>{go_ok}</td></tr>
+    <tr><td>jl</td><td>{R(C["bash","jl","compile",0])}</td><td>{R(C["bash","jl","run",0])}</td><td>{jl_ok}</td></tr>
+    <tr><td>ml</td><td>{R(C["bash","ml","compile",0])}</td><td>{R(C["bash","ml","run",0])}</td><td>{ml_ok}</td></tr>
+    <tr><td>rs</td><td>{R(C["bash","rs","compile",0])}</td><td>{R(C["bash","rs","run",0])}</td><td>{rs_ok}</td></tr>
+    <tr><td>??</td><td>{B(C["bash","?","?",1])}</td><td>{R(C["bash","?","?",0])}</td></tr>
+    <tr><td>hey</td><td>{R(C["hey"])}</td></tr>
+    <tr><td>{html_s}</td></tr>
+    </table>
     """
 
 def make_dict():
@@ -128,21 +133,52 @@ def aggr_problems_of_user(D, problem_index, user):
                     C[k] = C.get(k, 0) + v
     return C
 
+def gen_csv(row_labels, col_labels, cells, a_csv):
+    with open(a_csv, "w") as f:
+        wp = csv.DictWriter(f, fieldnames=[""] + col_labels)
+        wp.writeheader()
+        for row_label in row_labels:
+            row = {"": row_label}
+            for col_label in col_labels:
+                row[col_label] = cells.get((row_label, col_label), "")
+            wp.writerow(row)
+
+def gen_cells(users, problem_index, D):
+    """
+    D : (user, topic, problem) -> (html, C)
+    """
+    cells = {}
+    rows = [f"sum"] + users
+    cols = [f"sum"] + [f"{t}/{p}" for t,ps in problem_index for p in ps]
+    # make a sum cell for each problem in the "sum" row
+    for t,ps in problem_index:
+        for p in ps:
+            prob_info = aggr_users_of_problem(D, users, t, p)
+            if prob_info:
+                prob_info_s = info2cell(None, prob_info, 0)
+                cells["sum", f"{t}/{p}"] = prob_info_s
+    # make a sum cell for each user in the "sum" column
+    for u in users:
+        user_info = aggr_problems_of_user(D, problem_index, u)
+        if user_info:
+            user_info_s = info2cell(None, user_info, 0)
+            cells[u, "sum"] = user_info_s
+    # make all cells user x problem
+    for u in users:
+        for t,ps in problem_index:
+            for p in ps:
+                html_info = D.get((u, t, p))
+                if html_info:
+                    html, info = html_info
+                    info_s = info2cell(html, info, 1)
+                    cells[u, f"{t}/{p}"] = info_s
+    return rows, cols, cells
+    
 def gen_table(users, problem_index, D, wp):
     w = wp.write
     # table
     # col group
-    if 1:
-        w(f"""<table border=1>\n""")
-    else:
-        w(f"""<table style="table-layout: fixed; width: 100%;" border=1>\n""")
-        w(f"<colgroup>\n")
-        w(f"""<col style="width: 60px;">\n""")
-        for t,ps in problem_index:
-            for p in ps:
-                w(f"""<col style="width: 50px;">\n""")
-    w(f"</colgroup>\n")
-    # header
+    w(f"""<table border=1>\n""")
     w(f"<thead>\n")
     w(f"<tr>\n")
     w(f"<td><br/></td>\n")
@@ -181,7 +217,7 @@ def gen_table(users, problem_index, D, wp):
                 if html_info:
                     html, info = html_info
                     info_s = info2cell(html, info, 1)
-                    w(f"""<td>{info_s}</td>\n""")
+                    w(f"""<td><br/>{info_s}</td>\n""")
                 else:
                     w(f"""<td><br/></td>\n""")
         w(f"</tr>\n")
@@ -192,8 +228,12 @@ header = """<!DOCTYPE html>
 <html lang="us">
 <head>
 <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
     td {
       padding: 1px;
+      vertical-align: top;
     }
     table {
       border-spacing: 0px;
@@ -201,6 +241,18 @@ header = """<!DOCTYPE html>
 </style>
 </head>
 <body>
+
+<ul>
+<li> each number (or '-') in a cell shows how many times a user has experienced compile errors ('C' column) or a runtime errors ('R' column) for a certain language (e.g. go, jl, ml, rs) on a certain problem. '-' means 0 (never)</li>
+<li> check mark (✅️) in the rightmost column of a problem means that the user has successfully run a solution for that problem at least once. </li>
+<li> the row with '??' in a cell shows the number of times a user has experienced runtime errors with unknown language (could not guess the language from command line) </li>
+<li> the row with 'hey' in a cell the number of times a user called the AI tutor</li>
+<li> the first row of the table (with empty user) shows the aggregate of all users for each problem. </li>
+<li> the first column of the table (with empty problem) shows the aggregate of all problems for each user. </li>
+<li> the log link in a cell shows the detailed history of the user for that problem. </li>
+</ul>
+
+
 """
 
 trailer = """
@@ -210,11 +262,15 @@ trailer = """
 
 def main():
     D = make_dict()
-    wp = sys.stdout
-    wp.write(header)
-    gen_table(USERS, PROBLEM_INDEX, D, wp)
-    wp.write(trailer)
-    wp.close()
+    if 1:
+        rows, cols, cells = gen_cells(USERS, PROBLEM_INDEX, D)
+        gen_csv(rows, cols, cells, "index.csv")
+    else:
+        wp = sys.stdout
+        wp.write(header)
+        gen_table(USERS, PROBLEM_INDEX, D, wp)
+        wp.write(trailer)
+        wp.close()
 
 main()
 

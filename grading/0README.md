@@ -139,8 +139,13 @@ nbgrader autograde --assignment pl02 --no-execute --CourseDirectory.student_id_e
 
 実際にやることは
 
-pl@taulec:notebooks 下のデータ(submitされたnotebook と gradebook.db)と
+#[2025まで]
+#pl@taulec:notebooks 下のデータ(submitされたnotebook と gradebook.db)と
+#pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
+
+pl@taulec:assignments 下のデータ(submitされたassignments と gradebook.db)と
 pl@taulec:/home/share/nbgrader/exchange/pl/inbound 下のデータ
+
 
 [4] ./work.py export-xlsx
 (以下の[4']も参照)
