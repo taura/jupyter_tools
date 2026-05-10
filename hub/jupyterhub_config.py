@@ -54,7 +54,7 @@ class MyPAMAuthenticator(PAMAuthenticator):
 # API key を環境変数で nbgrader で各ユーザにわたるようにする
 # 値そのものは run_hub_sub で . cfg.sh でセットされる
 c.Spawner.env_keep = ['PATH', 'PYTHONPATH', 'CONDA_ROOT', 'CONDA_DEFAULT_ENV', 'VIRTUAL_ENV', 'LANG', 'LC_ALL', 'JUPYTERHUB_SINGLEUSER_APP']
-c.Spawner.env_keep.extend(["HEYTUTOR_ENDPOINT", "HEYTUTOR_API_KEY", "HEYTUTOR_API_VERSION", "HEYTUTOR_MODEL"])
+c.Spawner.env_keep.extend(["HEYTUTOR_ENDPOINT", "HEYTUTOR_API_KEY", "HEYTUTOR_API_VERSION", "HEYTUTOR_MODEL", "HEYTUTOR_PROBLEM_SET_DIR"])
     
 if 0:
     # AzureAD

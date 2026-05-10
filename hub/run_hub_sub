@@ -1,5 +1,6 @@
 #!/bin/bash -x
+set -eu
 . ~share/venv/jupyter/bin/activate
 . cfg.sh
-jupyterhub -f ../jupyterhub_config.py # > hub.log 2>&1 
+jupyterhub -f ../jupyterhub_config.py > hub.log 2>&1 
 
