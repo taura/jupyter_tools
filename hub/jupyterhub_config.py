@@ -71,7 +71,7 @@ if 1:
     # AzureAD + Local
     c.JupyterHub.authenticator_class = MultiAuthenticator
     c.MultiAuthenticator.authenticators = [
-        {
+        {                       # UTokyo Account
             "authenticator_class" : MyLocalAzureAdOAuthenticator,
             "url_prefix" : "/sso",
             "config" : {
@@ -82,17 +82,17 @@ if 1:
                 "username_claim" : "upn", # "preferred_username", "email", "upn"
                 "allow_all" : True,
                 "scope" : ["openid", "email"],
-                "service_name" : "UTokyo Account",
+                "service_name" : "UTokyo Account", # ログインページでの表示
                 "prefix" : "utokyoaccount",
             }
         },
-        {
+        {                       # Local user name + password
             "authenticator_class" : MyPAMAuthenticator,
             "url_prefix" : "/local",
             "config" : {
                 "prefix" : "",
                 "allow_all" : True,
-                "service_name" : "Local Account",
+                "service_name" : "Local Account", # ログインページでの表示
                 #"login_service" : "Local Account",
             }
         }
