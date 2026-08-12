@@ -19,6 +19,7 @@ def canonicalize_kernel_dict():
     comp = {
         "python" : "Python 3 (ipykernel)",
         "py" : "Python 3 (ipykernel)",
+        "wisteria" : "Python 3.14 (wisteria)",
         "bash" : "Bash",
         "c" : "C",
         "cc" : "C",
@@ -63,6 +64,31 @@ def make_metadata_python():
             "nbconvert_exporter": "python",
             "pygments_lexer": "ipython3",
             "version": "3.8.10"
+        }
+    }
+
+def make_metadata_python_wisteria():
+    """
+    aux data for python kernel
+    """
+    return {
+        "celltoolbar": "Create Assignment",
+        "kernelspec": {
+            "display_name": "Python 3.14 (wisteria)",
+            "language": "python",
+            "name": "wisteria"
+        },
+        "language_info": {
+            "codemirror_mode": {
+                "name": "ipython",
+                "version": 3
+            },
+            "file_extension": ".py",
+            "mimetype": "text/x-python",
+            "name": "python",
+            "nbconvert_exporter": "python",
+            "pygments_lexer": "ipython3",
+            "version": "3.14.6"
         }
     }
 
@@ -230,6 +256,7 @@ def make_metadata(syntax):
     """
     aux_data_dict = {
         "Python 3 (ipykernel)" : make_metadata_python,
+        "Python 3.14 (wisteria)" : make_metadata_python_wisteria,
         "Bash" : make_metadata_bash,
         "C" : make_metadata_c,
         "Go" : make_metadata_go,
@@ -348,7 +375,7 @@ class ParserBase:
                 (self.tok_eof,
                  re.compile(r'<!--- eof --->')),
             ]
-        elif self.syntax == "Python 3 (ipykernel)":
+        elif self.syntax in ["Python 3 (ipykernel)", "Python 3.14 (wisteria)"]:
             self.patterns = [
                 (self.tok_begin_md,
                  re.compile(r'""" *(?P<cell_attrs>md.*)')),

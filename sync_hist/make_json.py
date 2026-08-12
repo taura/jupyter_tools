@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 
+import argparse
 import json
 import glob
 import re
 import sqlite3
+import sys
+import pathlib
+
 import pandas as pd
 
 import problem_index
 PROBLEM_INDEX = problem_index.PROBLEM_INDEX
-USERS = [f"u{x}" for x in range(26000, 26099)]
+# USERS = [f"u{x}" for x in range(26000, 26099)]
 
 def analyze_sqlite(hist_sqlite):
     """
@@ -66,34 +70,46 @@ def analyze_sqlite(hist_sqlite):
             assert(0), magic
     return C
 
-def make_dict(user_data):
+def find_matching(root: str, pattern: str) -> list[dict]:
+    regex = re.compile(pattern)
+    results = []
+    for path in pathlib.Path(root).rglob("*"):
+        if path.is_file():
+            # Match against the relative path
+            rel = path.relative_to(root).as_posix()
+            m = regex.fullmatch(rel)
+            if m:
+                results.append({"path": rel, **m.groupdict()})
+    return results
+
+def make_dict(user_data, top, pat, url_prefix):
     """
     make a dictionary of (topic, problem) -> html
     """
-    sqlites = glob.glob("hist/home/*/notebooks/pl/*/problems/*/*/hist.sqlite")
-    # sqlites = glob.glob("hist/home/u26002/notebooks/pl/*/problems/*/*/hist.sqlite")
-    p = re.compile("hist/home/(?P<user>.*)/notebooks/pl/(?P<note>.*)/problems/(?P<topic>.*)/(?P<prob>.*)/hist.sqlite")
+    found = find_matching(top, pat)
     D = []
-    for sqlite in sqlites:
-        m = p.match(sqlite)
-        assert(m), sqlite
-        user, note, topic, prob = m.group("user", "note", "topic", "prob")
+    for r in found:
+        # m = p.match(sqlite)
+        # assert(m), sqlite
+        sqlite_path, user, note, topic, prob = str(r["path"]), r["user"], r["note"], r["topic"], r["prob"]
         utac = user_data[user]["utac"]
         name = user_data[user]["real_name"]
         student_id = user_data[user]["id"]
-        html = f"html/home/{user}/notebooks/pl/{note}/problems/{topic}/{prob}/hist.html"
-        for c in analyze_sqlite(sqlite):
-            C = {"user": user, "name": name, "student_id" : student_id, "utac": utac, "topic": topic, "prob": prob, "html": html}
+        # link to conversation (path is determined by the source of data)
+        rel_href = sqlite_path.replace("hist.sqlite", "hist.html")
+        href = f"{url_prefix}/{rel_href}"
+        for c in analyze_sqlite(f"{top}/{sqlite_path}"):
+            C = {"user": user, "name": name, "student_id" : student_id, "utac": utac,
+                 "topic": topic, "prob": prob, "html": href}
             C.update(c)
             D.append(C)
     return D
 
-def gen_js(D, a_js):
+def gen_js(D):
     data = json.dumps(D, indent=2, ensure_ascii=False)
     prob = json.dumps(PROBLEM_INDEX, indent=2, ensure_ascii=False)
-    with open(a_js, "w") as f:
-        f.write(f"const PROBLEM_INDEX = {prob};\n")
-        f.write(f"const DATA = {data};\n")
+    print(f"const PROBLEM_INDEX = {prob};")
+    print(f"const DATA = {data};")
 
 def get_user_info(a_ods):
     df = pd.read_excel(a_ods)
@@ -101,10 +117,20 @@ def get_user_info(a_ods):
     D = pl.set_index("user").to_dict(orient="index")
     return D
 
+def parse_args(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--top",        required=1, help="top directory to search for hist.sqlite")
+    parser.add_argument("--pat",        required=1, help="regex pattern to find hist.sqlite, with named groups user, note, topic and prob")
+    parser.add_argument("--url-prefix", required=1, help="prefix to prepend to href")
+    parser.add_argument("--users-xlsx", required=1, help="path to ods/xlsx file containing user info")
+    args = parser.parse_args(argv[1:])
+    return args
+
 def main():
-    U = get_user_info("ldap_users_taulec.ods")
-    D = make_dict(U)
-    gen_js(D, "activity/data.js")
+    opts = parse_args(sys.argv)
+    U = get_user_info(opts.users_xlsx)
+    D = make_dict(U, opts.top, opts.pat, opts.url_prefix)
+    gen_js(D)
 
 main()
 
