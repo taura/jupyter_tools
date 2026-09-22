@@ -1,10 +1,33 @@
+# usage
 
-lectures/programming-languages/grade/2026/2grading で実際の作業をする
-重要なのは make_json.py と, activity/ 下にある claude に作ってもらった main.js, index.html, style.css
-そのうち整理する
+- すべての hist.sqlite を taulec から download する
+```
+./sync_hist.sh 
+```
 
+- `ldap_users_taulec.ods` が読めるようにする
 
-## 以下は古い情報
-(1) taulec jupyter_tools 上で `sudo ./sync_hist.sh`
-(2) `rsync -avz taulec:jupyter_tools/sync_hist/hist ./`
-(3) make -f hist2html.mk
+```
+gocryptfs /home/tau/lectures/make_env/ansible/files/enc /home/tau/lectures/make_env/ansible/files/plain
+```
+
+的なことをして symlink を貼る
+
+- `hist_viewer` を作る 
+
+```
+make -f hist2html.mk
+```
+
+注: 
+
+- `dl_viewer` も作ろうとするので適宜コメントアウトする
+- `hist_viewer` は hist を元に作る
+- `dl_viewer` は submit されたデータ `dl/assignments/submitted/...` を元に作る
+
+無事できたら
+
+```
+firefox hist_viewer/index.html
+```
+
