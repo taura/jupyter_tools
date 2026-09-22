@@ -1,0 +1,46 @@
+# JupyterHub (systemd system service, テンプレート形式)
+#
+#   sudo ln -sf /home/tau/jupyter_tools/hub/jupyterhub@.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jupyterhub@taulec.zapto.org
+#
+# %i にはサイトのディレクトリ名 (= FQDN) が入る。run_hub FQDN に対応する。
+# hub は root で動く (run_hub が sudo していたのと同じ) ので system service。
+# user service ではないので loginctl enable-linger は不要。
+#
+# HOME が /home/tau 前提。別ユーザに置くならパスを書き換えること
+# (system unit の %h は root のホームになるので使えない)。
+
+[Unit]
+Description=JupyterHub (%i)
+After=network-online.target
+Wants=network-online.target
+# venv (/home/share/venv/jupyter) が別ディスクにあるのでマウントを待つ
+RequiresMountsFor=/home/share
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/tau/jupyter_tools/hub/%i
+
+# cfg.sh は export 形式なので EnvironmentFile= では読めない
+# (systemd は KEY=value しか受け付けない)。bash に source させる。
+ExecStart=/bin/bash -c '. ./cfg.sh && exec /home/share/venv/jupyter/bin/jupyterhub -f /home/tau/jupyter_tools/hub/jupyterhub_config.py'
+
+# venv activate 相当。spawner が PATH 越しに jupyterhub-singleuser を探すので必須
+Environment=PATH=/home/share/venv/jupyter/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=VIRTUAL_ENV=/home/share/venv/jupyter
+
+Restart=on-failure
+RestartSec=5
+
+# KillMode は既定 (control-group) のまま。停止時に単一ユーザサーバも止まる。
+# c.JupyterHub.cleanup_servers が既定 True なので hub 自身がまず片付け、
+# 取りこぼしを systemd が回収する。Spawner の設定変更 (env_keep など) は
+# 新規 spawn からしか効かないので、確実に反映するにはこれでよい。
+# 逆に「hub だけ再起動して学生の作業を続けさせたい」場合は
+# cleanup_servers = False + KillMode=process にする。
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

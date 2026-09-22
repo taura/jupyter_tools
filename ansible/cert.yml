@@ -1,0 +1,9 @@
+- name: apache
+  hosts: web_server
+  vars_files: [ vars/cert.yml ]
+  roles:
+    - cert
+
+# if you get an error cannot import name 'environmentfilter' from 'jinja2.filters',
+# pip install 'jinja2<3.1'
+# http://blog.livedoor.jp/harukisan7/archives/33209649.html

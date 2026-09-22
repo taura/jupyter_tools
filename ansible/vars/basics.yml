@@ -1,0 +1,12 @@
+
+
+# Edit to add packages you want to install
+packages:
+  - gcc
+  - vim
+  - python3-pip
+  - python3-venv
+  - emacs
+  - cmake
+  - libelf-dev
+  - libffi-dev

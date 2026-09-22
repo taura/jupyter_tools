@@ -1,0 +1,31 @@
+# LiteLLM のモデル定義とプロキシ設定。起動時にしか読まれない (変更したら再起動)。
+#
+#   model_name       : LiteLLM が外に見せる名前。クライアント (Open WebUI,
+#                      OpenCode) と Team の許可リストがこの文字列を参照する。
+#   litellm_params.model : 上流に送る実名。"<プロバイダ>/<モデル名>" の形。
+#                      上流のモデル名自体にスラッシュが含まれるなら
+#                      プロバイダ名を重ねる (例: openai/openai/gpt-oss-20b)。
+#   api_key          : os.environ/NAME で litellm.env の変数を参照する。
+#
+# 名前を変えたら Team の許可リストと Open WebUI 側も直すこと。README 参照。
+
+general_settings:
+  user_header_mappings:
+    - header_name: X-OpenWebUI-User-Email
+      litellm_user_role: customer
+model_list:
+  - model_name: gpt-5.6-luna-utokyo-azure
+    litellm_params:
+      model: openai/gpt-5.6-luna
+      api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gpt-5.3-codex-utokyo-azure
+    litellm_params:
+      model: openai/gpt-5.3-codex
+      api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gpt-oss-20b-mdx-maas
+    litellm_params:
+      model: openai/openai/gpt-oss-20b
+      api_base: https://api.maas.mdx1.jp/v1
+      api_key: os.environ/MDX_MAAS_API_KEY
