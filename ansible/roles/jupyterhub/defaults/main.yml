@@ -1,0 +1,22 @@
+---
+# Hub itself (root-owned); venv and uv's Python live under it
+jupyterhub_dir: /opt/jupyterhub
+
+# Hub working directory: jupyterhub.sqlite, cookie secret, user_map.sqlite
+jupyterhub_state_dir: /var/lib/jupyterhub
+
+# Venv for students' servers (share-owned); must match ../singleuser/install
+jupyterhub_singleuser_venv: /home/share/venv/jupyter
+
+# Email domain allowed for Google login (same as Open WebUI's ALLOWED_DOMAIN)
+jupyterhub_google_domain: g.ecc.u-tokyo.ac.jp
+
+# configurable-http-proxy installed globally with npm (needs node >= 20)
+configurable_http_proxy_version: "5.3.0"
+
+# uv in /usr/local/bin (used by the hub's uv sync and ../singleuser/install)
+uv_version: "0.12.17"
+
+# Extra env vars for students' servers (override in vars/jupyterhub.yml).
+# Only names listed in c.Spawner.env_keep in jupyterhub_config.py are passed.
+jupyterhub_extra_env: {}

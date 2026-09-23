@@ -1,6 +1,8 @@
 // OpenCode -> LiteLLM
 //
-// ~/.config/opencode/opencode.jsonc へ symlink して使う (./install が行う)。
+// Install as ~/.config/opencode/opencode.jsonc (opencode_setup does this).
+// No key here: opencode takes it from ~/.local/share/opencode/auth.json, entry "litellm"
+// (written by opencode_setup, or by "opencode auth login" -> Other -> litellm).
 //
 // models のキーは LiteLLM の config.yaml の model_name と完全一致させること。
 // 片方だけ変えると OpenCode 側から見えなくなる。
@@ -12,8 +14,7 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "LiteLLM (taulec)",
       "options": {
-        "baseURL": "{env:LITELLM_BASE_URL}",
-        "apiKey": "{env:LITELLM_API_KEY}"
+        "baseURL": "https://taulec.zapto.org/litellm/v1"
       },
       "models": {
         "gpt-5.6-luna-utokyo-azure":  { "name": "GPT-5.6 Luna (UTokyo Azure)" },

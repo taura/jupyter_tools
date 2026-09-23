@@ -1,0 +1,19 @@
+#
+# Variables for the litellm role
+#
+# Keep the real file in files/plain/litellm_<host>.yml (gocryptfs) and
+# symlink vars/litellm.yml to it:
+#   cp vars/litellm.yml.in files/plain/litellm_taulec.yml
+#   ln -s ../files/plain/litellm_taulec.yml vars/litellm.yml
+#
+# litellm_db_* must match ../litellm/litellm.env:
+#   DATABASE_URL=postgresql://<litellm_db_user>:<litellm_db_password>@127.0.0.1:5432/<litellm_db_name>
+# Generate a password with:
+#   python3 -c 'import secrets;print(secrets.token_urlsafe(24))'
+
+# Account that runs LiteLLM as a user service (no sudo)
+litellm_user: pd
+
+litellm_db_name: litellm
+litellm_db_user: litellm
+litellm_db_password: CHANGE_ME

@@ -1,0 +1,357 @@
+#!/usr/bin/env python3
+"""
+Set up OpenCode -> LiteLLM for the users in a roster on this server:
+one LiteLLM key per student, written into their opencode auth.json, plus
+the shared opencode.jsonc.
+
+    # taulec: issue missing keys, write into homes as root, save the keys
+    ./opencode_setup --sudo --class pl -o roster_with_keys.csv roster.csv
+
+    # another cluster (no root): keys already in the litellm_key column
+    ./opencode_setup --config /shared/opencode/{user}/config \\
+        --prefix /shared/opencode/{user}/local sc_roster.csv
+
+Roster columns (others are ignored and copied to the output as they are):
+    user          account on this server (required)
+    email         owner of the key in LiteLLM (needed only to issue one)
+    litellm_key   the student's key; empty = issue one
+    litellm_team  LiteLLM team alias for a new key; created if missing
+    class         used by --class
+
+For each selected row:
+    1. key: use litellm_key, or issue a key (key_alias = user, or user@site
+       with --site; aliases are unique in LiteLLM)
+    2. {prefix}/share/opencode/auth.json: set the "litellm" entry to the key
+       (other entries are kept)
+    3. {config}/opencode/opencode.jsonc: copy (or symlink) --config-src
+
+{user} in --config/--prefix is the roster's user; "~{user}" is that
+account's home. Newly issued keys are written to --output: the input roster
+with the litellm_key cells filled in (nothing else changes; neither the
+input nor an existing output file is overwritten). The output is written as
+the invoking user, so it can go on gocryptfs.
+
+--sudo reruns as root (inputs read as the invoking user first) and chowns
+what it creates; without it nothing is chowned. Nothing is deleted.
+Settings: opencode_setup.env (LITELLM_API_KEY, needed only to issue keys).
+"""
+
+import argparse
+import csv
+import filecmp
+import io
+import json
+import os
+import pwd
+import shutil
+import stat
+import sys
+import tempfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "enroll"))
+from litellm_admin import ApiError, LiteLLM, parse_env, read_roster, rerun_as_root, split_set  # noqa: E402
+
+KEY_COLUMN = "litellm_key"
+
+
+class Skip(Exception):
+    """Step not applicable to this row; reported, not an error."""
+
+
+def world_readable(path):
+    """True if others can reach and read path (needed for a symlink target)."""
+    path = os.path.abspath(path)
+    if not os.stat(path).st_mode & stat.S_IROTH:
+        return False
+    d = os.path.dirname(path)
+    while True:
+        if not os.stat(d).st_mode & stat.S_IXOTH:
+            return False
+        if d == "/":
+            return True
+        d = os.path.dirname(d)
+
+
+def expand(template, user):
+    """'{user}' -> user, then '~name' -> name's home. KeyError if that account doesn't exist."""
+    path = os.path.expanduser(template.replace("{user}", user))
+    if path.startswith("~"):
+        raise KeyError(user)
+    return path
+
+
+class Target:
+    """Paths for one user; files are chowned to the account only when running as root."""
+
+    def __init__(self, user, opts):
+        self.user = user
+        self.config_path = os.path.join(expand(opts.config, user), "opencode", "opencode.jsonc")
+        self.auth_path = os.path.join(expand(opts.prefix, user), "share", "opencode", "auth.json")
+        self.pw = None
+        if os.geteuid() == 0:
+            try:
+                self.pw = pwd.getpwnam(user)
+            except KeyError:
+                pass
+        self.dir_mode = opts.dir_mode
+
+    def own(self, path, follow=True):
+        if self.pw:
+            os.chown(path, self.pw.pw_uid, self.pw.pw_gid, follow_symlinks=follow)
+
+    def makedirs(self, d):
+        """Create missing parents of d; new directories get dir_mode and the owner."""
+        missing = []
+        while not os.path.isdir(d):
+            missing.append(d)
+            d = os.path.dirname(d)
+        for d in reversed(missing):
+            os.mkdir(d, self.dir_mode)
+            os.chmod(d, self.dir_mode)
+            self.own(d)
+
+
+def ensure_auth(t, key, opts):
+    """Set the provider entry in auth.json, keeping the other entries."""
+    entry = {"type": "api", "key": key}
+    data = {}
+    if os.path.exists(t.auth_path):
+        with open(t.auth_path, encoding="utf-8") as fp:
+            data = json.load(fp)
+        if data.get(opts.provider_id) == entry:
+            return "exists"
+    result = "updated" if opts.provider_id in data else "created"
+    if opts.dry_run or key is None:
+        return result
+    data[opts.provider_id] = entry
+    d = os.path.dirname(t.auth_path)
+    t.makedirs(d)
+    fd, tmp = tempfile.mkstemp(dir=d, prefix=".auth.json.")   # 0600
+    try:
+        with os.fdopen(fd, "w") as fp:
+            json.dump(data, fp, indent=2)
+            fp.write("\n")
+        t.own(tmp)
+        os.replace(tmp, t.auth_path)
+    except BaseException:
+        os.unlink(tmp)
+        raise
+    return result
+
+
+def ensure_config(t, opts):
+    src, dest = os.path.abspath(opts.config_src), t.config_path
+    if opts.config_mode == "symlink":
+        if os.path.islink(dest) and os.readlink(dest) == src:
+            return "exists"
+    elif os.path.isfile(dest) and not os.path.islink(dest) and filecmp.cmp(src, dest, shallow=False):
+        return "exists"
+    replaced = os.path.lexists(dest)
+    if replaced and not opts.force_config:
+        raise ApiError(f"{dest} exists and differs (use --force-config to replace it)")
+    if opts.dry_run:
+        return "replaced" if replaced else "created"
+    t.makedirs(os.path.dirname(dest))
+    if replaced:
+        if os.path.islink(dest):
+            os.unlink(dest)
+        else:
+            os.replace(dest, dest + ".bak")
+    if opts.config_mode == "symlink":
+        os.symlink(src, dest)
+        t.own(dest, follow=False)
+    else:
+        shutil.copyfile(src, dest)
+        os.chmod(dest, 0o644)
+        t.own(dest)
+    return "replaced" if replaced else "created"
+
+
+def needs_key(rows):
+    return [r for r in rows if not r["key"] and r["email"]]
+
+
+def write_output(fp, roster_text, issued):
+    """The input roster with litellm_key filled in for issued users."""
+    reader = csv.DictReader(io.StringIO(roster_text))
+    fields = list(reader.fieldnames or [])
+    if KEY_COLUMN not in fields:
+        fields.append(KEY_COLUMN)
+    w = csv.DictWriter(fp, fieldnames=fields, lineterminator="\n")
+    w.writeheader()
+    for r in reader:
+        user = (r.get("user") or "").strip()
+        if user in issued and not (r.get(KEY_COLUMN) or "").strip():
+            r[KEY_COLUMN] = issued[user]
+        w.writerow(r)
+
+
+def run(opts, roster_text, env_text, log, emit):
+    """Process the roster. log(str) reports; emit(user, key) records a new key."""
+    env = parse_env(env_text)
+    url = opts.litellm_server or env.get("LITELLM_URL", "http://127.0.0.1:4000")
+    budget = env.get("LITELLM_KEY_MAX_BUDGET")
+    conn = []
+
+    def litellm():
+        """Connect only when a key has to be issued."""
+        if not conn:
+            if "LITELLM_API_KEY" not in env:
+                raise ApiError(f"LITELLM_API_KEY is not set in {opts.env}")
+            conn.append(LiteLLM(url, env["LITELLM_API_KEY"], opts.dry_run,
+                                env.get("LITELLM_KEY_DURATION") or None,
+                                float(budget) if budget else None, issuer="opencode_setup"))
+        return conn[0]
+
+    rows, problems = read_roster(roster_text, split_set(opts.user), split_set(opts.klass))
+    prefix = "[dry-run] " if opts.dry_run else ""
+    counts = {}
+    for row in rows:
+        user = row["user"]
+        try:
+            t = Target(user, opts)
+        except KeyError:
+            problems.append((user, "no such account on this host"))
+            continue
+        done, key = [], row["key"]
+
+        def step_key():
+            nonlocal key
+            if key:
+                return "given"
+            if not row["email"]:
+                raise Skip("no litellm_key and no email to issue one")
+            alias = f"{user}@{opts.site}" if opts.site else user
+            key, note = litellm().issue_key(alias, row["email"], row["team"])
+            if key:
+                emit(user, key)
+            return "issued" + note
+
+        def step_auth():
+            # on a dry run a key that would be issued is still None
+            if not key and not (opts.dry_run and row["email"]):
+                raise Skip("no key")
+            return ensure_auth(t, key, opts)
+
+        for step, fn in (("key", step_key), ("auth", step_auth), ("config", lambda: ensure_config(t, opts))):
+            try:
+                result = fn()
+            except Skip as e:
+                result = "skipped"
+                problems.append((user, f"{step}: {e}"))
+            except (ApiError, OSError, ValueError) as e:
+                result = "error"
+                problems.append((user, f"{step}: {e}"))
+            k = (step, result.split()[0])
+            counts[k] = counts.get(k, 0) + 1
+            done.append(f"{step}:{result}")
+        log(f"{prefix}{user:10s} " + "  ".join(done))
+
+    log("")
+    log(f"{prefix}summary ({len(rows)} rows)")
+    for step in ("key", "auth", "config"):
+        log(f"  {step:7s} " + ", ".join(f"{r}={n}" for (s, r), n in sorted(counts.items()) if s == step))
+    if problems:
+        log("")
+        log(f"{prefix}skipped / errors ({len(problems)})")
+        for user, msg in problems:
+            log(f"  {user:10s} {msg}")
+    return 1 if any(r == "error" for (_, r) in counts) else 0
+
+
+def root_args(opts):
+    """Options for the root side of --sudo (-o is handled by the invoking user)."""
+    args = ["--config", opts.config, "--prefix", opts.prefix,
+            "--config-src", os.path.abspath(opts.config_src), "--config-mode", opts.config_mode,
+            "--provider-id", opts.provider_id, "--site", opts.site, "--env", opts.env,
+            "--dir-mode", oct(opts.dir_mode)[2:]]
+    for flag, val in (("--litellm-server", opts.litellm_server), ("--user", opts.user), ("--class", opts.klass)):
+        if val:
+            args += [flag, val]
+    for flag, on in (("--force-config", opts.force_config), ("--dry-run", opts.dry_run)):
+        if on:
+            args.append(flag)
+    return args
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Set up OpenCode (LiteLLM key in auth.json + opencode.jsonc) for a roster")
+    ap.add_argument("roster", nargs="?", help="roster csv (user, email, litellm_key, litellm_team, class)")
+    ap.add_argument("-o", "--output", help="write the roster with newly issued keys here (required if keys are issued)")
+    ap.add_argument("--config", default="~{user}/.config", help="config dir template (default: ~{user}/.config)")
+    ap.add_argument("--prefix", default="~{user}/.local", help="data prefix template; auth.json goes in "
+                    "PREFIX/share/opencode (default: ~{user}/.local)")
+    ap.add_argument("--config-src", default=os.path.join(HERE, "opencode.jsonc"),
+                    help="opencode.jsonc to install (default: the one next to this script)")
+    ap.add_argument("--config-mode", choices=["copy", "symlink"], default="copy", help="default: copy")
+    ap.add_argument("--force-config", action="store_true", help="replace an existing different config (kept as .bak)")
+    ap.add_argument("--provider-id", default="litellm", help="provider id in opencode.jsonc (default: litellm)")
+    ap.add_argument("--site", default="", help="key alias suffix: user@site (default: alias = user)")
+    ap.add_argument("--litellm-server", help="LiteLLM admin API URL (default: LITELLM_URL or http://127.0.0.1:4000)")
+    ap.add_argument("--env", default=os.path.join(HERE, "opencode_setup.env"),
+                    help="settings file with LITELLM_API_KEY (default: opencode_setup.env)")
+    ap.add_argument("--dir-mode", type=lambda s: int(s, 8), default=0o700, help="mode of created directories (default: 0700)")
+    ap.add_argument("--user", help="comma-separated users to process")
+    ap.add_argument("--class", dest="klass", help="comma-separated classes (class column) to process")
+    ap.add_argument("--dry-run", action="store_true", help="show what would be done without changing anything")
+    ap.add_argument("--sudo", action="store_true", help="rerun as root and chown what is created")
+    ap.add_argument("--stdin", action="store_true", help=argparse.SUPPRESS)  # internal: inputs on stdin
+    opts = ap.parse_args()
+
+    if opts.stdin:
+        # root side of --sudo: log to stderr, report each new key on stdout at once
+        payload = json.load(sys.stdin)
+
+        def emit(user, key):
+            print(json.dumps({"user": user, "key": key}), flush=True)
+        return run(opts, payload["roster"], payload.get("env", ""),
+                   lambda s: print(s, file=sys.stderr, flush=True), emit)
+
+    if not opts.roster:
+        ap.error("roster is required")
+    if opts.config_mode == "symlink" and not world_readable(opts.config_src):
+        ap.error(f"{opts.config_src} is not readable by others; users can't follow a symlink to it. "
+                 "Put it in a shared place or use --config-mode copy")
+    with open(opts.roster, encoding="utf-8") as fp:
+        roster_text = fp.read()
+    env_text = open(opts.env, encoding="utf-8").read() if os.path.exists(opts.env) else ""
+
+    # Create the output first, so a key is never issued without a place to save it.
+    out = None
+    rows, _ = read_roster(roster_text, split_set(opts.user), split_set(opts.klass))
+    if not opts.dry_run and needs_key(rows):
+        if not opts.output:
+            ap.error(f"{len(needs_key(rows))} keys would be issued; give -o/--output to save them")
+        try:
+            out = open(opts.output, "x", encoding="utf-8")   # never overwrite
+        except FileExistsError:
+            ap.error(f"{opts.output} already exists; give a new file name")
+        os.chmod(opts.output, 0o600)
+
+    issued = {}
+    try:
+        if opts.sudo and os.geteuid() != 0:
+            files = {"roster": opts.roster}
+            if os.path.exists(opts.env):
+                files["env"] = opts.env
+            rc, stdout = rerun_as_root(__file__, files, root_args(opts), capture=True)
+            for line in stdout.splitlines():
+                d = json.loads(line)
+                issued[d["user"]] = d["key"]
+        else:
+            rc = run(opts, roster_text, env_text, print, lambda u, k: issued.__setitem__(u, k))
+    finally:
+        if out:
+            if issued:
+                write_output(out, roster_text, issued)
+                out.close()
+                print(f"\n{len(issued)} new keys written to {opts.output}")
+            else:
+                out.close()
+                os.unlink(opts.output)
+    return rc
+
+
+if __name__ == "__main__":
+    sys.exit(main())

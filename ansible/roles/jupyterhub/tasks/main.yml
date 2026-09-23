@@ -1,0 +1,182 @@
+---
+# tasks file for jupyterhub
+#
+# Installs the JupyterHub itself (what root runs). The students' environment
+# ({{ jupyterhub_singleuser_venv }}: jupyterlab, nbgrader, kernels) is built
+# by share with ../singleuser/install.
+#
+# This role:
+#  - installs configurable-http-proxy (npm) and uv (/usr/local/bin)
+#  - builds the hub venv ({{ jupyterhub_dir }}/venv) from ../hub/pyproject.toml and uv.lock
+#  - installs jupyterhub_config.py and user_map.py, root-owned
+#  - writes secrets (/etc/jupyterhub/jupyterhub.env) and the systemd unit
+#  - restarts the hub on any change (this also stops students' servers)
+
+- name: check the Google OAuth client is set in vars/jupyterhub.yml
+  assert:
+    that:
+      - jupyterhub_google_client_id != "CHANGE_ME"
+      - jupyterhub_google_client_secret != "CHANGE_ME"
+    fail_msg: >-
+      Set jupyterhub_google_client_id / jupyterhub_google_client_secret in
+      vars/jupyterhub.yml (same values as Open WebUI's oauth.env).
+    quiet: true
+  no_log: true
+
+#
+# configurable-http-proxy
+#
+# Don't use apt's node-configurable-http-proxy: Ubuntu 26.04's 4.5.3 uses the
+# old commander API and breaks with node-commander 14, crashing at startup with
+#   TypeError: cli.version is not a function
+# (taking the hub down with it). Install from npm, which bundles its own commander.
+- name: remove the broken apt configurable-http-proxy
+  apt:
+    state: absent
+    name: node-configurable-http-proxy
+
+- name: install Node.js and npm
+  apt:
+    state: present
+    name:
+      - nodejs
+      - npm
+
+# npm's global prefix is /usr/local -> /usr/local/bin/configurable-http-proxy (in the unit's PATH)
+- name: install configurable-http-proxy {{ configurable_http_proxy_version }}
+  community.general.npm:
+    name: configurable-http-proxy
+    version: "{{ configurable_http_proxy_version }}"
+    global: yes
+  register: jupyterhub_chp
+
+#
+# uv
+#
+# Not in apt; use the official installer. share's ../singleuser/install uses it too.
+- name: check the installed uv version
+  command: /usr/local/bin/uv --version
+  register: jupyterhub_uv_version
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: install uv {{ uv_version }} to /usr/local/bin
+  shell: >-
+    curl -LsSf https://astral.sh/uv/{{ uv_version }}/install.sh
+    | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh
+  when: uv_version not in (jupyterhub_uv_version.stdout | default(''))
+
+#
+# hub venv
+#
+- name: create JupyterHub directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ jupyterhub_dir }}", mode: "0755" }
+    # secrets (jupyterhub.env)
+    - { path: /etc/jupyterhub, mode: "0700" }
+    # jupyterhub.sqlite, cookie secret, user_map.sqlite
+    - { path: "{{ jupyterhub_state_dir }}", mode: "0700" }
+
+- name: put the hub uv project
+  copy:
+    src: "{{ playbook_dir }}/../hub/{{ item }}"
+    dest: "{{ jupyterhub_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - pyproject.toml
+    - uv.lock
+    - .python-version
+  register: jupyterhub_project
+
+# --frozen: use uv.lock as is (run uv lock locally first).
+# uv also installs Python; both stay under {{ jupyterhub_dir }}, root-owned.
+- name: create the hub venv
+  command: /usr/local/bin/uv sync --frozen
+  args:
+    chdir: "{{ jupyterhub_dir }}"
+  environment:
+    UV_PROJECT_ENVIRONMENT: "{{ jupyterhub_dir }}/venv"
+    UV_PYTHON_INSTALL_DIR: "{{ jupyterhub_dir }}/python"
+  register: jupyterhub_sync
+  changed_when: "'Installed' in jupyterhub_sync.stderr or 'Uninstalled' in jupyterhub_sync.stderr"
+  # on a first --check, {{ jupyterhub_dir }} doesn't exist yet and chdir fails
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: put jupyterhub_config.py and user_map.py
+  copy:
+    src: "{{ playbook_dir }}/../hub/{{ item.name }}"
+    dest: "{{ jupyterhub_dir }}/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { name: jupyterhub_config.py, mode: "0644" }
+    # also used as a CLI (hub/README.md)
+    - { name: user_map.py, mode: "0755" }
+  register: jupyterhub_config
+
+#
+# secrets and unit
+#
+- name: put /etc/jupyterhub/jupyterhub.env
+  template:
+    src: jupyterhub.env.j2
+    dest: /etc/jupyterhub/jupyterhub.env
+    owner: root
+    group: root
+    mode: "0600"
+  diff: false
+  register: jupyterhub_env
+
+- name: put jupyterhub.service
+  template:
+    src: jupyterhub.service.j2
+    dest: /etc/systemd/system/jupyterhub.service
+    mode: "0644"
+  register: jupyterhub_unit
+
+- name: check the singleuser venv exists
+  stat:
+    path: "{{ jupyterhub_singleuser_venv }}/bin/jupyterhub-singleuser"
+  register: jupyterhub_singleuser
+
+- name: warn if the singleuser venv is missing
+  debug:
+    msg: >-
+      {{ jupyterhub_singleuser_venv }} does not exist yet. The hub will start, but
+      students' servers will fail. Run ../singleuser/install as share.
+  when: not jupyterhub_singleuser.stat.exists
+
+- name: enable and start JupyterHub
+  systemd:
+    name: jupyterhub
+    enabled: yes
+    state: started
+    daemon_reload: "{{ jupyterhub_unit is changed }}"
+  register: jupyterhub_started
+  # on a first --check, the unit isn't installed yet
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# Restart on config/venv changes. This also stops running students' servers;
+# don't run during class.
+- name: restart JupyterHub to apply changes
+  systemd:
+    name: jupyterhub
+    state: restarted
+  when: >-
+    jupyterhub_started is not changed and (
+    jupyterhub_chp is changed or
+    jupyterhub_project is changed or
+    jupyterhub_sync is changed or
+    jupyterhub_config is changed or
+    jupyterhub_env is changed or
+    jupyterhub_unit is changed )

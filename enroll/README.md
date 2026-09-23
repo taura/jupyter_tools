@@ -1,18 +1,17 @@
 # enroll — 学生を授業のサービスに登録する
 
-**すでにある Unix (LDAP) アカウント**に、Jupyter と AI 関係の設定を注入する。
+**すでにある Unix (LDAP) アカウント**に、Jupyter と Open WebUI の設定を注入する。
 アカウントとホームは別の手段 (ansible の `ldap_users` など) で事前に多めに作っておく前提。
+LiteLLM の鍵は `../open-code/opencode_setup` が発行する (1 人 1 本)。
 
 ```
-roster.csv  (user, email, litellm_team, real_name)
+roster.csv  (user, email, class, real_name)
    │  ./enroll roster.csv          ← tau が taulec 上で実行。自分で sudo し直す
    ▼
  0. アカウントが実在するか         (なければスキップ)
  1. ~/notebooks                    なければ作る (本人所有)
  2. JupyterHub user_map            email -> user を bind
- 3. LiteLLM                        Team (litellm_team) がなければ作る
-                                   鍵ファイルがない人だけ発行 -> ~/.litellm_key (0600, 本人所有)
- 4. Open WebUI                     いなければ事前登録 (role=user)。pending なら user に上げる
+ 3. Open WebUI                     いなければ事前登録 (role=user)。pending なら user に上げる
    ▼
  レポート: 各段階の件数 / スキップ・エラー (理由つき) / 名簿にない登録者
 ```
@@ -25,12 +24,15 @@ roster.csv  (user, email, litellm_team, real_name)
 
 ```
 cp enroll.env.example enroll.env && chmod 600 enroll.env
-$EDITOR enroll.env                 # OPENWEBUI_API_KEY と LITELLM_API_KEY は必須
+$EDITOR enroll.env                 # OPENWEBUI_API_KEY は必須
 
 ./enroll --dry-run roster.csv      # 何が起きるかだけ見る
 ./enroll roster.csv
-./enroll --only u26050,u26051 roster.csv
+./enroll --class pl roster.csv                 # class 列が pl の行だけ
+./enroll --user u26050,u26051 roster.csv       # --class と両方指定したら両方を満たす行だけ
 ```
+
+名簿と `enroll.env` は sudo し直す前に tau の権限で読むので、gocryptfs の中に置いたままでよい。
 
 ## 名簿
 
@@ -38,23 +40,13 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY と LITELLM_API_KEY は�
 |---|---|
 | `user` | Unix アカウント名 (必須)。実在しない行はスキップ |
 | `email` | 学生が申告した Google (ECCS) のアドレス。`10桁@g.ecc` とは限らない。空なら 1 だけ行う |
-| `litellm_team` | LiteLLM の Team の alias。なければ作る (その時点の全モデルを許可)。空なら Team なし |
+| `class` | 授業。`--class` で絞るときに使う |
 | `real_name` | Open WebUI の表示名 (任意。空なら `user`) |
 
-ほかの列は無視するので、`ldap_users.csv` に `email` と `litellm_team` を足したものを
+ほかの列は無視するので、`opencode_setup` と同じ名簿 (`litellm_key` などの列つき) を
 そのまま渡せる。`email` は小文字にそろえる。`GOOGLE_DOMAIN` (既定 `g.ecc.u-tokyo.ac.jp`)
 以外、名簿内での `user` / `email` の重複、別のユーザに対応付け済みの email はスキップして
 レポートに出す。
-
-## 鍵 (~/.litellm_key)
-
-LiteLLM は鍵を**発行時に一度しか表示しない**ので、このファイルが唯一の控え。
-学生は JupyterHub に Google でログインし、ターミナルで `cat ~/.litellm_key` すれば
-自分の鍵が分かる。opencode などはここから読む
-(サーバで仕込むなら `"apiKey": "{file:~/.litellm_key}"`)。
-
-鍵を作り直すときは、LiteLLM で古い鍵を消し (`/key/delete`、alias はユーザ名)、
-`~/.litellm_key` を消してから流し直す。
 
 ## Open WebUI
 
@@ -65,21 +57,13 @@ LiteLLM は鍵を**発行時に一度しか表示しない**ので、このフ�
 管理者 API キーは、管理者パネル → 設定 → 一般 で API キーを有効にしてから、
 設定 → アカウント → API キー で発行する。
 
-## LiteLLM の管理者キー (LITELLM_API_KEY)
+## ファイル
 
-Team と鍵を作れる鍵が 1 本要る。master key をコピーしても動くが、enroll 用に
-別に発行するのがよい (漏れてもその鍵だけ無効にでき、master key を変えずに済む)。
-
-```
-. ../litellm/litellm.env      # LITELLM_MASTER_KEY (pd で)
-curl -s http://127.0.0.1:4000/user/new -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "enroll", "user_role": "proxy_admin", "key_alias": "enroll"}' \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)["key"])'
-```
-
-返った鍵を `enroll.env` の `LITELLM_API_KEY` に書く。無効にするときは
-`/key/delete` (`{"key_aliases": ["enroll"]}`)。
+| | |
+|---|---|
+| `enroll` | 本体 |
+| `litellm_admin.py` | 名簿の読み込み・sudo し直し・LiteLLM の管理 API。`../open-code/opencode_setup` と共用 |
+| `enroll.env.example` | 設定の雛形 |
 
 ## 前提
 

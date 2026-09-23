@@ -1,0 +1,79 @@
+---
+# tasks file for open_webui
+#
+# The root-only parts of Open WebUI (../open-webui). Open WebUI itself runs
+# as a systemd user service of {{ open_webui_user }} (no sudo), set up with
+#   ./install deps && ./install service
+#
+# This role:
+#  - enables linger for {{ open_webui_user }} (user services run without a login)
+#  - has Apache terminate TLS on :{{ open_webui_port }} and proxy to 127.0.0.1:{{ open_webui_backend_port }}
+
+#
+# linger
+#
+# Without linger, the user services stop at logout and don't start at boot.
+# Harmless if roles/litellm already did it for the same account.
+- name: enable linger for {{ open_webui_user }}
+  command: loginctl enable-linger {{ open_webui_user }}
+  args:
+    creates: /var/lib/systemd/linger/{{ open_webui_user }}
+
+#
+# Apache
+#
+- name: enable Apache modules for Open WebUI
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - ssl
+    - headers          # RequestHeader
+    - proxy
+    - proxy_http
+    - proxy_wstunnel   # /ws/socket.io/
+  register: open_webui_apache_modules
+
+# If something other than Apache holds :{{ open_webui_port }}, Apache fails to
+# bind on reload (Open WebUI itself used to listen on 3000).
+# configtest does not catch this, so check first.
+- name: check nothing but Apache listens on {{ open_webui_port }}
+  shell: ss -ltnpH 'sport = :{{ open_webui_port }}' | grep -v '"apache2"' || true
+  register: open_webui_port_users
+  changed_when: false
+  check_mode: false   # read-only; run even with --check
+
+- name: fail if another process holds port {{ open_webui_port }}
+  fail:
+    msg: >-
+      Port {{ open_webui_port }} is held by something other than Apache.
+      If it is Open WebUI, set BIND_PORT={{ open_webui_backend_port }} in oauth.env and restart it:
+      {{ open_webui_port_users.stdout }}
+  when: open_webui_port_users.stdout | length > 0
+
+- name: put the Open WebUI vhost
+  template:
+    src: open-webui-tls.conf.j2
+    dest: /etc/apache2/sites-available/open-webui-tls.conf
+    mode: "0644"
+  register: open_webui_apache_conf
+
+- name: enable the Open WebUI vhost
+  command: a2ensite open-webui-tls
+  args:
+    creates: /etc/apache2/sites-enabled/open-webui-tls.conf
+  register: open_webui_apache_site
+
+- name: check the Apache configuration
+  command: apache2ctl configtest
+  changed_when: false
+  check_mode: false
+
+- name: reload Apache
+  systemd:
+    name: apache2
+    state: reloaded
+  when: >-
+    open_webui_apache_modules is changed or
+    open_webui_apache_conf is changed or
+    open_webui_apache_site is changed

@@ -1,0 +1,26 @@
+# 秘密情報 (*.env.example はコミットする)
+litellm/litellm.env
+open-webui/oauth.env
+open-code/client.env
+hub/*/cfg.sh
+
+# 実行時に作られるもの
+.venv/
+__pycache__/
+*.pyc
+*~
+*.~[0-9]*~
+*.bak
+*.bak2
+
+# ansible: 秘密と個人情報 (*.in がテンプレート)
+ansible/files/plain/
+ansible/ldaptool/
+ansible/vars/cert.yml
+ansible/vars/ldap.yml
+ansible/files/ldap_users.csv
+ansible/files/ldap_groups.csv
+ansible/vars/litellm.yml
+ansible/vars/jupyterhub.yml
+enroll/enroll.env
+open-code/opencode_setup.env

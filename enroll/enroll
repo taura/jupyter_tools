@@ -4,20 +4,21 @@ Enroll existing Unix (LDAP) accounts into the class services on this host.
 
     ./enroll roster.csv              # apply
     ./enroll --dry-run roster.csv    # show what would be done
-    ./enroll --only u26000,u26001 roster.csv
+    ./enroll --class pl roster.csv
+    ./enroll --user u26000,u26001 roster.csv   # with --class: rows matching both
 
 Roster columns (others are ignored):
     user          existing Unix account (required)
+    class         course (used by --class)
     email         Google address the student logs in with (g.ecc)
-    litellm_team  LiteLLM team alias; created if missing; empty = no team
     real_name     display name for Open WebUI (optional)
 
 For each row, only what is missing is created, so re-running after adding
 rows enrolls just the new ones:
     1. ~/notebooks
     2. JupyterHub user_map: email -> user
-    3. LiteLLM virtual key -> ~/.litellm_key (0600, owned by the user)
-    4. Open WebUI user (role=user); a pending user is promoted
+    3. Open WebUI user (role=user); a pending user is promoted
+LiteLLM keys are issued by ../open-code/opencode_setup.
 
 Accounts and homes are NOT created here; rows whose account doesn't exist
 are skipped. Nothing is ever deleted; entries not in the roster are only
@@ -31,50 +32,16 @@ Settings: enroll.env next to this script (see enroll.env.example).
 """
 
 import argparse
-import csv
 import importlib.util
 import json
-import io
 import os
 import pwd
 import secrets
-import subprocess
 import sys
-import urllib.error
-import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-
-
-def rerun_as_root(opts):
-    """Read the input files as the invoking user, then rerun under sudo with
-    their contents on stdin. Returns the exit status."""
-    with open(opts.roster, encoding="utf-8") as fp:
-        roster = fp.read()
-    with open(opts.env, encoding="utf-8") as fp:
-        env = fp.read()
-    argv = ["sudo", sys.executable, os.path.abspath(__file__), "--stdin"]
-    if opts.dry_run:
-        argv.append("--dry-run")
-    if opts.only:
-        argv += ["--only", opts.only]
-    payload = json.dumps({"roster": roster, "env": env})
-    return subprocess.run(argv, input=payload, text=True).returncode
-
-
-def parse_env(text):
-    """Parse KEY=value lines (an optional leading "export" is allowed)."""
-    env = {}
-    for line in text.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if line.startswith("export "):
-            line = line[len("export "):]
-        key, sep, val = line.partition("=")
-        if sep:
-            env[key.strip()] = val.strip().strip("'\"")
-    return env
+sys.path.insert(0, HERE)
+from litellm_admin import ApiError, http, parse_env, read_roster, rerun_as_root, split_set  # noqa: E402
 
 
 class Config:
@@ -82,76 +49,10 @@ class Config:
         env = parse_env(text)
         self.google_domain = env.get("GOOGLE_DOMAIN", "g.ecc.u-tokyo.ac.jp")
         self.notebooks_dir = env.get("NOTEBOOKS_DIR", "notebooks")
-        self.key_file = env.get("KEY_FILE", ".litellm_key")
         self.user_map_db = env.get("USER_MAP_DB", "/var/lib/jupyterhub/user_map.sqlite")
         self.user_map_py = env.get("USER_MAP_PY", "/opt/jupyterhub/user_map.py")
-        self.litellm_url = env.get("LITELLM_URL", "http://127.0.0.1:4000").rstrip("/")
-        # admin key allowed to create teams and keys
-        self.litellm_api_key = env["LITELLM_API_KEY"]
-        self.litellm_key_duration = env.get("LITELLM_KEY_DURATION") or None
-        budget = env.get("LITELLM_KEY_MAX_BUDGET")
-        self.litellm_key_max_budget = float(budget) if budget else None
         self.openwebui_url = env.get("OPENWEBUI_URL", "http://127.0.0.1:8080").rstrip("/")
         self.openwebui_api_key = env["OPENWEBUI_API_KEY"]
-
-
-class ApiError(Exception):
-    pass
-
-
-def http(method, url, token, body=None):
-    data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(url, data=data, method=method)
-    req.add_header("Authorization", f"Bearer {token}")
-    if data is not None:
-        req.add_header("Content-Type", "application/json")
-    try:
-        with urllib.request.urlopen(req, timeout=60) as res:
-            return json.loads(res.read() or b"null")
-    except urllib.error.HTTPError as e:
-        raise ApiError(f"{method} {url}: {e.code} {e.read().decode(errors='replace')[:300]}") from None
-    except urllib.error.URLError as e:
-        raise ApiError(f"{method} {url}: {e.reason}") from None
-
-
-class LiteLLM:
-    def __init__(self, cfg, dry_run):
-        self.url, self.token, self.cfg, self.dry_run = cfg.litellm_url, cfg.litellm_api_key, cfg, dry_run
-        self.teams = {t.get("team_alias"): t["team_id"]
-                      for t in self.get("/team/list") if t.get("team_alias")}
-        self._models = None
-
-    def get(self, path):
-        return http("GET", self.url + path, self.token)
-
-    def post(self, path, body):
-        return http("POST", self.url + path, self.token, body)
-
-    def team_id(self, alias):
-        """Team id for alias, creating the team (with all current models) if missing."""
-        if alias in self.teams:
-            return self.teams[alias], False
-        if self.dry_run:
-            return f"<new team {alias}>", True
-        # An empty models list means "no-default-models", not "all" (litellm/README.md)
-        if self._models is None:
-            self._models = [m["id"] for m in self.get("/v1/models")["data"]]
-        team = self.post("/team/new", {"team_alias": alias, "models": self._models})
-        self.teams[alias] = team["team_id"]
-        return team["team_id"], True
-
-    def generate_key(self, user, email, team_id):
-        body = {"key_alias": user, "user_id": email, "metadata": {"enrolled_by": "enroll"}}
-        if team_id:
-            body["team_id"] = team_id
-        if self.cfg.litellm_key_duration:
-            body["duration"] = self.cfg.litellm_key_duration
-        if self.cfg.litellm_key_max_budget is not None:
-            body["max_budget"] = self.cfg.litellm_key_max_budget
-        return self.post("/key/generate", body)["key"]
-
-    def delete_key(self, key):
-        self.post("/key/delete", {"keys": [key]})
 
 
 class OpenWebUI:
@@ -211,61 +112,12 @@ def ensure_user_map(um, email, user, dry_run):
     return "bound"
 
 
-def ensure_key(cfg, litellm, pw, email, team_alias, dry_run):
-    path = os.path.join(pw.pw_dir, cfg.key_file)
-    if os.path.exists(path) and os.path.getsize(path) > 0:
-        return "exists"
-    team_id = None
-    note = ""
-    if team_alias:
-        team_id, created = litellm.team_id(team_alias)
-        note = f" team={team_alias}" + (" (new)" if created else "")
-    if dry_run:
-        return "issued" + note
-    key = litellm.generate_key(pw.pw_name, email, team_id)
-    # LiteLLM shows a key only once; this file is the only copy.
-    try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as fp:
-            fp.write(key + "\n")
-        os.chown(path, pw.pw_uid, pw.pw_gid)
-    except OSError:
-        litellm.delete_key(key)
-        raise
-    return "issued" + note
-
-
-def read_roster(text, only):
-    """Returns (rows, problems). Rows with a duplicate user or email are dropped."""
-    rows, problems, seen_user, seen_email = [], [], {}, {}
-    for lineno, r in enumerate(csv.DictReader(io.StringIO(text)), start=2):
-        user = (r.get("user") or "").strip()
-        if not user:
-            continue
-        if only and user not in only:
-            continue
-        email = (r.get("email") or "").strip().lower()
-        row = {"line": lineno, "user": user, "email": email,
-               "team": (r.get("litellm_team") or "").strip(),
-               "name": (r.get("real_name") or "").strip() or user}
-        if user in seen_user:
-            problems.append((user, f"line {lineno}: duplicate user (first at line {seen_user[user]})"))
-            continue
-        if email and email in seen_email:
-            problems.append((user, f"line {lineno}: duplicate email {email} (first at line {seen_email[email]})"))
-            continue
-        seen_user[user] = lineno
-        if email:
-            seen_email[email] = lineno
-        rows.append(row)
-    return rows, problems
-
-
 def main():
-    ap = argparse.ArgumentParser(description="Enroll existing accounts into JupyterHub, LiteLLM and Open WebUI")
-    ap.add_argument("roster", nargs="?", help="roster csv (user, email, litellm_team, real_name)")
+    ap = argparse.ArgumentParser(description="Enroll existing accounts into JupyterHub and Open WebUI")
+    ap.add_argument("roster", nargs="?", help="roster csv (user, email, class, real_name)")
     ap.add_argument("--dry-run", action="store_true", help="show what would be done without changing anything")
-    ap.add_argument("--only", help="comma-separated users to process")
+    ap.add_argument("--user", help="comma-separated users to process")
+    ap.add_argument("--class", dest="klass", help="comma-separated classes (class column) to process")
     ap.add_argument("--env", default=os.path.join(HERE, "enroll.env"), help="settings file (default: enroll.env)")
     ap.add_argument("--stdin", action="store_true", help=argparse.SUPPRESS)  # internal: inputs on stdin
     opts = ap.parse_args()
@@ -276,17 +128,19 @@ def main():
         if not opts.roster:
             ap.error("roster is required")
         if os.geteuid() != 0:
-            return rerun_as_root(opts)
+            args = (["--dry-run"] if opts.dry_run else []) \
+                + (["--user", opts.user] if opts.user else []) \
+                + (["--class", opts.klass] if opts.klass else [])
+            return rerun_as_root(__file__, {"roster": opts.roster, "env": opts.env}, args)
         with open(opts.roster, encoding="utf-8") as fp:
             roster_text = fp.read()
         with open(opts.env, encoding="utf-8") as fp:
             env_text = fp.read()
 
     cfg = Config(env_text)
-    only = set(opts.only.split(",")) if opts.only else None
-    rows, problems = read_roster(roster_text, only)
+    users, classes = split_set(opts.user), split_set(opts.klass)
+    rows, problems = read_roster(roster_text, users, classes)
     um = load_user_map(cfg)
-    litellm = LiteLLM(cfg, opts.dry_run)
     owui = OpenWebUI(cfg, opts.dry_run)
 
     counts = {}
@@ -314,7 +168,6 @@ def main():
         else:
             steps += [
                 ("user_map", lambda: ensure_user_map(um, email, user, opts.dry_run)),
-                ("litellm", lambda: ensure_key(cfg, litellm, pw, email, row["team"], opts.dry_run)),
                 ("openwebui", lambda: owui.ensure_user(email, row["name"])),
             ]
         for step, fn in steps:
@@ -330,7 +183,7 @@ def main():
     # Report
     print()
     print(f"{prefix}summary ({len(rows)} rows)")
-    for step in ("notebooks", "user_map", "litellm", "openwebui"):
+    for step in ("notebooks", "user_map", "openwebui"):
         results = ", ".join(f"{r}={n}" for (s, r), n in sorted(counts.items()) if s == step)
         print(f"  {step:10s} {results}")
     if problems:
@@ -339,7 +192,8 @@ def main():
         for user, msg in problems:
             print(f"  {user:10s} {msg}")
 
-    if not only:
+    # only meaningful against the whole roster
+    if users is None and classes is None:
         emails = {r["email"] for r in rows if r["email"]}
         stale_um = [(u, l) for u, l in um.sql("select user, local from users") if u and u not in emails]
         stale_owui = [e for e, u in owui.users.items() if u.get("role") != "admin" and e not in emails]

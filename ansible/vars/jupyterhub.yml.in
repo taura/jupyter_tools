@@ -1,0 +1,18 @@
+#
+# Variables for the jupyterhub role
+#
+# Keep the real file in files/plain/jupyterhub_<host>.yml (gocryptfs) and
+# symlink vars/jupyterhub.yml to it:
+#   cp vars/jupyterhub.yml.in files/plain/jupyterhub_taulec.yml
+#   ln -s ../files/plain/jupyterhub_taulec.yml vars/jupyterhub.yml
+#
+# Same Google OAuth client as Open WebUI (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+# in open-webui/oauth.env). Add this to its authorized redirect URIs:
+#   https://<fqdn>:8000/hub/google/oauth_callback
+jupyterhub_google_client_id: CHANGE_ME
+jupyterhub_google_client_secret: CHANGE_ME
+
+# Optional env vars for students' servers, e.g.:
+#jupyterhub_extra_env:
+#  HEYTUTOR_ENDPOINT: https://...
+#  HEYTUTOR_API_KEY: ...

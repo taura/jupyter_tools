@@ -1,0 +1,7 @@
+# Run only the root-only parts of LiteLLM (same play as in all.yml)
+#   ansible-playbook -i machines.ini litellm.yml
+- name: litellm host
+  hosts: litellm_host
+  vars_files: [ vars/litellm.yml ]
+  roles:
+    - litellm

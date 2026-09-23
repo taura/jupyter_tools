@@ -1,0 +1,6 @@
+# Run only the root-only parts of Open WebUI (same play as in all.yml)
+#   ansible-playbook -i machines.ini open_webui.yml
+- name: open webui
+  hosts: open_webui_host
+  roles:
+    - open_webui

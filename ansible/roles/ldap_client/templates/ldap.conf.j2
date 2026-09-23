@@ -1,0 +1,14 @@
+# /etc/ldap/ldap.conf — OpenLDAP クライアントライブラリの設定
+# ldapsearch / ldapadd / ldapmodify / ldapdelete と、それらを呼ぶ ldaptool が読む。
+# managed by ansible (roles/ldap_client)
+#
+# 名前解決 (passwd/group) は sssd が担当する (/etc/sssd/sssd.conf)。
+# このファイルは関係しない。
+#
+# かつて存在した /etc/ldap.conf は旧 nss_ldap / pam_ldap 用の別物で、
+# Ubuntu 26.04 でそれを作る ldap-auth-config パッケージごと無くなった。
+
+BASE    {{ ldap_domain }}
+URI     ldap://{{ ldap_server_name }}/
+# CA for verifying slapd's certificate with StartTLS (ldapsearch -ZZ etc.)
+TLS_CACERT /etc/ssl/certs/ca-certificates.crt

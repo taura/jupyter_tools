@@ -1,5 +1,6 @@
 #!/bin/bash
-# OpenCode の設定を所定の場所に symlink する。冪等。
+# Set up OpenCode -> LiteLLM for yourself (e.g. on your laptop). Idempotent.
+# The key goes in auth.json via "opencode auth login"; see README.md.
 set -eu
 cd "$(dirname "$0")"
 HERE=$(pwd)
@@ -18,11 +19,7 @@ fi
 ln -sfn "$HERE/opencode.jsonc" "$DEST"
 echo "symlink: $DEST -> $HERE/opencode.jsonc"
 
-if [ ! -f client.env ]; then
-    echo
-    echo "次に client.env を用意してください:"
-    echo "  cp client.env.example client.env && chmod 600 client.env"
-    echo "  \$EDITOR client.env      # virtual key を入れる"
-fi
 echo
-echo "起動: ./run_opencode"
+echo "次に鍵を登録してください (LMS で受け取った virtual key):"
+echo "  opencode auth login     # Other → provider id に litellm → 鍵を貼る"
+echo "起動: opencode"

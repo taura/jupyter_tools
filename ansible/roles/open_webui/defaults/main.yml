@@ -1,0 +1,9 @@
+---
+# Account that runs Open WebUI as a user service (no sudo)
+open_webui_user: pd
+
+# Public port (Apache, TLS). Must match BASE_URL=https://<fqdn>:<port> in open-webui/oauth.env.
+open_webui_port: 3000
+
+# Open WebUI backend on 127.0.0.1. Must match BIND_PORT in oauth.env.
+open_webui_backend_port: 8080
