@@ -1,0 +1,17 @@
+- name: ldap client
+  hosts: default
+  vars_files: [ vars/ldap.yml ]
+  roles:
+    - ldap_client
+
+- name: ldap users
+  hosts: ldap_server
+  vars_files: [ vars/ldap.yml ]
+  roles:
+    - ldap_users
+
+- name: invalidate sss cache
+  hosts: default
+  roles:
+    - sss_invalidate
+

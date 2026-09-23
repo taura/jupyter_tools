@@ -1,0 +1,101 @@
+---
+# tasks file for ldap_client
+
+- name: install LDAP client packages
+  apt:
+    state: present
+    name:
+      - sssd
+      - sssd-tools
+      - libnss-ldap
+      - libpam-ldap
+      - ldap-utils
+
+#
+# make a line like 
+#  base dc=myldap,dc=mdx,dc=jp
+# in /etc/ldap.conf
+- name: change base /etc/ldap.conf
+  lineinfile:
+    path: /etc/ldap.conf
+    regexp: "^base (.*)$"
+    line:    "base {{ ldap_domain }}"
+
+#
+# make a line like 
+#  uri ldap://ikura000/
+# in /etc/ldap.conf
+#
+- name: change uri /etc/ldap.conf
+  lineinfile:
+    path: /etc/ldap.conf
+    regexp: "^uri (.*)$"
+    line:    "uri ldap://{{ ldap_server_addr }}/"
+    backup: yes
+  vars:
+    ldap_server_addr: "{{ hostvars[groups['ldap_server'][0]].ethipv4 }}"
+
+#
+# make a line like 
+#  rootbinddn cn=admin,dc=myldap,dc=mdx,dc=jp
+# in /etc/ldap.conf
+#
+- name: change rootbinddn /etc/ldap.conf
+  lineinfile:
+    path: /etc/ldap.conf
+    regexp: "^rootbinddn (.*)$"
+    line:    "rootbinddn cn=admin,{{ ldap_domain }}"
+
+- name: copy /etc/ldap.conf -> /etc/ldap/ldap.conf
+  copy:
+    src: /etc/ldap.conf
+    dest: /etc/ldap/ldap.conf
+    remote_src: yes
+
+- name: generate /etc/ldap.secret
+  copy:
+    dest: /etc/ldap.secret
+    content: "{{ ldap_root_password }}"
+    mode: "0600"
+    owner: root
+    backup: yes
+
+- name: change /etc/pam.d/common-password
+  lineinfile:
+    path: /etc/pam.d/common-password
+    backrefs: yes
+    regexp: "^password(.*) use_authtok(.*)$"
+    line:    'password\1 \2'
+    backup: yes
+
+- name: put sssd.conf
+  template:
+    src: templates/sssd.conf.j2
+    dest: /etc/sssd/sssd.conf
+    mode: "0600"
+  vars:
+    ldap_server_addr: "{{ hostvars[groups['ldap_server'][0]].ethipv4 }}"
+
+- name: invalidate sss cache
+  command: sss_cache -E
+
+- name: restart sssd
+  systemd:
+    name: sssd
+    state: restarted
+
+#
+# copy ldaptool
+#
+- name: git checkout
+  git:
+    repo: 'https://github.com/mdx-jp/ldaptool.git'
+    dest: /opt/ldaptool
+
+- name: copy ldaptool
+  copy:
+    remote_src: true
+    src: /opt/ldaptool/bin
+    dest: /usr/local/
+    mode: preserve
+

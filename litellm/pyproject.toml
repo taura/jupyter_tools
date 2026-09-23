@@ -1,0 +1,17 @@
+[project]
+name = "hosting-llm-gateway"
+version = "0.1.0"
+description = "LiteLLM proxy (gateway) for the class LLM environment"
+
+requires-python = ">=3.12,<3.13"
+
+# NOTE: open-webui とは同居できない (clients/open-webui/pyproject.toml のコメント参照)
+# prisma は [proxy] ではなく [extra_proxy] 側にある。
+# これが無いと DATABASE_URL を設定した起動が
+# "No module named 'prisma'" で失敗する。
+dependencies = [
+    "litellm[proxy,extra_proxy]>=1.93.0",
+]
+
+[tool.uv]
+package = false

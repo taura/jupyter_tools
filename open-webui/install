@@ -1,0 +1,60 @@
+#!/bin/bash
+# Open WebUI をこのホストに設置する。冪等。
+#
+#   ./install            # 全部
+#   ./install deps       # uv sync だけ
+#   ./install service    # systemd user service の登録
+#   ./install apache     # Apache の vhost (sudo が要る)
+set -eu
+cd "$(dirname "$0")"
+HERE=$(pwd)
+
+need_env() {
+    if [ ! -f oauth.env ]; then
+        echo "oauth.env がありません。" >&2
+        echo "  cp oauth.env.example oauth.env && chmod 600 oauth.env" >&2
+        echo "して値を埋めてから実行してください。" >&2
+        exit 1
+    fi
+}
+
+do_deps() {
+    command -v uv >/dev/null || {
+        echo "uv がありません: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2; exit 1; }
+    uv sync
+}
+
+do_service() {
+    need_env
+    mkdir -p ~/.config/systemd/user
+    ln -sfn "$HERE/open-webui.service" ~/.config/systemd/user/open-webui.service
+    systemctl --user daemon-reload
+    systemctl --user enable --now open-webui
+    systemctl --user status open-webui --no-pager | head -5 || true
+    echo
+    echo "ホスト起動時に自動で上げるには (未設定なら一度だけ):"
+    echo "  sudo loginctl enable-linger $USER"
+}
+
+do_apache() {
+    sudo cp apache/open-webui-tls.conf /etc/apache2/sites-available/
+    sudo a2enmod proxy proxy_http proxy_wstunnel
+    echo "Listen 3000" | sudo tee /etc/apache2/conf-available/port-3000.conf >/dev/null
+    sudo a2enconf port-3000
+    sudo a2ensite open-webui-tls
+    echo
+    echo "ServerName と証明書のパスを環境に合わせて直してから reload してください:"
+    echo "  sudo \$EDITOR /etc/apache2/sites-available/open-webui-tls.conf"
+    echo "  sudo apache2ctl configtest && sudo systemctl restart apache2"
+    echo
+    echo "注意: 3000 番を Open WebUI が掴んだままだと Apache が bind できません。"
+    echo "      先に open-webui を 8080 に移してから (oauth.env の BIND_PORT) 再起動を。"
+}
+
+case "${1:-all}" in
+    deps)    do_deps ;;
+    service) do_service ;;
+    apache)  do_apache ;;
+    all)     do_deps; do_service; do_apache ;;
+    *)       echo "usage: $0 [all|deps|service|apache]" >&2; exit 1 ;;
+esac

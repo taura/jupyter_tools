@@ -1,0 +1,24 @@
+---
+# tasks file for nfs_server
+
+- name: move HOME of {{ ansible_user }} to /home.local
+  include_role:
+      name: mv_home_ansible_user
+
+- name: install nfs server
+  apt:
+    name:
+      - nfs-common
+      - nfs-kernel-server
+    state: present
+
+- name: export /home via NFS
+  lineinfile:
+    path: /etc/exports
+    state: present
+    regexp: "^/home "
+    line: "/home {% for addr, v in hostvars.items() %} {{ v.rdmaipv4 }}(rw,no_root_squash,no_subtree_check){% endfor %}"
+
+- name: re-export all directories
+  command: exportfs -ra
+

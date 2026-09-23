@@ -1,0 +1,28 @@
+# LiteLLM proxy (systemd user service)
+#
+#   ln -sf ~/jupyter_tools/litellm/litellm.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now litellm
+#
+# ホスト起動時に上げるには `sudo loginctl enable-linger $USER` も必要。
+
+[Unit]
+Description=LiteLLM proxy (class LLM gateway)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/jupyter_tools/litellm
+ExecStart=%h/jupyter_tools/litellm/run_litellm
+
+# uv は ~/.local/bin。user service の PATH は最小限なので明示しないと
+# "uv: command not found" で即死する
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+# PostgreSQL は system 側のサービスなので user service から After= で待てない。
+# 起動が先行して DB 接続に失敗しても、5 秒後の再試行で成功する。
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

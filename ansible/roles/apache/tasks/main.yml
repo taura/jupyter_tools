@@ -1,0 +1,27 @@
+---
+# tasks file for apache
+
+- name: install apache2
+  apt:
+    state: present
+    name: apache2
+
+- name: install apache2 userdir module
+  apache2_module:
+    name: userdir
+    state: present
+
+- name: install apache2 ssl module
+  apache2_module:
+    name: ssl
+    state: present
+    
+- name: install apache2 headers modules
+  apache2_module:
+    name: headers
+    state: present
+
+- name: restart apache2
+  service:
+    name: apache2
+    state: restarted

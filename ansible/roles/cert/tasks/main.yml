@@ -1,0 +1,107 @@
+---
+# tasks file for cert
+# if you get an error cannot import name 'environmentfilter' from 'jinja2.filters',
+# pip install 'jinja2<3.1'
+# http://blog.livedoor.jp/harukisan7/archives/33209649.html
+
+- name: create cert directory
+  file:
+    state: directory
+    path: "/etc/pki/tls/certs/{{ fqdn }}"
+
+- name: create account private key
+  openssl_privatekey:
+    path: "/etc/pki/tls/certs/{{ fqdn }}/account.key"
+
+- name: create server key
+  openssl_privatekey:
+    path: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.key"
+
+- name: create csr
+  openssl_csr:
+    path: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.csr"
+    privatekey_path: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.key"
+    common_name: "{{ fqdn }}"
+
+- name: create a challenge for {{ fqdn }} using an account key file.
+  acme_certificate:
+    account_key_src: "/etc/pki/tls/certs/{{ fqdn }}/account.key"
+    account_email: "{{ account_email }}"
+    csr: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.csr"
+    dest: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.crt"
+    acme_directory: https://acme-v02.api.letsencrypt.org/directory
+    acme_version: 2
+    terms_agreed: true
+    remaining_days: 60
+  register: acme_challenge
+
+- name: create challenge path
+  file:
+    state: directory
+    path: "/var/www/html/{{ acme_challenge['challenge_data'][fqdn]['http-01']['resource'] | dirname }}"
+  when: acme_challenge is changed
+
+- name: create challenge data to server
+  copy:
+    dest: "/var/www/html/{{ acme_challenge['challenge_data'][fqdn]['http-01']['resource'] }}"
+    content: "{{ acme_challenge['challenge_data'][fqdn]['http-01']['resource_value'] }}"
+  when: acme_challenge is changed and fqdn in acme_challenge['challenge_data']
+
+- name: Let the challenge be validated and retrieve the cert and intermediate certificate
+  acme_certificate:
+    acme_directory: https://acme-v02.api.letsencrypt.org/directory
+    acme_version: 2
+    terms_agreed: true
+    account_key_src: "/etc/pki/tls/certs/{{ fqdn }}/account.key"
+    csr: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.csr"
+    dest: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.crt"
+    # dest はリーフ証明書1枚しか書かない。中間証明書を含む
+    # フルチェーンを別途出力させ、Apache にはそちらを使わせる。
+    # これが無いと Apache が証明書を1枚しか送らず、ブラウザは AIA 補完で
+    # 繋がるものの curl / Python / Node は
+    # "unable to get local issuer certificate" で検証に失敗する。
+    fullchain_dest: "/etc/pki/tls/certs/{{ fqdn }}/fullchain.crt"
+    # 既定のチェーンは新しいルート (ISRG Root YR) で終わるが、それはまだ
+    # OS のトラストストア (ca-certificates) に配布されていない。ブラウザは
+    # 独自ストアで通るが curl / Python / Node は検証に失敗する。
+    # 移行期間中は、新ルートを既存の ISRG Root X1 がクロス署名したものを
+    # 末尾に含む代替チェーンを選ぶ。
+    select_chain:
+      - test_certificates: last
+        issuer:
+          C: US
+          O: Internet Security Research Group
+          CN: ISRG Root X1
+    data: "{{ acme_challenge }}"
+  when: acme_challenge is changed
+
+# select_chain の条件に合う代替チェーンが提供されなくなると、警告なく既定の
+# チェーンにフォールバックする。それを学生の環境で発覚させないよう、
+# ここで OS のトラストストアだけを使った検証を行い、通らなければ play を止める。
+- name: verify the deployed chain against the system trust store
+  command: >
+    openssl verify
+    -untrusted /etc/pki/tls/certs/{{ fqdn }}/fullchain.crt
+    /etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.crt
+  changed_when: false
+
+- name: replace ssl.conf configure
+  replace:
+    path: /etc/apache2/sites-available/default-ssl.conf
+    regexp: '$(\s+){{ item.key }}(.*)$'
+    replace: '\1{{ item.key }} {{ item.file }}'
+  with_items:
+    - key: SSLCertificateFile
+      file: "/etc/pki/tls/certs/{{ fqdn }}/fullchain.crt"
+    - key: SSLCertificateKeyFile
+      file: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.key"
+
+- name: enable apache ssl
+  command:
+    cmd: a2ensite default-ssl.conf
+
+- name: start apache2
+  service:
+    name: apache2
+    state: restarted
+

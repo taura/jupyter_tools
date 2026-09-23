@@ -1,0 +1,23 @@
+---
+# tasks file for nfs_client
+
+- name: move HOME of {{ ansible_user }} to /home.local
+  include_role:
+      name: mv_home_ansible_user
+
+- name: install nfs client
+  apt:
+    name: nfs-common
+    state: present
+  
+- name: nfs-mount /home
+  mount:
+    src: "{{ nfs_target }}:/home"
+    path: /home
+    opts: rw,noatime
+    boot: yes
+    state: mounted
+    fstype: nfs
+  vars:
+    nfs_target: "{{ hostvars[groups['nfs_server'][0]].rdmaipv4 }}"
+  when: "'nfs_server' not in group_names"

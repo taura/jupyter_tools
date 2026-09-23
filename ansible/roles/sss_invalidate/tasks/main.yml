@@ -1,0 +1,11 @@
+---
+# tasks file for ldap_client
+
+- name: invalidate sss cache
+  command: sss_cache -E
+
+- name: restart sssd
+  systemd:
+    name: sssd
+    state: restarted
+

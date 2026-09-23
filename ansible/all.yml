@@ -1,0 +1,54 @@
+---
+
+- name: basics
+  hosts: default
+  vars_files: [ vars/basics.yml ]
+  roles:
+    - basics
+
+- name: nfs server
+  hosts: nfs_server
+  roles:
+    - nfs_server
+    - attach_home
+
+- name: nfs client
+  hosts: nfs_client
+  roles:
+    - nfs_client
+
+- name: ldap server
+  hosts: ldap_server
+  vars_files: [ vars/ldap.yml ]
+  roles:
+    - ldap_server
+
+- name: ldap client
+  hosts: ldap_client
+  vars_files: [ vars/ldap.yml ]
+  roles:
+    - ldap_client
+
+- name: ldap users
+  hosts: ldap_server
+  vars_files: [ vars/ldap.yml ]
+  roles:
+    - ldap_users
+
+- name: invalidate sss cache
+  hosts: ldap_client
+  roles:
+    - sss_invalidate
+
+- name: make ldap_sudo sudoers
+  hosts: ldap_client
+  roles:
+    - ldap_sudo
+
+- name: apache
+  hosts: web_server
+  vars_files: [ vars/cert.yml ]
+  roles:
+    - apache
+    - cert
+
