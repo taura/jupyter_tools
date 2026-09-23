@@ -24,7 +24,9 @@ are skipped. Nothing is ever deleted; entries not in the roster are only
 reported.
 
 Runs as tau and re-executes itself with sudo (writes into users' homes
-and the root-owned user_map).
+and the root-owned user_map). The roster and enroll.env are read as tau
+before that and handed over on stdin, so they may live on a FUSE mount
+(e.g. gocryptfs) that root cannot read.
 Settings: enroll.env next to this script (see enroll.env.example).
 """
 
@@ -32,9 +34,11 @@ import argparse
 import csv
 import importlib.util
 import json
+import io
 import os
 import pwd
 import secrets
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -42,30 +46,40 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def reexec_as_root():
-    if os.geteuid() != 0:
-        os.execvp("sudo", ["sudo", sys.executable, os.path.abspath(__file__)] + sys.argv[1:])
+def rerun_as_root(opts):
+    """Read the input files as the invoking user, then rerun under sudo with
+    their contents on stdin. Returns the exit status."""
+    with open(opts.roster, encoding="utf-8") as fp:
+        roster = fp.read()
+    with open(opts.env, encoding="utf-8") as fp:
+        env = fp.read()
+    argv = ["sudo", sys.executable, os.path.abspath(__file__), "--stdin"]
+    if opts.dry_run:
+        argv.append("--dry-run")
+    if opts.only:
+        argv += ["--only", opts.only]
+    payload = json.dumps({"roster": roster, "env": env})
+    return subprocess.run(argv, input=payload, text=True).returncode
 
 
-def read_env(path):
-    """Read KEY=value lines (an optional leading "export" is allowed)."""
+def parse_env(text):
+    """Parse KEY=value lines (an optional leading "export" is allowed)."""
     env = {}
-    with open(path, encoding="utf-8") as fp:
-        for line in fp:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            if line.startswith("export "):
-                line = line[len("export "):]
-            key, sep, val = line.partition("=")
-            if sep:
-                env[key.strip()] = val.strip().strip("'\"")
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):]
+        key, sep, val = line.partition("=")
+        if sep:
+            env[key.strip()] = val.strip().strip("'\"")
     return env
 
 
 class Config:
-    def __init__(self, path):
-        env = read_env(path)
+    def __init__(self, text):
+        env = parse_env(text)
         self.google_domain = env.get("GOOGLE_DOMAIN", "g.ecc.u-tokyo.ac.jp")
         self.notebooks_dir = env.get("NOTEBOOKS_DIR", "notebooks")
         self.key_file = env.get("KEY_FILE", ".litellm_key")
@@ -221,45 +235,56 @@ def ensure_key(cfg, litellm, pw, email, team_alias, dry_run):
     return "issued" + note
 
 
-def read_roster(path, only):
+def read_roster(text, only):
     """Returns (rows, problems). Rows with a duplicate user or email are dropped."""
     rows, problems, seen_user, seen_email = [], [], {}, {}
-    with open(path, encoding="utf-8") as fp:
-        for lineno, r in enumerate(csv.DictReader(fp), start=2):
-            user = (r.get("user") or "").strip()
-            if not user:
-                continue
-            if only and user not in only:
-                continue
-            email = (r.get("email") or "").strip().lower()
-            row = {"line": lineno, "user": user, "email": email,
-                   "team": (r.get("litellm_team") or "").strip(),
-                   "name": (r.get("real_name") or "").strip() or user}
-            if user in seen_user:
-                problems.append((user, f"line {lineno}: duplicate user (first at line {seen_user[user]})"))
-                continue
-            if email and email in seen_email:
-                problems.append((user, f"line {lineno}: duplicate email {email} (first at line {seen_email[email]})"))
-                continue
-            seen_user[user] = lineno
-            if email:
-                seen_email[email] = lineno
-            rows.append(row)
+    for lineno, r in enumerate(csv.DictReader(io.StringIO(text)), start=2):
+        user = (r.get("user") or "").strip()
+        if not user:
+            continue
+        if only and user not in only:
+            continue
+        email = (r.get("email") or "").strip().lower()
+        row = {"line": lineno, "user": user, "email": email,
+               "team": (r.get("litellm_team") or "").strip(),
+               "name": (r.get("real_name") or "").strip() or user}
+        if user in seen_user:
+            problems.append((user, f"line {lineno}: duplicate user (first at line {seen_user[user]})"))
+            continue
+        if email and email in seen_email:
+            problems.append((user, f"line {lineno}: duplicate email {email} (first at line {seen_email[email]})"))
+            continue
+        seen_user[user] = lineno
+        if email:
+            seen_email[email] = lineno
+        rows.append(row)
     return rows, problems
 
 
 def main():
     ap = argparse.ArgumentParser(description="Enroll existing accounts into JupyterHub, LiteLLM and Open WebUI")
-    ap.add_argument("roster", help="roster csv (user, email, litellm_team, real_name)")
+    ap.add_argument("roster", nargs="?", help="roster csv (user, email, litellm_team, real_name)")
     ap.add_argument("--dry-run", action="store_true", help="show what would be done without changing anything")
     ap.add_argument("--only", help="comma-separated users to process")
     ap.add_argument("--env", default=os.path.join(HERE, "enroll.env"), help="settings file (default: enroll.env)")
+    ap.add_argument("--stdin", action="store_true", help=argparse.SUPPRESS)  # internal: inputs on stdin
     opts = ap.parse_args()
-    reexec_as_root()
+    if opts.stdin:
+        payload = json.load(sys.stdin)
+        roster_text, env_text = payload["roster"], payload["env"]
+    else:
+        if not opts.roster:
+            ap.error("roster is required")
+        if os.geteuid() != 0:
+            return rerun_as_root(opts)
+        with open(opts.roster, encoding="utf-8") as fp:
+            roster_text = fp.read()
+        with open(opts.env, encoding="utf-8") as fp:
+            env_text = fp.read()
 
-    cfg = Config(opts.env)
+    cfg = Config(env_text)
     only = set(opts.only.split(",")) if opts.only else None
-    rows, problems = read_roster(opts.roster, only)
+    rows, problems = read_roster(roster_text, only)
     um = load_user_map(cfg)
     litellm = LiteLLM(cfg, opts.dry_run)
     owui = OpenWebUI(cfg, opts.dry_run)
