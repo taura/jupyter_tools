@@ -12,7 +12,6 @@ aux_srcs ?= $(wildcard nb/source/*/img/*.svg) $(wildcard nb/source/*/img/*.png)
 ans_aux_srcs ?= 
 mk_nb_flags ?= 
 
-
 ifeq (a,b)
 # users on behhalf of which we run jupyter servers
 users_csv ?= users.csv

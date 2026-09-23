@@ -1,0 +1,11 @@
+---
+# tasks file for attach_home
+
+- name: mount HOME volume
+  mount:
+    src: "LABEL=home"
+    path: /home
+    opts: defaults,noatime,errors=remount-ro
+    state: mounted
+    fstype: ext4
+    

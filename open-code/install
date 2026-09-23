@@ -1,0 +1,28 @@
+#!/bin/bash
+# OpenCode の設定を所定の場所に symlink する。冪等。
+set -eu
+cd "$(dirname "$0")"
+HERE=$(pwd)
+
+command -v opencode >/dev/null || {
+    echo "opencode がありません。先に導入してください:" >&2
+    echo "  npm i -g opencode-ai        # あるいは https://opencode.ai の手順" >&2
+    exit 1; }
+
+mkdir -p ~/.config/opencode
+DEST=~/.config/opencode/opencode.jsonc
+if [ -e "$DEST" ] && [ ! -L "$DEST" ]; then
+    echo "$DEST が実ファイルとして存在します。退避します -> $DEST.bak"
+    mv "$DEST" "$DEST.bak"
+fi
+ln -sfn "$HERE/opencode.jsonc" "$DEST"
+echo "symlink: $DEST -> $HERE/opencode.jsonc"
+
+if [ ! -f client.env ]; then
+    echo
+    echo "次に client.env を用意してください:"
+    echo "  cp client.env.example client.env && chmod 600 client.env"
+    echo "  \$EDITOR client.env      # virtual key を入れる"
+fi
+echo
+echo "起動: ./run_opencode"

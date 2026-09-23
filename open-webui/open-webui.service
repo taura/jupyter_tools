@@ -1,0 +1,25 @@
+# Open WebUI (systemd user service)
+#
+#   ln -sf ~/jupyter_tools/open-webui/open-webui.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now open-webui
+#
+# ホスト起動時に上げるには `sudo loginctl enable-linger $USER` も必要。
+
+[Unit]
+Description=Open WebUI (class LLM playground)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/jupyter_tools/open-webui
+ExecStart=%h/jupyter_tools/open-webui/run_open_webui
+
+# uv は ~/.local/bin。user service の PATH は最小限なので明示が必要
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

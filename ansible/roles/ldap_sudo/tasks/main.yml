@@ -1,0 +1,11 @@
+---
+# tasks file for ldap_sudo
+
+#
+# make sudoers
+#
+- name: put /etc/sudoers.d/ldap_sudo
+  template:
+    src: templates/ldap_sudo.j2
+    dest: /etc/sudoers.d/ldap_sudo
+    mode: "0600"

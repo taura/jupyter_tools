@@ -1,0 +1,61 @@
+#!/bin/bash
+# Open WebUI + Google OIDC
+#
+# 手元での検証は既定のまま (http://localhost:3000)。Google は localhost への
+# リダイレクトを例外的に許可するので TLS 不要。
+#
+# 公開ホストでは open-webui 自身が TLS を張れない (uvicorn.run に ssl_keyfile を
+# 渡していない) ので、前段に Apache を置いて終端させる。apache/ を参照。
+# その場合 oauth.env に
+#   export BASE_URL=https://example.org:3000   # ブラウザから見える URL
+#   export BIND_PORT=8080                      # Apache が中継する先
+# を足す。Google Cloud Console の「承認済みのリダイレクト URI」にも
+# $BASE_URL/oauth/google/login/callback を追加すること (localhost 版と併存可)。
+
+set -e
+cd "$(dirname "$0")"
+
+if [ ! -f oauth.env ]; then
+    echo "oauth.env がありません。oauth.env.example をコピーして値を埋めてください。" >&2
+    exit 1
+fi
+. ./oauth.env
+
+BASE_URL=${BASE_URL:-http://localhost:3000}    # ブラウザから見える URL
+BIND_HOST=${BIND_HOST:-127.0.0.1}              # 待ち受けアドレス。外に晒さない
+BIND_PORT=${BIND_PORT:-3000}                   # 待ち受けポート
+ALLOWED_DOMAIN=${ALLOWED_DOMAIN:-g.ecc.u-tokyo.ac.jp}
+
+# DB (webui.db) と添付ファイルの置き場。
+# 既定は .venv の中なので、uv sync のやり直しや .venv 削除で
+# 全ユーザ・全チャットが消える。venv の外に固定する。
+export DATA_DIR=${DATA_DIR:-$HOME/open-webui-data}
+mkdir -p "$DATA_DIR"
+
+export WEBUI_URL="$BASE_URL"
+
+# 自動生成に頼らず明示する。リバースプロキシ配下で http/https を取り違えるのを防ぐため。
+export GOOGLE_REDIRECT_URI="$BASE_URL/oauth/google/login/callback"
+
+# ログアウトを機能させるために必須 (未設定だと起動時に警告が出る)
+export OPENID_PROVIDER_URL="https://accounts.google.com/.well-known/openid-configuration"
+
+export ENABLE_OAUTH_SIGNUP=true              # 初回ログインでユーザを自動作成
+export OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true    # 同じメールの既存アカウントに紐づける
+
+# 二重の絞り込み:
+#  hd  = Google の同意画面の段階で当該 Workspace 以外のアカウントを出さない (UX)
+#  ALLOWED_DOMAINS = Open WebUI 側での実際の拒否 (こちらが実効的な防御)
+export GOOGLE_OAUTH_AUTHORIZE_PARAMS="{\"hd\": \"$ALLOWED_DOMAIN\"}"
+export OAUTH_ALLOWED_DOMAINS="$ALLOWED_DOMAIN"
+
+export CORS_ALLOW_ORIGIN="$BASE_URL"
+
+# 学生ごとの利用を LiteLLM 側で識別するためのヘッダを付与する
+# (X-OpenWebUI-User-Email など)。LiteLLM の config.yaml で
+# general_settings.user_header_mappings と対になっている。
+export ENABLE_FORWARD_USER_INFO_HEADERS=true
+
+# モデル接続 (LiteLLM の URL と virtual key) は環境変数では設定できない。
+# 初回起動後に 管理者パネル → 設定 → 接続 から入れる。README 参照。
+uv run open-webui serve --host "$BIND_HOST" --port "$BIND_PORT"

@@ -1,0 +1,3 @@
+user,grp,cn,sn,shell,uid,gid,home,home_perm,authorized_keys,groups,password_hash,password,notebooks
+tau,tau,tau,tau,/bin/bash,1001,1001,/home/tau,750,ssh-ed25519 AAAAC...Sii4 foo@example,ldap_sudo,BOGUS_PASSWD_HASH,,
+share,share,share,share,/bin/bash,1002,1002,/home/share,755,ssh-ed25519 AAAAC...Sii4 bar@example,ldap_sudo,BOGUS_PASSWD_HASH,,/home/share/notebooks

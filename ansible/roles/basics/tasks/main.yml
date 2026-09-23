@@ -1,0 +1,28 @@
+---
+# tasks file for basics
+
+- name: set timezone
+# https://docs.ansible.com/ansible/2.9_ja/modules/timezone_module.html
+  timezone:
+    name: Asia/Tokyo
+
+- name: set hostname
+# https://docs.ansible.com/ansible/latest/collections/ansible/builtin/hostname_module.html
+  hostname:
+    name: "{{ hostname }}"
+
+- name: deploy /etc/hosts
+  template:
+    src: templates/etc_hosts.j2
+    dest: /etc/hosts
+
+- name: apt update and upgrade
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+    upgrade: "yes"
+
+- name: install packages
+  apt:
+    name: "{{ packages }}"
+    state: present

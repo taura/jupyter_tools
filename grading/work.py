@@ -644,17 +644,19 @@ def run(cmd, user):
 
 def download_notebooks_and_submissions(user):
     os.makedirs("dl", exist_ok=True)
-    run("rsync -avz {user}@taulec.zapto.org:notebooks dl/", user)
+    run("rsync -avz {user}@taulec.zapto.org:assignments dl/", user)
     run("rsync -avz {user}@taulec.zapto.org:/home/share/nbgrader/exchange/{user}/inbound dl/", user)
-    #run("rsync -avz {user}@163.220.176.169:notebooks dl/", user)
-    #run("rsync -avz {user}@163.220.176.169:/home/share/nbgrader/exchange/{user}/inbound dl/", user)
+    #run("rsync -avz {user}@taulec.zapto.org:notebooks dl/", user)
+    #run("rsync -avz {user}@taulec.zapto.org:/home/share/nbgrader/exchange/{user}/inbound dl/", user)
     
 def upload_gradebook_db(user):
     """
     upload dl/notebooks/gradebook.db
     """
-    run("ssh {user}@taulec cp notebooks/gradebook.db notebooks/gradebook.bak.db", user)
-    run("scp dl/notebooks/gradebook.db {user}@taulec:notebooks/", user)
+    run("ssh {user}@taulec cp assignments/gradebook.db assignments/gradebook.bak.db", user)
+    run("scp dl/assignments/gradebook.db {user}@taulec:assignments/", user)
+    #run("ssh {user}@taulec cp notebooks/gradebook.db notebooks/gradebook.bak.db", user)
+    #run("scp dl/notebooks/gradebook.db {user}@taulec:notebooks/", user)
 
 def split_and_strip(s):
     return [x.strip() for x in s.split(",")]
@@ -665,7 +667,8 @@ def parse_args(argv):
     """
     psr = argparse.ArgumentParser()
     psr.add_argument("--gradebook", metavar="GRADEBOOK_DB",
-                     default="dl/notebooks/gradebook.db",
+                     #default="dl/notebooks/gradebook.db",
+                     default="dl/assignments/gradebook.db",
                      help="sqlite3 database of gradebook")
     psr.add_argument("--sql", metavar="SQL_STATEMENT",
                      default=SQL_SELECT_ALL_GRADE_COMMENT_CELL,

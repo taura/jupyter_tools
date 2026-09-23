@@ -1,0 +1,18 @@
+[project]
+name = "hosting-llm-openwebui"
+version = "0.1.0"
+description = "Open WebUI (playground) for the class LLM environment"
+
+# open-webui 0.10.2 は Requires-Python: >=3.11,<3.13
+requires-python = ">=3.12,<3.13"
+
+# NOTE: litellm[proxy] とは同居できない。
+#   open-webui  -> cryptography==48.0.0
+#   litellm[proxy] -> cryptography>=48.0.1,<49
+# open-webui は依存を == で厳密固定するため、LiteLLM は servers/gw/ の別環境に置く。
+dependencies = [
+    "open-webui>=0.10.2",
+]
+
+[tool.uv]
+package = false

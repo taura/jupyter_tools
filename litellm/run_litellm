@@ -1,0 +1,23 @@
+#!/bin/bash
+# LiteLLM proxy (gateway)
+#
+# config      : config.yaml
+# secrets     : litellm.env  (litellm.env.example からコピーして作る)
+# prisma      : prisma generate --schema $(uv run python -c 'import litellm_proxy_extras,os;print(os.path.dirname(litellm_proxy_extras.__file__))')/schema.prisma
+#
+# 注意: 秘密情報を環境に置くので `bash -x` / `set -x` は使わない (キーが端末とログに出る)
+
+set -e
+cd "$(dirname "$0")"
+
+if [ ! -f litellm.env ]; then
+    echo "litellm.env がありません。litellm.env.example をコピーして値を埋めてください。" >&2
+    exit 1
+fi
+. ./litellm.env
+
+# --detailed_debug は付けない。付けるとリクエスト/レスポンスの本文
+# (学生のプロンプトと LLM の応答) がそのままログに出る。
+# 切り分けが必要なときだけ一時的に付けること。
+uv run litellm --config config.yaml \
+    --host "${BIND_HOST:-127.0.0.1}" --port "${BIND_PORT:-4000}"

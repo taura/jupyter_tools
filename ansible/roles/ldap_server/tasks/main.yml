@@ -1,0 +1,61 @@
+---
+# tasks file for ldap_server
+
+# install LDAP server and basic setup
+#
+- name: install slapd and ldap-utils
+  apt:
+    state: present
+    name:
+      - slapd
+      - ldap-utils
+
+# if ldap_root_password_hash is not defined, generate it from root password
+- name: obtain hash of root password
+  command: slappasswd -s {{ ldap_root_password }}
+  register: slappasswd_root
+  when: ldap_root_password_hash is not defined
+
+- name: set ldap_root_password_hash
+  set_fact:
+    ldap_root_password_hash: "{{ slappasswd_root.stdout }}"
+  when: ldap_root_password_hash is not defined
+
+# set root password
+- name: generate /tmp/change_root_pw.ldif
+  template:
+    src: change_root_pw.ldif.j2
+    dest: /tmp/change_root_pw.ldif
+
+- name: changes LDAP root password
+  command: ldapadd -Y EXTERNAL -H ldapi:/// -f /tmp/change_root_pw.ldif
+
+- name: remove change_root_pw.ldif
+  file:
+    dest: /tmp/change_root_pw.ldif
+    state: absent
+  
+# if ldap_domain_password_hash is not defined, generate it from domain password
+- name: obtain hash of domain password
+  command: slappasswd -s {{ ldap_domain_password }}
+  register: slappasswd_domain
+  when: ldap_domain_password_hash is not defined
+
+- name: set ldap_domain_password_hash
+  set_fact:
+    ldap_domain_password_hash: "{{ slappasswd_domain.stdout }}"
+  when: ldap_domain_password_hash is not defined
+
+- name: generate /tmp/make_domain.ldif
+  template:
+    src: make_domain.ldif.j2
+    dest: /tmp/make_domain.ldif
+
+- name: makes an LDAP domain
+  shell: ldapsearch -Y EXTERNAL -H ldapi:/// -s base -b {{ ldap_domain }} || slapadd -l /tmp/make_domain.ldif
+
+- name: remove make_domain.ldif
+  file:
+    dest: /tmp/make_domain.ldif
+    state: absent
+

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Matrix</title>
+<link rel="stylesheet" href="scripts/style.css">
+</head>
+<body>
+
+<h1>Activity matrix</h1>
+<p class="subtitle">Each cell shows activity counts for a (user, topic/problem) pair.
+  Follow <b>log</b> to read the conversation that produced them.</p>
+
+<div id="error" class="error" hidden></div>
+<div class="table-scroll" id="tableWrap"></div>
+
+<div class="legend">
+  <span class="legend-title">Cell rows:</span>
+  <span><b>hey</b> — AI queries</span>
+  <span><b>w</b> — file writes (per language)</span>
+  <span><b>cEr / cOk</b> — compiles that failed / succeeded</span>
+  <span><b>rEr / rOk</b> — runs that failed / succeeded</span>
+</div>
+
+<!-- data.js is the one sitting next to whichever index.html is being read:
+     dl_viewer/data.js or hist_viewer/data.js.  index.html and scripts are
+     symlinks into ../viewer, so this page serves both. -->
+<script src="data.js"></script>
+<script src="scripts/main.js"></script>
+</body>
+</html>

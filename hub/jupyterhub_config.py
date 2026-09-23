@@ -20,7 +20,7 @@ CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 TENANT_ID = os.environ["TENANT_ID"]
 
-c.JupyterHub.ssl_cert = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.crt'
+c.JupyterHub.ssl_cert = f'/etc/pki/tls/certs/{FQDN}/fullchain.crt'
 c.JupyterHub.ssl_key = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.key'
 
 import user_map
@@ -50,6 +50,11 @@ class MyPAMAuthenticator(PAMAuthenticator):
             local = u
         print(f"--> {local}")
         return local
+
+# API key を環境変数で nbgrader で各ユーザにわたるようにする
+# 値そのものは run_hub_sub で . cfg.sh でセットされる
+c.Spawner.env_keep = ['PATH', 'PYTHONPATH', 'CONDA_ROOT', 'CONDA_DEFAULT_ENV', 'VIRTUAL_ENV', 'LANG', 'LC_ALL', 'JUPYTERHUB_SINGLEUSER_APP']
+c.Spawner.env_keep.extend(["HEYTUTOR_ENDPOINT", "HEYTUTOR_API_KEY", "HEYTUTOR_API_VERSION", "HEYTUTOR_MODEL", "HEYTUTOR_PROBLEM_SET_DIR"])
     
 if 0:
     # AzureAD
@@ -66,7 +71,7 @@ if 1:
     # AzureAD + Local
     c.JupyterHub.authenticator_class = MultiAuthenticator
     c.MultiAuthenticator.authenticators = [
-        {
+        {                       # UTokyo Account
             "authenticator_class" : MyLocalAzureAdOAuthenticator,
             "url_prefix" : "/sso",
             "config" : {
@@ -77,17 +82,17 @@ if 1:
                 "username_claim" : "upn", # "preferred_username", "email", "upn"
                 "allow_all" : True,
                 "scope" : ["openid", "email"],
-                "service_name" : "UTokyo Account",
+                "service_name" : "UTokyo Account", # ログインページでの表示
                 "prefix" : "utokyoaccount",
             }
         },
-        {
+        {                       # Local user name + password
             "authenticator_class" : MyPAMAuthenticator,
             "url_prefix" : "/local",
             "config" : {
                 "prefix" : "",
                 "allow_all" : True,
-                "service_name" : "Local Account",
+                "service_name" : "Local Account", # ログインページでの表示
                 #"login_service" : "Local Account",
             }
         }
