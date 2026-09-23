@@ -8,14 +8,13 @@ filter_users = root
 
 [domain/default]
 id_provider = ldap
-# 証明書の名前 (fqdn) で接続する。IP アドレスで繋ぐと証明書の検証に失敗する。
-# fqdn は /etc/hosts (roles/basics) で内部アドレスに引かれる。
+# Connect by the certificate's name (fqdn); an IP address fails verification.
+# /etc/hosts (roles/basics) resolves the fqdn to the internal address.
 ldap_uri = ldap://{{ ldap_server_name }}/
 ldap_search_base = {{ ldap_domain }}
 
-# sssd はパスワード認証に暗号化された接続を必須とする。slapd 側で
-# roles/cert の証明書を使って StartTLS を有効にしてある (roles/ldap_server)。
-# ldap_id_use_start_tls は sssd 2.12 では既定で True だが、明示しておく。
+# sssd requires encryption for password auth; slapd has StartTLS with the
+# roles/cert certificate (roles/ldap_server). True is the 2.12 default; be explicit.
 ldap_id_use_start_tls = True
 ldap_tls_reqcert = demand
 ldap_tls_cacert = /etc/ssl/certs/ca-certificates.crt

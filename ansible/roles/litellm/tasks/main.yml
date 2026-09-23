@@ -1,15 +1,14 @@
 ---
 # tasks file for litellm
 #
-# LiteLLM (../litellm) を動かすための、sudo が要る部分だけをやる。
-# LiteLLM 本体は {{ litellm_user }} (sudo 権限なし) が自分で入れて
-# systemd user service として動かす:
+# The root-only parts of LiteLLM (../litellm). LiteLLM itself runs as a
+# systemd user service of {{ litellm_user }} (no sudo), set up with
 #   ./install deps && ./install service
 #
-# ここでやること:
-#  - PostgreSQL の導入と、LiteLLM 用のロールと DB の作成
-#  - {{ litellm_user }} の linger (ログインしていなくても user service を上げる)
-#  - Apache の 443 vhost から /litellm/v1/ を LiteLLM に中継
+# This role:
+#  - installs PostgreSQL and creates the LiteLLM role and database
+#  - enables linger for {{ litellm_user }} (user services run without a login)
+#  - proxies /litellm/v1/ from the 443 vhost to LiteLLM
 
 #
 # PostgreSQL
@@ -19,7 +18,7 @@
     state: present
     name:
       - postgresql
-      # community.postgresql のモジュールが使う
+      # required by community.postgresql modules
       - python3-psycopg2
 
 - name: start PostgreSQL
@@ -28,9 +27,9 @@
     state: started
     enabled: yes
 
-# Ubuntu では OS の postgres ユーザが peer 認証で DB のスーパーユーザになる。
-# LiteLLM 自身は 127.0.0.1:5432 にこのロールとパスワードで繋ぐ
-# (pg_hba.conf の既定で scram-sha-256 が許可されている)。
+# The OS user postgres is the DB superuser via peer auth.
+# LiteLLM connects to 127.0.0.1:5432 with this role and password
+# (scram-sha-256 is allowed by the default pg_hba.conf).
 - name: create the LiteLLM database role
   community.postgresql.postgresql_user:
     name: "{{ litellm_db_user }}"
@@ -47,8 +46,8 @@
 #
 # linger
 #
-# これが無いと {{ litellm_user }} の user service はログイン中しか動かず、
-# ホスト起動時にも上がらない。
+# Without linger, {{ litellm_user }}'s user services stop at logout and
+# don't start at boot.
 - name: enable linger for {{ litellm_user }}
   command: loginctl enable-linger {{ litellm_user }}
   args:
@@ -57,9 +56,9 @@
 #
 # Apache
 #
-# 443 の vhost の内側に Include する。conf-available/ に置いて a2enconf すると
-# :80 にも効いて LiteLLM が平文で露出するので、そうしない
-# (files/litellm-subpath.conf の冒頭を参照)。
+# Include it inside the 443 vhost. Do not a2enconf it from conf-available/:
+# that would also expose LiteLLM over plain HTTP on :80
+# (see the header of files/litellm-subpath.conf).
 - name: enable Apache proxy modules
   apache2_module:
     name: "{{ item }}"

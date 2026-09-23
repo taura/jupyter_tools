@@ -1,13 +1,13 @@
 #!/bin/bash
 # LiteLLM をこのホストに設置する。冪等なので何度でも流し直してよい。
-# sudo は要らない。LiteLLM を動かすアカウント (sudo 権限なし) で実行する。
+# No sudo; run as the (non-sudo) account that runs LiteLLM.
 #
 #   ./install            # 全部
 #   ./install deps       # uv sync + prisma generate だけ
 #   ./install service    # systemd user service の登録
 #
-# sudo が要る部分 (PostgreSQL のロールと DB、linger、Apache の中継) は
-# ansible の roles/litellm がやる:
+# Root-only parts (PostgreSQL role and DB, linger, Apache proxy) are done by
+# ansible roles/litellm:
 #   cd ../ansible && ansible-playbook -i machines.ini litellm.yml
 set -eu
 cd "$(dirname "$0")"

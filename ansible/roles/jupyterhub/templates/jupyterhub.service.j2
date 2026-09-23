@@ -1,26 +1,25 @@
 # JupyterHub (systemd system service)
-# managed by ansible (roles/jupyterhub)。このファイルは template。
+# Managed by ansible (roles/jupyterhub). This is a template.
 #
 #   sudo systemctl status  jupyterhub
 #   sudo systemctl restart jupyterhub
 #   journalctl -u jupyterhub -f
 #
-# hub は root で動く (LocalProcessSpawner が学生の uid に切り替えて
-# サーバを起動するため)。root が実行するものはすべて root 所有にしてある:
-#   {{ jupyterhub_dir }}/venv                  hub 本体の venv (../hub/pyproject.toml)
-#   {{ jupyterhub_dir }}/jupyterhub_config.py  設定 (../hub/jupyterhub_config.py)
-#   /etc/jupyterhub/jupyterhub.env    秘密情報 (vars/jupyterhub.yml から)
+# The hub runs as root (LocalProcessSpawner switches to each student's uid).
+# Everything root executes is root-owned:
+#   {{ jupyterhub_dir }}/venv                  hub venv (../hub/pyproject.toml)
+#   {{ jupyterhub_dir }}/jupyterhub_config.py  config (../hub/jupyterhub_config.py)
+#   /etc/jupyterhub/jupyterhub.env    secrets (from vars/jupyterhub.yml)
 #   {{ jupyterhub_state_dir }}              jupyterhub.sqlite, cookie secret, user_map.sqlite
-# 学生のサーバは share 所有の {{ jupyterhub_singleuser_venv }} で動く。
+# Students' servers run from the share-owned {{ jupyterhub_singleuser_venv }}.
 #
-# ログは journal に入る。ローテーションも journald が面倒を見る。
+# Logs go to the journal.
 
 [Unit]
 Description=JupyterHub
 After=network-online.target sssd.service
 Wants=network-online.target
-# 学生のホームと、学生のサーバの venv ({{ jupyterhub_singleuser_venv }}) は
-# 別ディスクの /home にあるのでマウントを待つ
+# Students' homes and {{ jupyterhub_singleuser_venv }} are on the separate /home disk
 RequiresMountsFor=/home
 
 [Service]
@@ -30,7 +29,7 @@ WorkingDirectory={{ jupyterhub_state_dir }}
 EnvironmentFile=/etc/jupyterhub/jupyterhub.env
 ExecStart={{ jupyterhub_dir }}/venv/bin/jupyterhub -f {{ jupyterhub_dir }}/jupyterhub_config.py
 
-# configurable-http-proxy は npm で入れた /usr/local/bin にある (apt 版は壊れている)
+# configurable-http-proxy is in /usr/local/bin (npm; the apt package is broken)
 Environment=PATH={{ jupyterhub_dir }}/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 Restart=on-failure

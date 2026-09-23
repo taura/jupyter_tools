@@ -6,7 +6,7 @@
 #
 # 公開ホストでは open-webui 自身が TLS を張れない (uvicorn.run に ssl_keyfile を
 # 渡していない) ので、前段に Apache を置いて終端させる。
-# ansible/roles/open_webui/templates/open-webui-tls.conf.j2 を参照。
+# See ansible/roles/open_webui/templates/open-webui-tls.conf.j2.
 # その場合 oauth.env に
 #   export BASE_URL=https://example.org:3000   # ブラウザから見える URL
 #   export BIND_PORT=8080                      # Apache が中継する先

@@ -17,8 +17,7 @@
   roles:
     - nfs_client
 
-# ldap_server が slapd の TLS にこのホストの証明書 (roles/cert) を使うので、
-# LDAP より先に証明書を用意する。
+# Before LDAP: ldap_server uses this host's certificate (roles/cert) for slapd TLS.
 - name: apache
   hosts: web_server
   vars_files: [ vars/cert.yml ]
@@ -54,23 +53,23 @@
   roles:
     - ldap_sudo
 
-# LiteLLM の sudo が要る部分 (PostgreSQL, linger, Apache の中継)。
-# apache/cert の後に置く (default-ssl.conf に Include を足すので)。
+# Root-only parts of LiteLLM (PostgreSQL, linger, Apache proxy).
+# After apache/cert (adds an Include to default-ssl.conf).
 - name: litellm
   hosts: litellm_host
   vars_files: [ vars/litellm.yml ]
   roles:
     - litellm
 
-# Open WebUI の sudo が要る部分 (linger, Apache の TLS 終端)。
-# apache/cert の後に置く (証明書を使うので)。
+# Root-only parts of Open WebUI (linger, Apache TLS termination).
+# After apache/cert (uses the certificate).
 - name: open webui
   hosts: open_webui_host
   roles:
     - open_webui
 
-# JupyterHub 本体 (root)。学生のサーバの環境は share が ../singleuser/install で作る。
-# apache/cert の後に置く (証明書を使うので)。
+# JupyterHub itself (root). Students' environment: ../singleuser/install as share.
+# After apache/cert (uses the certificate).
 - name: jupyterhub
   hosts: jupyterhub_host
   vars_files: [ vars/jupyterhub.yml ]

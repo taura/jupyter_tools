@@ -1,20 +1,20 @@
 # Open WebUI の前段で TLS を終端する Apache vhost
-# managed by ansible (roles/open_webui)。このファイルは template。
+# Managed by ansible (roles/open_webui). This is a template.
 #
 #   ブラウザ --https:{{ open_webui_port }}--> Apache --http:{{ open_webui_backend_port }}--> open-webui (127.0.0.1)
 #
 # open-webui 自身は TLS を張れない (uvicorn.run に ssl_keyfile を渡していない)。
 # 証明書は 443 の vhost と同じもの (roles/cert) を使い回す。
 
-# Listen もこのファイルに置く。a2dissite すれば待ち受けごと消える。
+# Listen lives here too, so a2dissite also drops the port.
 Listen {{ open_webui_port }}
 
 <VirtualHost *:{{ open_webui_port }}>
     ServerName {{ fqdn }}
 
     SSLEngine on
-    # リーフだけでなく中間証明書も送る (roles/cert の fullchain_dest のコメント参照)。
-    # リーフ 1 枚だと curl / Python / Node が検証に失敗する。
+    # Send the intermediate too (see fullchain_dest in roles/cert);
+    # with the leaf alone, curl / Python / Node fail to verify.
     SSLCertificateFile    /etc/pki/tls/certs/{{ fqdn }}/fullchain.crt
     SSLCertificateKeyFile /etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.key
 

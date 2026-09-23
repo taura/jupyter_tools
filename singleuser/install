@@ -1,30 +1,29 @@
 #!/bin/bash
-# 学生用の Jupyter 環境 (jupyterhub-singleuser, JupyterLab, nbgrader, カーネル) を作る。
-# 冪等なので何度でも流し直してよい。sudo は要らない。share で実行する。
+# Build the students' Jupyter environment (jupyterhub-singleuser, JupyterLab,
+# nbgrader, kernels). Idempotent; no sudo. Run as share.
 #
 #   ./install
 #
-# venv の場所は既定で /home/share/venv/jupyter。JupyterHub (ansible の
-# roles/jupyterhub) の jupyterhub_singleuser_venv と揃えること。
+# Venv defaults to /home/share/venv/jupyter; must match jupyterhub_singleuser_venv
+# in ansible roles/jupyterhub.
 #   JUPYTER_VENV=/path/to/venv ./install
 #
-# 学生全員がこの venv の python を実行するので、venv も uv が入れる Python も
-# 全員が読める場所 (share のホーム、755) に置く。
+# Every student runs this venv's python, so the venv and uv's Python must be
+# world-readable (share's home is 755).
 set -eu
 cd "$(dirname "$0")"
 HERE=$(pwd)
 REPO=$(dirname "$HERE")
 
 VENV=${JUPYTER_VENV:-/home/share/venv/jupyter}
-# uv が入れる Python 本体。既定 (~/.local/share/uv/python) でも読めはするが、
-# venv と並べて置いて「学生から読まれるもの」をひとまとめにする。
+# uv-managed Python, next to the venv so everything students read is in one place
 PYDIR=$(dirname "$VENV")/python
 
 command -v uv >/dev/null || {
     echo "uv がありません: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2; exit 1; }
 
-# 以前の pip (python -m venv) で作った venv が残っていると混乱のもとなので止める。
-# uv が作った venv の pyvenv.cfg には "uv = <version>" の行がある。
+# Refuse to reuse an old pip venv (python -m venv).
+# uv-created venvs have a "uv = <version>" line in pyvenv.cfg.
 if [ -e "$VENV" ] && ! grep -q '^uv = ' "$VENV/pyvenv.cfg" 2>/dev/null; then
     echo "$VENV は uv で作った venv ではありません (以前の pip の venv?)。" >&2
     echo "中身を確認してから消して、もう一度実行してください:" >&2
@@ -38,17 +37,17 @@ export UV_PROJECT_ENVIRONMENT="$VENV"
 export UV_PYTHON_INSTALL_DIR="$PYDIR"
 uv sync --frozen
 
-# カーネルを venv の中 (share/jupyter/kernels) に登録する。
-# python3 (ipykernel) は ipykernel が自分で置く。
+# Register kernels inside the venv (share/jupyter/kernels).
+# ipykernel installs python3 itself.
 "$VENV/bin/python" -m bash_kernel.install --sys-prefix
 "$VENV/bin/python" -m sos_notebook.install --sys-prefix
 
-# nbgrader の学生用の共通設定 (../nbgrader/README.md)。
-# venv の etc/jupyter はすべての学生の設定探索パスに入る。
+# Common nbgrader config for everyone (../nbgrader/README.md);
+# the venv's etc/jupyter is on every user's config path.
 mkdir -p "$VENV/etc/jupyter"
 ln -sfn "$REPO/nbgrader/common/nbgrader_config.py" "$VENV/etc/jupyter/nbgrader_config.py"
 
-# 念のため全員が読めるようにする (umask の違う環境で作られた場合など)
+# ensure world-readable regardless of umask
 chmod -R a+rX "$VENV" "$PYDIR"
 
 echo

@@ -4,13 +4,13 @@ c = get_config()  #noqa
 
 ################ 
 #
-# managed by ansible (roles/jupyterhub): /opt/jupyterhub/jupyterhub_config.py に
-# コピーされ、root が実行する。値は /etc/jupyterhub/jupyterhub.env (systemd の
-# EnvironmentFile) から来る。作業ディレクトリ (sqlite 等の置き場) は /var/lib/jupyterhub。
+# Managed by ansible (roles/jupyterhub): copied to /opt/jupyterhub/ and run by root.
+# Values come from /etc/jupyterhub/jupyterhub.env (systemd EnvironmentFile).
+# Working directory (sqlite files etc.) is /var/lib/jupyterhub.
 
 import sys
 import os
-# user_map.py をこのファイルと同じディレクトリから import する
+# import user_map.py from this file's directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from oauthenticator.google import GoogleOAuthenticator
@@ -21,28 +21,26 @@ from tornado import web
 FQDN = os.environ["FQDN"]
 GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
 GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
-# ログインを許すメールのドメイン (Open WebUI の ALLOWED_DOMAIN と同じ)
+# Email domain allowed to log in (same as Open WebUI's ALLOWED_DOMAIN)
 GOOGLE_DOMAIN = os.environ.get("GOOGLE_DOMAIN", "g.ecc.u-tokyo.ac.jp")
-# 学生のサーバを動かす venv (share 所有, ../singleuser/install が作る)
+# Venv for students' servers (share-owned, built by ../singleuser/install)
 SINGLEUSER_VENV = os.environ.get("SINGLEUSER_VENV", "/home/share/venv/jupyter")
 
 c.JupyterHub.ssl_cert = f'/etc/pki/tls/certs/{FQDN}/fullchain.crt'
 c.JupyterHub.ssl_key = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.key'
 
-# Google のメールアドレス (10桁@g.ecc.u-tokyo.ac.jp) -> ローカルユーザ (u26000 等)
-# の対応表。作業ディレクトリ (/var/lib/jupyterhub) に置かれる。
-# 管理は user_map.py の CLI (hub/README.md)。
+# Google email (<10 digits>@g.ecc.u-tokyo.ac.jp) -> local user (u26000 etc.).
+# Lives in the working directory; managed with the user_map.py CLI (hub/README.md).
 import user_map
 UM = user_map.user_map("user_map.sqlite")
 UM.ensure_db()
 
 class MyGoogleOAuthenticator(GoogleOAuthenticator):
-    # MultiAuthenticator がユーザ名に付ける prefix を空にする。
-    # config の "prefix" は GoogleOAuthenticator では効かず、既定の
-    # "<service_name>:" が付いてしまう。そうなると normalize 後のローカル
-    # ユーザ名 (u26000 等) が prefix で始まらず、check_allowed で全員弾かれる。
+    # Empty MultiAuthenticator username prefix. "prefix" in config has no effect
+    # on GoogleOAuthenticator, so "<service_name>:" would be used; the mapped
+    # local name (u26000) then lacks the prefix and check_allowed rejects everyone.
     prefix = ""
-    # ログインページのボタンの表示 (config の service_name は deprecated)
+    # button label on the login page (service_name in config is deprecated)
     login_service = "Google (ECCS)"
 
     def normalize_username(self, u):
@@ -52,19 +50,17 @@ class MyGoogleOAuthenticator(GoogleOAuthenticator):
             if local is None:
                 raise web.HTTPError(403, f"cannot assign local user for {u}")
         else:
-            # MultiAuthenticator が prefix ("") を normalize しに来るのと、
-            # 対応付け済みのローカルユーザ名がもう一度通るとき
+            # the prefix ("") itself, or an already-mapped local name
             local = u
         print(f" --> {local}")
         return local
 
 class MyPAMAuthenticator(PAMAuthenticator):
     prefix = ""
-    # ログインページのボタンの表示。login_service ではなく service_name に置く:
-    # login_service が空でないと /hub/local/login がユーザ名・パスワードの
-    # フォームではなく「Sign in with ...」ボタンを出してしまい、先へ進めない。
-    # service_name は multiauthenticator のボタンにだけ使われる
-    # (config で渡すと deprecated の警告が出るのでクラス属性にする)。
+    # Button label. Use service_name, not login_service: a non-empty
+    # login_service makes /hub/local/login show a "Sign in with ..." button
+    # instead of the password form. service_name is only used for the
+    # multiauthenticator buttons (class attribute avoids the deprecation warning).
     service_name = "Local Account"
 
     def normalize_username(self, u):
@@ -76,37 +72,37 @@ class MyPAMAuthenticator(PAMAuthenticator):
         print(f"--> {local}")
         return local
 
-# 学生のサーバは hub (root, /opt/jupyterhub) ではなく share の venv で動かす。
-# PATH を hub から引き継がない (env_keep から外す) で、ここで明示する。
-# PATH 越しに python / jupyter / カーネルがその venv のものになる。
+# Students' servers run from share's venv, not the hub's (root, /opt/jupyterhub).
+# Don't inherit the hub's PATH (not in env_keep); set it here so python,
+# jupyter and kernels resolve to that venv.
 c.Spawner.cmd = [f"{SINGLEUSER_VENV}/bin/jupyterhub-singleuser"]
 c.Spawner.environment = {
     "PATH": f"{SINGLEUSER_VENV}/bin:/usr/local/bin:/usr/bin:/bin",
     "VIRTUAL_ENV": SINGLEUSER_VENV,
 }
 c.Spawner.env_keep = ['LANG', 'LC_ALL', 'JUPYTERHUB_SINGLEUSER_APP']
-# AI tutor 用の API key などを環境変数で各ユーザに渡す。値は jupyterhub.env
-# (ansible の jupyterhub_extra_env) に書く。未設定なら何も渡らない。
+# Pass AI tutor settings (API key etc.) to each user. Values go in
+# jupyterhub.env (ansible jupyterhub_extra_env); unset names are not passed.
 c.Spawner.env_keep.extend(["HEYTUTOR_ENDPOINT", "HEYTUTOR_API_KEY", "HEYTUTOR_API_VERSION", "HEYTUTOR_MODEL", "HEYTUTOR_PROBLEM_SET_DIR"])
 
 # Google + Local
 c.JupyterHub.authenticator_class = MultiAuthenticator
 c.MultiAuthenticator.authenticators = [
-    {                       # Google (ECCS クラウドメール)。Open WebUI と同じ OAuth クライアント
+    {                       # Google (ECCS); same OAuth client as Open WebUI
         "authenticator_class" : MyGoogleOAuthenticator,
         "url_prefix" : "/google",
         "config" : {
-            # Google Cloud Console の「承認済みのリダイレクト URI」に完全一致で登録する
+            # must exactly match an authorized redirect URI in Google Cloud Console
             "oauth_callback_url" : f"https://{FQDN}:8000/hub/google/oauth_callback",
             "client_id" : GOOGLE_CLIENT_ID,
             "client_secret" : GOOGLE_CLIENT_SECRET,
-            # 同意画面の hd と、ログイン後の検証の両方に効く
+            # sets hd on the consent screen and is enforced after login
             "hosted_domain" : [GOOGLE_DOMAIN],
-            # 既定ではドメインが 1 つだと @以降を削ってしまう。
-            # user_map はメールアドレス全体をキーにするので残す
+            # keep the full email (default strips @domain for a single domain);
+            # user_map is keyed by the full address
             "strip_domain" : False,
             "allow_all" : True,
-            # prefix とボタンの表示はクラス属性で決めてある (MyGoogleOAuthenticator 参照)
+            # prefix and label are class attributes (see MyGoogleOAuthenticator)
         }
     },
     {                       # Local user name + password

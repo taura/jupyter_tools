@@ -25,9 +25,9 @@ ff02::2 ip6-allrouters
 {% endfor %}
 
 # global hostname
-# VNet 内からは fqdn を内部アドレスに引かせる。グローバルアドレスには
-# 自分自身からも届かないポートがあり (例: LDAP の 389)、証明書の名前で
-# 繋ぎたいサービス (sssd -> slapd の StartTLS) が使えなくなるため。
+# Resolve the fqdn to the internal address within the VNet: some ports
+# (e.g. LDAP 389) are unreachable on the global address even from the host
+# itself, which breaks services that connect by certificate name (sssd -> slapd).
 {% for addr, v in hostvars.items() %}
 {% if v.fqdn is defined %}
 {{ v.ethipv4 | default(v.glbipv4) }} {{ v.fqdn }}

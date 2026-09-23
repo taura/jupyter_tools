@@ -5,23 +5,23 @@ description = "Students' Jupyter server environment (jupyterhub-singleuser, Jupy
 
 requires-python = ">=3.12,<3.13"
 
-# 学生が使う環境。hub (root) とは別の venv で、share が所有する
-# /home/share/venv/jupyter に入れる (./install)。学生のパッケージの追加・更新は
-# share が sudo なしで行える。root が実行する hub 本体は ../hub にある。
+# Students' environment, separate from the hub (root): share-owned
+# /home/share/venv/jupyter (./install), so share can update it without sudo.
+# The hub itself is in ../hub.
 #
-# jupyterhub のバージョンは ../hub/pyproject.toml と必ず揃えること。
+# Keep the jupyterhub version identical to ../hub/pyproject.toml.
 dependencies = [
     "jupyterhub==5.5.2",     # jupyterhub-singleuser
-    "jupyterlab>=4.3,<5",    # nbgrader 0.9 は JupyterLab 4 系
+    "jupyterlab>=4.3,<5",    # nbgrader 0.9 needs JupyterLab 4
     "notebook>=7.3,<8",
     "nbgrader>=0.9.5",
     "ipywidgets",
-    # カーネル (./install が kernelspec を venv に登録する)
+    # kernels (./install registers their kernelspecs in the venv)
     "bash_kernel",
     "sos",
     "sos-notebook",
     "jupyterlab-sos",
-    # 授業で使うライブラリ
+    # libraries used in classes
     "numpy",
     "pandas",
     "matplotlib",

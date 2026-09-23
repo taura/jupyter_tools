@@ -1,12 +1,12 @@
 #!/bin/bash
 # Open WebUI をこのホストに設置する。冪等。
-# sudo は要らない。Open WebUI を動かすアカウント (sudo 権限なし) で実行する。
+# No sudo; run as the (non-sudo) account that runs Open WebUI.
 #
 #   ./install            # 全部
 #   ./install deps       # uv sync だけ
 #   ./install service    # systemd user service の登録
 #
-# sudo が要る部分 (linger、Apache の TLS 終端) は ansible の roles/open_webui がやる:
+# Root-only parts (linger, Apache TLS termination) are done by ansible roles/open_webui:
 #   cd ../ansible && ansible-playbook -i machines.ini open_webui.yml
 set -eu
 cd "$(dirname "$0")"

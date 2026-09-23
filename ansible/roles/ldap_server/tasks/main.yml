@@ -90,20 +90,18 @@
   become: yes
 
 #
-# slapd の TLS (StartTLS)。
+# slapd TLS (StartTLS).
 #
-# sssd は、パスワード認証には暗号化された接続を必須とする
-# (ldap_id_use_start_tls = False でも、認証の時点で
-#  "Could not start TLS encryption." になって失敗する)。
-# roles/cert が Let's Encrypt から取ってきたこのホストの証明書を使う。
+# sssd requires an encrypted connection for password auth (even with
+# ldap_id_use_start_tls = False it fails with "Could not start TLS encryption.").
+# Uses this host's Let's Encrypt certificate from roles/cert.
 #
-# /etc/pki/tls/certs/<fqdn>/ を直接指さずにコピーする理由:
-#  - 鍵は root 0600 で、slapd (openldap ユーザ) が読めない
-#  - slapd の AppArmor プロファイルが /etc/ldap/** しか読ませない
+# Copied rather than referenced in /etc/pki/tls/certs/<fqdn>/ because:
+#  - the key is root 0600 and slapd (openldap) can't read it
+#  - slapd's AppArmor profile only allows /etc/ldap/**
 #
-# 証明書は roles/cert を流したときに更新される。そのあとにこの role が
-# 走ればコピーが変わり、slapd を再起動して読み直させる (all.yml で
-# cert の play を ldap_server より前に置いているのはそのため)。
+# roles/cert renews the certificate; this role then sees changed copies and
+# restarts slapd (that's why all.yml runs cert before ldap_server).
 #
 - name: check the server certificate made by roles/cert exists
   stat:
@@ -113,8 +111,8 @@
 - name: fail if the server certificate does not exist
   fail:
     msg: >-
-      /etc/pki/tls/certs/{{ fqdn }}/fullchain.crt がありません。
-      ldap_server のホストは web_server にも入れて roles/cert で証明書を作ってください。
+      /etc/pki/tls/certs/{{ fqdn }}/fullchain.crt is missing. Put the ldap_server
+      host in web_server too so roles/cert creates the certificate.
   when: not ldap_tls_cert.stat.exists
 
 - name: create /etc/ldap/tls
@@ -134,13 +132,13 @@
     group: openldap
     mode: "{{ item.mode }}"
   loop:
-    # 中間証明書も送らないとクライアントが検証できないので fullchain を使う
+    # fullchain: clients can't verify without the intermediate
     - { src: fullchain.crt, dest: fullchain.crt, mode: "0644" }
     - { src: "{{ fqdn }}.key", dest: server.key, mode: "0640" }
   register: ldap_tls_files
 
-# 証明書と鍵は 1 回の modify で同時に設定する (片方ずつだと、途中で
-# 証明書と鍵が合わない状態になって slapd に拒否されることがある)
+# Set cert and key in one modify; setting them one at a time can leave a
+# mismatched pair that slapd rejects.
 - name: configure slapd TLS
   ldap_attrs:
     dn: cn=config

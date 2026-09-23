@@ -5,16 +5,13 @@ description = "JupyterHub itself (runs as root; installed by ansible roles/jupyt
 
 requires-python = ">=3.12,<3.13"
 
-# hub 本体だけ。root が実行するので root 所有の /opt/jupyterhub に入れる
-# (ansible の roles/jupyterhub が uv sync する)。
-# 学生のサーバ (jupyterhub-singleuser, jupyterlab, nbgrader, カーネル) は
-# share 所有の別 venv (../singleuser) に入れる。
+# Hub only. Run by root, so it goes in root-owned /opt/jupyterhub
+# (uv sync by ansible roles/jupyterhub). Students' servers (jupyterhub-singleuser,
+# jupyterlab, nbgrader, kernels) use a separate share-owned venv (../singleuser).
 #
-# jupyterhub のバージョンは ../singleuser/pyproject.toml と必ず揃えること
-# (hub と singleuser で API が噛み合わなくなる)。
+# Keep the jupyterhub version identical to ../singleuser/pyproject.toml.
 #
-# 6.0 は出たばかりで jupyterhub-multiauthenticator 0.4.0 との組み合わせが
-# 未検証なので 5.x に留めている。
+# Stay on 5.x: 6.0 is untested with jupyterhub-multiauthenticator 0.4.0.
 dependencies = [
     "jupyterhub==5.5.2",
     "oauthenticator>=17.4",
