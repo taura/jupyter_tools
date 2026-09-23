@@ -7,58 +7,30 @@
     name:
       - sssd
       - sssd-tools
-      - libnss-ldap
-      - libpam-ldap
       - ldap-utils
 
 #
-# make a line like 
-#  base dc=myldap,dc=mdx,dc=jp
-# in /etc/ldap.conf
-- name: change base /etc/ldap.conf
-  lineinfile:
-    path: /etc/ldap.conf
-    regexp: "^base (.*)$"
-    line:    "base {{ ldap_domain }}"
-
+# OpenLDAP クライアント (ldapsearch 等) 用の設定。
+# ldaptool もここから BASE を拾う。
 #
-# make a line like 
-#  uri ldap://ikura000/
-# in /etc/ldap.conf
+# 以前は /etc/ldap.conf を lineinfile で作って、それを /etc/ldap/ldap.conf に
+# コピーしていた。/etc/ldap.conf は旧 nss_ldap / pam_ldap 用の設定で、
+# Ubuntu 26.04 でそれを作る ldap-auth-config パッケージごと消えたため、
+# 本来の /etc/ldap/ldap.conf を直接書くようにした。
 #
-- name: change uri /etc/ldap.conf
-  lineinfile:
-    path: /etc/ldap.conf
-    regexp: "^uri (.*)$"
-    line:    "uri ldap://{{ ldap_server_addr }}/"
+# /etc/ldap.secret の生成もやめた。書き込みは ldapi:// + SASL EXTERNAL
+# (root のみ) で行うので、cn=admin のパスワードをディスクに置く必要がない。
+# ACL の設定は roles/ldap_server を参照。
+#
+- name: put /etc/ldap/ldap.conf
+  template:
+    src: ldap.conf.j2
+    dest: /etc/ldap/ldap.conf
+    owner: root
+    mode: "0644"
     backup: yes
   vars:
-    ldap_server_addr: "{{ hostvars[groups['ldap_server'][0]].ethipv4 }}"
-
-#
-# make a line like 
-#  rootbinddn cn=admin,dc=myldap,dc=mdx,dc=jp
-# in /etc/ldap.conf
-#
-- name: change rootbinddn /etc/ldap.conf
-  lineinfile:
-    path: /etc/ldap.conf
-    regexp: "^rootbinddn (.*)$"
-    line:    "rootbinddn cn=admin,{{ ldap_domain }}"
-
-- name: copy /etc/ldap.conf -> /etc/ldap/ldap.conf
-  copy:
-    src: /etc/ldap.conf
-    dest: /etc/ldap/ldap.conf
-    remote_src: yes
-
-- name: generate /etc/ldap.secret
-  copy:
-    dest: /etc/ldap.secret
-    content: "{{ ldap_root_password }}"
-    mode: "0600"
-    owner: root
-    backup: yes
+    ldap_server_name: "{{ hostvars[groups['ldap_server'][0]].fqdn }}"
 
 - name: change /etc/pam.d/common-password
   lineinfile:
@@ -74,7 +46,7 @@
     dest: /etc/sssd/sssd.conf
     mode: "0600"
   vars:
-    ldap_server_addr: "{{ hostvars[groups['ldap_server'][0]].ethipv4 }}"
+    ldap_server_name: "{{ hostvars[groups['ldap_server'][0]].fqdn }}"
 
 - name: invalidate sss cache
   command: sss_cache -E
