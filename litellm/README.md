@@ -20,21 +20,38 @@ Open WebUI / OpenCode / aider  --->  LiteLLM  --->  UTokyo Azure
 | `pyproject.toml` / `uv.lock` / `.python-version` | Python 環境。uv が 3.12 ごと用意する |
 | `config.yaml` | モデル定義。上流の URL と実モデル名 |
 | `litellm.env.example` | 秘密情報のテンプレート |
-| `setup_postgres` | PostgreSQL のロールと DB を作る |
 | `run_litellm` | 起動スクリプト |
 | `litellm.service` | systemd user service |
-| `install` | 上記をまとめて実行 |
-| `apache/litellm-subpath.conf` | 443 の vhost に Include する |
+| `install` | `deps` (uv sync + prisma generate) と `service` (user service の登録) |
+| `apache/litellm-subpath.conf` | 443 の vhost に Include する (ansible が置く) |
 
 ## 設置
 
-```
-cp litellm.env.example litellm.env && chmod 600 litellm.env
-$EDITOR litellm.env
-./install
-```
+LiteLLM は **sudo 権限の無いアカウント (`pd`)** の systemd user service として動かす。
+sudo が要る部分は ansible の `roles/litellm_host` に分けてある。
 
-`install` は `deps` / `db` / `service` / `apache` を個別にも実行できる。
+| 誰が | 何を |
+|---|---|
+| ansible (`roles/litellm_host`) | PostgreSQL の導入と LiteLLM 用のロール・DB の作成、`pd` の linger、Apache の `/litellm/v1/` 中継 |
+| `pd` (`./install`) | `uv sync` + `prisma generate`、user service の登録と起動 |
+
+1. ansible 側。DB のパスワードは `ansible/vars/litellm.yml` (実体は gocryptfs の
+   `ansible/files/plain/litellm_taulec.yml`) に書く。雛形は `ansible/vars/litellm.yml.in`。
+
+   ```
+   cd ../ansible && ansible-playbook -i machines.ini litellm.yml
+   ```
+
+2. `pd` 側。`ssh pd@taulec` で**ログインして**行う (`sudo -u pd` や `su pd` からでは
+   `systemctl --user` が使えない)。
+
+   ```
+   cp litellm.env.example litellm.env && chmod 600 litellm.env
+   $EDITOR litellm.env
+   ./install
+   ```
+
+`install` は `deps` / `service` を個別にも実行できる。
 
 `litellm.env` に入れるもの:
 
@@ -46,8 +63,9 @@ $EDITOR litellm.env
 | `DATABASE_URL` | `postgresql://litellm:<pass>@127.0.0.1:5432/litellm` |
 | `BIND_HOST` / `BIND_PORT` | `127.0.0.1` / `4000` |
 
-`setup_postgres` は `DATABASE_URL` を解析して、同じユーザ名・パスワード・DB を
-PostgreSQL 側に作る。パスワードを二度打つ必要はない。
+`DATABASE_URL` のユーザ名・パスワード・DB 名は、ansible の `vars/litellm.yml` の
+`litellm_db_user` / `litellm_db_password` / `litellm_db_name` と一致させること
+(ロールと DB は ansible が作る)。
 
 ## 確認
 
@@ -157,7 +175,7 @@ curl -s http://127.0.0.1:4000/key/delete -H "Authorization: Bearer $LITELLM_MAST
 ### 2. 再起動
 
 ```
-systemctl --user restart litellm
+systemctl --user restart litellm     # pd でログインして
 ```
 
 `config.yaml` は起動時にしか読まれない。ログに出る `periodic_reload_job` は

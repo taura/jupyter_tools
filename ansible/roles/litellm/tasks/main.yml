@@ -1,0 +1,98 @@
+---
+# tasks file for litellm_host
+#
+# LiteLLM (../litellm) を動かすための、sudo が要る部分だけをやる。
+# LiteLLM 本体は {{ litellm_user }} (sudo 権限なし) が自分で入れて
+# systemd user service として動かす:
+#   ./install deps && ./install service
+#
+# ここでやること:
+#  - PostgreSQL の導入と、LiteLLM 用のロールと DB の作成
+#  - {{ litellm_user }} の linger (ログインしていなくても user service を上げる)
+#  - Apache の 443 vhost から /litellm/v1/ を LiteLLM に中継
+
+#
+# PostgreSQL
+#
+- name: install PostgreSQL
+  apt:
+    state: present
+    name:
+      - postgresql
+      # community.postgresql のモジュールが使う
+      - python3-psycopg2
+
+- name: start PostgreSQL
+  systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+
+# Ubuntu では OS の postgres ユーザが peer 認証で DB のスーパーユーザになる。
+# LiteLLM 自身は 127.0.0.1:5432 にこのロールとパスワードで繋ぐ
+# (pg_hba.conf の既定で scram-sha-256 が許可されている)。
+- name: create the LiteLLM database role
+  community.postgresql.postgresql_user:
+    name: "{{ litellm_db_user }}"
+    password: "{{ litellm_db_password }}"
+  become_user: postgres
+  no_log: true
+
+- name: create the LiteLLM database
+  community.postgresql.postgresql_db:
+    name: "{{ litellm_db_name }}"
+    owner: "{{ litellm_db_user }}"
+  become_user: postgres
+
+#
+# linger
+#
+# これが無いと {{ litellm_user }} の user service はログイン中しか動かず、
+# ホスト起動時にも上がらない。
+- name: enable linger for {{ litellm_user }}
+  command: loginctl enable-linger {{ litellm_user }}
+  args:
+    creates: /var/lib/systemd/linger/{{ litellm_user }}
+
+#
+# Apache
+#
+# 443 の vhost の内側に Include する。conf-available/ に置いて a2enconf すると
+# :80 にも効いて LiteLLM が平文で露出するので、そうしない
+# (../litellm/apache/litellm-subpath.conf の冒頭を参照)。
+- name: enable Apache proxy modules
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - proxy
+    - proxy_http
+  register: litellm_apache_modules
+
+- name: put /etc/apache2/litellm-subpath.conf
+  copy:
+    src: "{{ playbook_dir }}/../litellm/apache/litellm-subpath.conf"
+    dest: /etc/apache2/litellm-subpath.conf
+    mode: "0644"
+  register: litellm_apache_conf
+
+- name: include litellm-subpath.conf in the 443 vhost
+  lineinfile:
+    path: /etc/apache2/sites-available/default-ssl.conf
+    line: "	Include /etc/apache2/litellm-subpath.conf"
+    regexp: '^\s*Include\s+/etc/apache2/litellm-subpath\.conf'
+    insertbefore: '^</VirtualHost>'
+  register: litellm_apache_include
+
+- name: check the Apache configuration
+  command: apache2ctl configtest
+  changed_when: false
+
+- name: reload Apache
+  systemd:
+    name: apache2
+    state: reloaded
+  when: >-
+    litellm_apache_modules is changed or
+    litellm_apache_conf is changed or
+    litellm_apache_include is changed

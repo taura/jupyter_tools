@@ -53,3 +53,11 @@
   hosts: ldap_client
   roles:
     - ldap_sudo
+
+# LiteLLM の sudo が要る部分 (PostgreSQL, linger, Apache の中継)。
+# apache/cert の後に置く (default-ssl.conf に Include を足すので)。
+- name: litellm
+  hosts: litellm_host
+  vars_files: [ vars/litellm.yml ]
+  roles:
+    - litellm

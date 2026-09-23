@@ -1,11 +1,14 @@
 #!/bin/bash
 # LiteLLM をこのホストに設置する。冪等なので何度でも流し直してよい。
+# sudo は要らない。LiteLLM を動かすアカウント (sudo 権限なし) で実行する。
 #
 #   ./install            # 全部
 #   ./install deps       # uv sync + prisma generate だけ
-#   ./install db         # PostgreSQL (sudo が要る)
 #   ./install service    # systemd user service の登録
-#   ./install apache     # Apache の vhost 設定 (sudo が要る)
+#
+# sudo が要る部分 (PostgreSQL のロールと DB、linger、Apache の中継) は
+# ansible の roles/litellm_host がやる:
+#   cd ../ansible && ansible-playbook -i machines.ini litellm.yml
 set -eu
 cd "$(dirname "$0")"
 HERE=$(pwd)
@@ -29,11 +32,6 @@ do_deps() {
     uv run prisma generate --schema "$SCHEMA"
 }
 
-do_db() {
-    need_env
-    ./setup_postgres
-}
-
 do_service() {
     need_env
     mkdir -p ~/.config/systemd/user
@@ -41,27 +39,16 @@ do_service() {
     systemctl --user daemon-reload
     systemctl --user enable --now litellm
     systemctl --user status litellm --no-pager | head -5 || true
-    echo
-    echo "ホスト起動時に自動で上げるには (未設定なら一度だけ):"
-    echo "  sudo loginctl enable-linger $USER"
-}
-
-do_apache() {
-    sudo cp apache/litellm-subpath.conf /etc/apache2/
-    sudo a2enmod proxy proxy_http
-    echo
-    echo "次を手で行ってください:"
-    echo "  sudo \$EDITOR /etc/apache2/sites-available/default-ssl.conf"
-    echo "  → <VirtualHost *:443> の中に次の1行を追加"
-    echo "      Include /etc/apache2/litellm-subpath.conf"
-    echo "  sudo apache2ctl configtest && sudo systemctl reload apache2"
+    if [ ! -e "/var/lib/systemd/linger/$USER" ]; then
+        echo
+        echo "linger が無効です。ログアウトすると止まり、ホスト起動時にも上がりません。"
+        echo "ansible の roles/litellm_host を流してください (litellm_user: $USER)。"
+    fi
 }
 
 case "${1:-all}" in
     deps)    do_deps ;;
-    db)      do_db ;;
     service) do_service ;;
-    apache)  do_apache ;;
-    all)     do_deps; do_db; do_service; do_apache ;;
-    *)       echo "usage: $0 [all|deps|db|service|apache]" >&2; exit 1 ;;
+    all)     do_deps; do_service ;;
+    *)       echo "usage: $0 [all|deps|service]" >&2; exit 1 ;;
 esac
