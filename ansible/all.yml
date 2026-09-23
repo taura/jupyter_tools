@@ -68,3 +68,11 @@
   hosts: open_webui_host
   roles:
     - open_webui
+
+# JupyterHub 本体 (root)。学生のサーバの環境は share が ../singleuser/install で作る。
+# apache/cert の後に置く (証明書を使うので)。
+- name: jupyterhub
+  hosts: jupyterhub_host
+  vars_files: [ vars/jupyterhub.yml ]
+  roles:
+    - jupyterhub

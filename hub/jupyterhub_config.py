@@ -3,40 +3,55 @@
 c = get_config()  #noqa
 
 ################ 
+#
+# managed by ansible (roles/jupyterhub): /opt/jupyterhub/jupyterhub_config.py に
+# コピーされ、root が実行する。値は /etc/jupyterhub/jupyterhub.env (systemd の
+# EnvironmentFile) から来る。作業ディレクトリ (sqlite 等の置き場) は /var/lib/jupyterhub。
 
 import sys
-sys.path.append("/home/tau/jupyter_tools/hub")
-
 import os
-import sqlite3
-import csv
-from oauthenticator.azuread import LocalAzureAdOAuthenticator
+# user_map.py をこのファイルと同じディレクトリから import する
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from oauthenticator.google import GoogleOAuthenticator
 from multiauthenticator import MultiAuthenticator
 from jupyterhub.auth import PAMAuthenticator
 from tornado import web
 
 FQDN = os.environ["FQDN"]
-CLIENT_ID = os.environ["CLIENT_ID"]
-CLIENT_SECRET = os.environ["CLIENT_SECRET"]
-TENANT_ID = os.environ["TENANT_ID"]
+GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
+GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
+# ログインを許すメールのドメイン (Open WebUI の ALLOWED_DOMAIN と同じ)
+GOOGLE_DOMAIN = os.environ.get("GOOGLE_DOMAIN", "g.ecc.u-tokyo.ac.jp")
+# 学生のサーバを動かす venv (share 所有, ../singleuser/install が作る)
+SINGLEUSER_VENV = os.environ.get("SINGLEUSER_VENV", "/home/share/venv/jupyter")
 
 c.JupyterHub.ssl_cert = f'/etc/pki/tls/certs/{FQDN}/fullchain.crt'
 c.JupyterHub.ssl_key = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.key'
 
+# Google のメールアドレス (10桁@g.ecc.u-tokyo.ac.jp) -> ローカルユーザ (u26000 等)
+# の対応表。作業ディレクトリ (/var/lib/jupyterhub) に置かれる。
+# 管理は user_map.py の CLI (hub/README.md)。
 import user_map
 UM = user_map.user_map("user_map.sqlite")
 UM.ensure_db()
 
-class MyLocalAzureAdOAuthenticator(LocalAzureAdOAuthenticator):
+class MyGoogleOAuthenticator(GoogleOAuthenticator):
+    # MultiAuthenticator がユーザ名に付ける prefix を空にする。
+    # config の "prefix" は GoogleOAuthenticator では効かず、既定の
+    # "<service_name>:" が付いてしまう。そうなると normalize 後のローカル
+    # ユーザ名 (u26000 等) が prefix で始まらず、check_allowed で全員弾かれる。
+    prefix = ""
+
     def normalize_username(self, u):
-        print(f"MyLocalAzureAdOAuthenticator::normalize_username {u}")
-        if u.endswith("@utac.u-tokyo.ac.jp"):
+        print(f"MyGoogleOAuthenticator::normalize_username {u}")
+        if u.endswith(f"@{GOOGLE_DOMAIN}"):
             local = UM.alloc(u)
             if local is None:
                 raise web.HTTPError(403, f"cannot assign local user for {u}")
-        elif u.startswith("UTokyo Account:"):
-            local = u.split(":")[1]
         else:
+            # MultiAuthenticator が prefix ("") を normalize しに来るのと、
+            # 対応付け済みのローカルユーザ名がもう一度通るとき
             local = u
         print(f" --> {local}")
         return local
@@ -51,53 +66,50 @@ class MyPAMAuthenticator(PAMAuthenticator):
         print(f"--> {local}")
         return local
 
-# API key を環境変数で nbgrader で各ユーザにわたるようにする
-# 値そのものは run_hub_sub で . cfg.sh でセットされる
-c.Spawner.env_keep = ['PATH', 'PYTHONPATH', 'CONDA_ROOT', 'CONDA_DEFAULT_ENV', 'VIRTUAL_ENV', 'LANG', 'LC_ALL', 'JUPYTERHUB_SINGLEUSER_APP']
+# 学生のサーバは hub (root, /opt/jupyterhub) ではなく share の venv で動かす。
+# PATH を hub から引き継がない (env_keep から外す) で、ここで明示する。
+# PATH 越しに python / jupyter / カーネルがその venv のものになる。
+c.Spawner.cmd = [f"{SINGLEUSER_VENV}/bin/jupyterhub-singleuser"]
+c.Spawner.environment = {
+    "PATH": f"{SINGLEUSER_VENV}/bin:/usr/local/bin:/usr/bin:/bin",
+    "VIRTUAL_ENV": SINGLEUSER_VENV,
+}
+c.Spawner.env_keep = ['LANG', 'LC_ALL', 'JUPYTERHUB_SINGLEUSER_APP']
+# AI tutor 用の API key などを環境変数で各ユーザに渡す。値は jupyterhub.env
+# (ansible の jupyterhub_extra_env) に書く。未設定なら何も渡らない。
 c.Spawner.env_keep.extend(["HEYTUTOR_ENDPOINT", "HEYTUTOR_API_KEY", "HEYTUTOR_API_VERSION", "HEYTUTOR_MODEL", "HEYTUTOR_PROBLEM_SET_DIR"])
-    
-if 0:
-    # AzureAD
-    c.JupyterHub.authenticator_class = MyLocalAzureAdOAuthenticator
-    c.LocalAzureAdOAuthenticator.oauth_callback_url = f"https://{FQDN}:8000/hub/oauth_callback"
-    c.LocalAzureAdOAuthenticator.client_id = CLIENT_ID
-    c.LocalAzureAdOAuthenticator.client_secret = CLIENT_SECRET
-    c.LocalAzureAdOAuthenticator.tenant_id = TENANT_ID
-    c.LocalAzureAdOAuthenticator.scope = ["openid", "email"]
-    c.LocalAzureAdOAuthenticator.username_claim = "upn"
-    c.LocalAzureAdOAuthenticator.allow_all = True
 
-if 1:
-    # AzureAD + Local
-    c.JupyterHub.authenticator_class = MultiAuthenticator
-    c.MultiAuthenticator.authenticators = [
-        {                       # UTokyo Account
-            "authenticator_class" : MyLocalAzureAdOAuthenticator,
-            "url_prefix" : "/sso",
-            "config" : {
-                "oauth_callback_url" : f"https://{FQDN}:8000/hub/sso/oauth_callback",
-                "client_id" : CLIENT_ID,
-                "client_secret" : CLIENT_SECRET,
-                "tenant_id" : TENANT_ID,
-                "username_claim" : "upn", # "preferred_username", "email", "upn"
-                "allow_all" : True,
-                "scope" : ["openid", "email"],
-                "service_name" : "UTokyo Account", # ログインページでの表示
-                "prefix" : "utokyoaccount",
-            }
-        },
-        {                       # Local user name + password
-            "authenticator_class" : MyPAMAuthenticator,
-            "url_prefix" : "/local",
-            "config" : {
-                "prefix" : "",
-                "allow_all" : True,
-                "service_name" : "Local Account", # ログインページでの表示
-                #"login_service" : "Local Account",
-            }
+# Google + Local
+c.JupyterHub.authenticator_class = MultiAuthenticator
+c.MultiAuthenticator.authenticators = [
+    {                       # Google (ECCS クラウドメール)。Open WebUI と同じ OAuth クライアント
+        "authenticator_class" : MyGoogleOAuthenticator,
+        "url_prefix" : "/google",
+        "config" : {
+            # Google Cloud Console の「承認済みのリダイレクト URI」に完全一致で登録する
+            "oauth_callback_url" : f"https://{FQDN}:8000/hub/google/oauth_callback",
+            "client_id" : GOOGLE_CLIENT_ID,
+            "client_secret" : GOOGLE_CLIENT_SECRET,
+            # 同意画面の hd と、ログイン後の検証の両方に効く
+            "hosted_domain" : [GOOGLE_DOMAIN],
+            # 既定ではドメインが 1 つだと @以降を削ってしまう。
+            # user_map はメールアドレス全体をキーにするので残す
+            "strip_domain" : False,
+            "allow_all" : True,
+            "service_name" : "Google (ECCS)", # ログインページでの表示
+            # prefix はクラス属性で空にしてある (MyGoogleOAuthenticator 参照)
         }
-    ]
-
+    },
+    {                       # Local user name + password
+        "authenticator_class" : MyPAMAuthenticator,
+        "url_prefix" : "/local",
+        "config" : {
+            "prefix" : "",
+            "allow_all" : True,
+            "service_name" : "Local Account", # ログインページでの表示
+        }
+    }
+]
 
 
 ################ 

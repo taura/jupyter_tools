@@ -6,6 +6,11 @@ c = get_config()  #noqa
 import os
 c.Exchange.assignment_dir = os.path.expanduser('~/notebooks')
 c.Exchange.path_includes_course = True
+# 課題の配布・提出の置き場。既定は /usr/local/share/nbgrader/exchange で、
+# 以前は /usr/local/share/nbgrader -> ~share/nbgrader の symlink を sudo で
+# 張っていた (install/install.sh)。ホストを作り直すと symlink が消えるので、
+# /home (別ディスク) の実体を直接指す。全員が書き込めること (drwxrwxrwx)。
+c.Exchange.root = '/home/share/nbgrader/exchange'
 #########################
 
 #------------------------------------------------------------------------------

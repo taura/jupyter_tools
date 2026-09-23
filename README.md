@@ -5,7 +5,8 @@
 * README.md
 * authoring/   --- tools to convert texts (.py, .sos, .c) into .ipynb
 * grading/     --- tools to grade .ipynb files
-* hub/         --- config file for running jupyterhub
+* hub/         --- JupyterHub 本体 (root, /opt/jupyterhub)。Google (ECCS) + ローカルアカウントでログイン
+* singleuser/  --- 学生の Jupyter 環境 (share, /home/share/venv/jupyter)。JupyterLab, nbgrader, カーネル
 * monitoring/  --- monitor, record, and visualize student activities
 * nbgrader/    --- example config files for nbgrader
 * ansible/     --- 新しい VM をサーバに仕立てる (ldap, nfs, apache, 証明書)
@@ -34,7 +35,8 @@ OpenCode / aider           認証・鍵発行・利用記録      mdx MaaS
 | `litellm/` | サーバ | 127.0.0.1:4000 → Apache が `https://FQDN/litellm/v1/` で中継 |
 | `open-webui/` | サーバ | 127.0.0.1:8080 → Apache が `https://FQDN:3000` で中継 |
 | `open-code/` | **学生の手元** | — |
-| `hub/` | サーバ | JupyterHub 本体 (`jupyterhub@.service`) |
+| `hub/` | サーバ | JupyterHub 本体 (root, `/opt/jupyterhub`, `jupyterhub.service`) |
+| `singleuser/` | サーバ | 学生の Jupyter 環境 (share, `/home/share/venv/jupyter`) |
 
 構成要素はそれぞれ独立した uv プロジェクト。**1 つの環境に同居させられない**
 (`open-webui` が `cryptography==48.0.0` を厳密固定し、`litellm[proxy]` は
@@ -52,6 +54,8 @@ cp vars/cert.yml.in vars/cert.yml   && $EDITOR vars/cert.yml
 cp vars/ldap.yml.in vars/ldap.yml   && $EDITOR vars/ldap.yml
 cp vars/litellm.yml.in files/plain/litellm_taulec.yml && ln -s ../files/plain/litellm_taulec.yml vars/litellm.yml
 $EDITOR vars/litellm.yml            # LiteLLM の DB パスワード
+cp vars/jupyterhub.yml.in files/plain/jupyterhub_taulec.yml && ln -s ../files/plain/jupyterhub_taulec.yml vars/jupyterhub.yml
+$EDITOR vars/jupyterhub.yml         # Google の OAuth クライアント (Open WebUI と同じ)
 cp files/ldap_users.csv.in  files/ldap_users.csv  && $EDITOR files/ldap_users.csv
 cp files/ldap_groups.csv.in files/ldap_groups.csv && $EDITOR files/ldap_groups.csv
 $EDITOR machines.ini
@@ -59,7 +63,7 @@ ansible-playbook -i machines.ini all.yml
 ```
 
 ldap / nfs / apache / 証明書に加えて、LiteLLM と Open WebUI のうち sudo が要る部分
-(PostgreSQL、linger、Apache の中継) までがこれで整う。詳細は `ansible/README.md`。
+(PostgreSQL、linger、Apache の中継) と JupyterHub 本体までがこれで整う。詳細は `ansible/README.md`。
 
 以下の 1〜6 は **AI 関係を動かすアカウント `pd` (sudo 権限なし) で `ssh pd@taulec` して**
 行う。`sudo -u pd` や `su pd` からでは `systemctl --user` が使えない。
@@ -126,11 +130,16 @@ linger (これが無いとログアウトで止まる) は ansible (`roles/litel
 
 ### 7. JupyterHub
 
+学生の環境を share で作ってから (`singleuser/README.md`)、hub を ansible で入れる
+(`hub/README.md`)。
+
 ```
-sudo ln -sf /home/tau/jupyter_tools/hub/jupyterhub@.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now jupyterhub@FQDN
+ssh share@taulec 'cd ~/jupyter_tools/singleuser && ./install'
+cd ansible && ansible-playbook -i machines.ini jupyterhub.yml
 ```
+
+Google の OAuth クライアントは Open WebUI と同じもの。リダイレクト URI に
+`https://FQDN:8000/hub/google/oauth_callback` を追加しておく。
 
 ### 8. 学生への配布
 
@@ -140,8 +149,8 @@ sudo systemctl enable --now jupyterhub@FQDN
 
 ## 秘密情報
 
-`*.env.example` だけをコミットし、実値の入った `*.env` と `hub/*/cfg.sh` は
-`.gitignore` してある。**学生に渡すのは virtual key 1 本だけ**で、上流
+`*.env.example` と `ansible/vars/*.yml.in` だけをコミットし、実値の入った `*.env` と
+`ansible/vars/*.yml` (実体は gocryptfs の `ansible/files/plain/`) は `.gitignore` してある。**学生に渡すのは virtual key 1 本だけ**で、上流
 プロバイダ (Azure, mdx MaaS) のキーがクライアントに出ることはない。
 
 ## 未着手
