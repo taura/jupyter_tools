@@ -59,7 +59,7 @@
 #
 # 443 の vhost の内側に Include する。conf-available/ に置いて a2enconf すると
 # :80 にも効いて LiteLLM が平文で露出するので、そうしない
-# (../litellm/apache/litellm-subpath.conf の冒頭を参照)。
+# (files/litellm-subpath.conf の冒頭を参照)。
 - name: enable Apache proxy modules
   apache2_module:
     name: "{{ item }}"
@@ -71,7 +71,7 @@
 
 - name: put /etc/apache2/litellm-subpath.conf
   copy:
-    src: "{{ playbook_dir }}/../litellm/apache/litellm-subpath.conf"
+    src: litellm-subpath.conf
     dest: /etc/apache2/litellm-subpath.conf
     mode: "0644"
   register: litellm_apache_conf

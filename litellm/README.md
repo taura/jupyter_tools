@@ -10,7 +10,7 @@ Open WebUI / OpenCode / aider  --->  LiteLLM  --->  UTokyo Azure
 ```
 
 待ち受けは **127.0.0.1:4000**。外からは Apache が `/litellm/v1/` だけを中継する
-(`apache/litellm-subpath.conf`)。管理系 (`/ui/`, `/key/*`, `/spend/*`) は
+(`ansible/roles/litellm/files/litellm-subpath.conf`)。管理系 (`/ui/`, `/key/*`, `/spend/*`) は
 公開しない。触るときは SSH トンネルを使う。
 
 ## ファイル
@@ -23,7 +23,6 @@ Open WebUI / OpenCode / aider  --->  LiteLLM  --->  UTokyo Azure
 | `run_litellm` | 起動スクリプト |
 | `litellm.service` | systemd user service |
 | `install` | `deps` (uv sync + prisma generate) と `service` (user service の登録) |
-| `apache/litellm-subpath.conf` | 443 の vhost に Include する (ansible が置く) |
 
 ## 設置
 

@@ -22,7 +22,6 @@
 | `run_open_webui` | 起動スクリプト |
 | `open-webui.service` | systemd user service |
 | `install` | `deps` (uv sync) と `service` (user service の登録) |
-| `apache/open-webui-tls.conf.j2` | 3000 番の SSL vhost。ansible の template (`roles/open_webui`) |
 
 Python は **3.12 固定**。`open-webui` が `>=3.11,<3.13` を要求するため。
 また **`litellm[proxy]` と同居できない** (`cryptography==48.0.0` と `>=48.0.1` が
