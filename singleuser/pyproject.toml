@@ -1,0 +1,33 @@
+[project]
+name = "jupyter-tools-singleuser"
+version = "0.1.0"
+description = "Students' Jupyter server environment (jupyterhub-singleuser, JupyterLab, nbgrader, kernels)"
+
+requires-python = ">=3.12,<3.13"
+
+# 学生が使う環境。hub (root) とは別の venv で、share が所有する
+# /home/share/venv/jupyter に入れる (./install)。学生のパッケージの追加・更新は
+# share が sudo なしで行える。root が実行する hub 本体は ../hub にある。
+#
+# jupyterhub のバージョンは ../hub/pyproject.toml と必ず揃えること。
+dependencies = [
+    "jupyterhub==5.5.2",     # jupyterhub-singleuser
+    "jupyterlab>=4.3,<5",    # nbgrader 0.9 は JupyterLab 4 系
+    "notebook>=7.3,<8",
+    "nbgrader>=0.9.5",
+    "ipywidgets",
+    # カーネル (./install が kernelspec を venv に登録する)
+    "bash_kernel",
+    "sos",
+    "sos-notebook",
+    "jupyterlab-sos",
+    # 授業で使うライブラリ
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "networkx",
+    "pydot",
+]
+
+[tool.uv]
+package = false

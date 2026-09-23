@@ -1,0 +1,25 @@
+[project]
+name = "jupyter-tools-hub"
+version = "0.1.0"
+description = "JupyterHub itself (runs as root; installed by ansible roles/jupyterhub)"
+
+requires-python = ">=3.12,<3.13"
+
+# hub 本体だけ。root が実行するので root 所有の /opt/jupyterhub に入れる
+# (ansible の roles/jupyterhub が uv sync する)。
+# 学生のサーバ (jupyterhub-singleuser, jupyterlab, nbgrader, カーネル) は
+# share 所有の別 venv (../singleuser) に入れる。
+#
+# jupyterhub のバージョンは ../singleuser/pyproject.toml と必ず揃えること
+# (hub と singleuser で API が噛み合わなくなる)。
+#
+# 6.0 は出たばかりで jupyterhub-multiauthenticator 0.4.0 との組み合わせが
+# 未検証なので 5.x に留めている。
+dependencies = [
+    "jupyterhub==5.5.2",
+    "oauthenticator>=17.4",
+    "jupyterhub-multiauthenticator>=0.4.0",
+]
+
+[tool.uv]
+package = false
