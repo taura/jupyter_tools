@@ -30,7 +30,7 @@ WorkingDirectory={{ jupyterhub_state_dir }}
 EnvironmentFile=/etc/jupyterhub/jupyterhub.env
 ExecStart={{ jupyterhub_dir }}/venv/bin/jupyterhub -f {{ jupyterhub_dir }}/jupyterhub_config.py
 
-# configurable-http-proxy は apt (node-configurable-http-proxy) の /usr/bin にある
+# configurable-http-proxy は npm で入れた /usr/local/bin にある (apt 版は壊れている)
 Environment=PATH={{ jupyterhub_dir }}/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 Restart=on-failure

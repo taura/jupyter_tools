@@ -42,6 +42,8 @@ class MyGoogleOAuthenticator(GoogleOAuthenticator):
     # "<service_name>:" が付いてしまう。そうなると normalize 後のローカル
     # ユーザ名 (u26000 等) が prefix で始まらず、check_allowed で全員弾かれる。
     prefix = ""
+    # ログインページのボタンの表示 (config の service_name は deprecated)
+    login_service = "Google (ECCS)"
 
     def normalize_username(self, u):
         print(f"MyGoogleOAuthenticator::normalize_username {u}")
@@ -57,6 +59,14 @@ class MyGoogleOAuthenticator(GoogleOAuthenticator):
         return local
 
 class MyPAMAuthenticator(PAMAuthenticator):
+    prefix = ""
+    # ログインページのボタンの表示。login_service ではなく service_name に置く:
+    # login_service が空でないと /hub/local/login がユーザ名・パスワードの
+    # フォームではなく「Sign in with ...」ボタンを出してしまい、先へ進めない。
+    # service_name は multiauthenticator のボタンにだけ使われる
+    # (config で渡すと deprecated の警告が出るのでクラス属性にする)。
+    service_name = "Local Account"
+
     def normalize_username(self, u):
         print(f"MyPAMAuthenticator::normalize_username {u}")
         if ":" in u:
@@ -96,17 +106,14 @@ c.MultiAuthenticator.authenticators = [
             # user_map はメールアドレス全体をキーにするので残す
             "strip_domain" : False,
             "allow_all" : True,
-            "service_name" : "Google (ECCS)", # ログインページでの表示
-            # prefix はクラス属性で空にしてある (MyGoogleOAuthenticator 参照)
+            # prefix とボタンの表示はクラス属性で決めてある (MyGoogleOAuthenticator 参照)
         }
     },
     {                       # Local user name + password
         "authenticator_class" : MyPAMAuthenticator,
         "url_prefix" : "/local",
         "config" : {
-            "prefix" : "",
             "allow_all" : True,
-            "service_name" : "Local Account", # ログインページでの表示
         }
     }
 ]
