@@ -16,14 +16,9 @@
   register: home_ansible_user_stat
 
 - name: copy /home/{{ ansible_user }} to /home.local/{{ ansible_user }}
-  copy:
-    src: /home/{{ ansible_user }}
-    dest: /home.local/
-    remote_src: yes
-    mode: preserve
-    directory_mode: yes
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+  command: cp -a /home/{{ ansible_user }} /home.local/
+  args:
+    creates: /home.local/{{ ansible_user }}
   when: home_ansible_user_stat.stat.exists
 
 - name: change {{ ansible_user }}'s homedir to /home.local/{{ ansible_user }}

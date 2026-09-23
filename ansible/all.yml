@@ -17,6 +17,15 @@
   roles:
     - nfs_client
 
+# ldap_server が slapd の TLS にこのホストの証明書 (roles/cert) を使うので、
+# LDAP より先に証明書を用意する。
+- name: apache
+  hosts: web_server
+  vars_files: [ vars/cert.yml ]
+  roles:
+    - apache
+    - cert
+
 - name: ldap server
   hosts: ldap_server
   vars_files: [ vars/ldap.yml ]
@@ -44,11 +53,3 @@
   hosts: ldap_client
   roles:
     - ldap_sudo
-
-- name: apache
-  hosts: web_server
-  vars_files: [ vars/cert.yml ]
-  roles:
-    - apache
-    - cert
-

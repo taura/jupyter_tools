@@ -23,10 +23,30 @@
     privatekey_path: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.key"
     common_name: "{{ fqdn }}"
 
+# ACME アカウントの登録。
+#
+# acme_certificate の modify_account が既定 true で、証明書要求のついでに
+# アカウント登録も行っていたが、community.crypto 4.0.0 で既定が false に
+# 変わる予告が出ている。アカウント管理を分離し、両方の acme_certificate で
+# modify_account: false を明示しておく。
+#
+# account.key はこの role が生成するので、新しいホストでは未登録の新規
+# アカウントになる。この登録タスクが無いまま modify_account: false に
+# すると「そんなアカウントは無い」で失敗する。
+- name: register the ACME account
+  acme_account:
+    account_key_src: "/etc/pki/tls/certs/{{ fqdn }}/account.key"
+    contact:
+      - "mailto:{{ account_email }}"
+    acme_directory: https://acme-v02.api.letsencrypt.org/directory
+    acme_version: 2
+    terms_agreed: true
+    state: present
+
 - name: create a challenge for {{ fqdn }} using an account key file.
   acme_certificate:
     account_key_src: "/etc/pki/tls/certs/{{ fqdn }}/account.key"
-    account_email: "{{ account_email }}"
+    modify_account: false
     csr: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.csr"
     dest: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.crt"
     acme_directory: https://acme-v02.api.letsencrypt.org/directory
@@ -53,6 +73,7 @@
     acme_version: 2
     terms_agreed: true
     account_key_src: "/etc/pki/tls/certs/{{ fqdn }}/account.key"
+    modify_account: false
     csr: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.csr"
     dest: "/etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.crt"
     # dest はリーフ証明書1枚しか書かない。中間証明書を含む

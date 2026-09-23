@@ -9,6 +9,8 @@
     name:
       - slapd
       - ldap-utils
+      # ansible の ldap_attrs モジュール (下の olcAccess 設定) が使う
+      - python3-ldap
 
 # if ldap_root_password_hash is not defined, generate it from root password
 - name: obtain hash of root password
@@ -59,3 +61,98 @@
     dest: /tmp/make_domain.ldif
     state: absent
 
+
+#
+# root が ldapi:// (Unix ドメインソケット) で来たときだけ、ドメイン DB への
+# 書き込みを許す。SASL EXTERNAL による身元は
+#   gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+# これにより ldaptool (ldap_addusers 等) が cn=admin のパスワードを
+# 使わずに済み、/etc/ldap.secret をディスクに置く必要がなくなる。
+#
+# "by * break" を付けてあるので、この行にマッチしない場合は既存の
+# olcAccess の評価に進む。匿名 read などの現行の挙動は変わらない。
+#
+# 書き込みは slapd と同じホストで root として実行する場合のみ可能。
+# 将来リモートから書きたくなったら、TLS クライアント証明書 + EXTERNAL
+# (olcAuthzRegexp で DN をマップ) が同じ仕組みの延長になる。
+#
+- name: allow local root to write the domain DB via SASL EXTERNAL
+  ldap_attrs:
+    dn: "olcDatabase={1}mdb,cn=config"
+    attributes:
+      olcAccess:
+        - >-
+          {0}to *
+          by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage
+          by * break
+    state: present
+    ordered: yes
+  become: yes
+
+#
+# slapd の TLS (StartTLS)。
+#
+# sssd は、パスワード認証には暗号化された接続を必須とする
+# (ldap_id_use_start_tls = False でも、認証の時点で
+#  "Could not start TLS encryption." になって失敗する)。
+# roles/cert が Let's Encrypt から取ってきたこのホストの証明書を使う。
+#
+# /etc/pki/tls/certs/<fqdn>/ を直接指さずにコピーする理由:
+#  - 鍵は root 0600 で、slapd (openldap ユーザ) が読めない
+#  - slapd の AppArmor プロファイルが /etc/ldap/** しか読ませない
+#
+# 証明書は roles/cert を流したときに更新される。そのあとにこの role が
+# 走ればコピーが変わり、slapd を再起動して読み直させる (all.yml で
+# cert の play を ldap_server より前に置いているのはそのため)。
+#
+- name: check the server certificate made by roles/cert exists
+  stat:
+    path: "/etc/pki/tls/certs/{{ fqdn }}/fullchain.crt"
+  register: ldap_tls_cert
+
+- name: fail if the server certificate does not exist
+  fail:
+    msg: >-
+      /etc/pki/tls/certs/{{ fqdn }}/fullchain.crt がありません。
+      ldap_server のホストは web_server にも入れて roles/cert で証明書を作ってください。
+  when: not ldap_tls_cert.stat.exists
+
+- name: create /etc/ldap/tls
+  file:
+    path: /etc/ldap/tls
+    state: directory
+    owner: root
+    group: openldap
+    mode: "0750"
+
+- name: copy the server certificate and key for slapd
+  copy:
+    remote_src: yes
+    src: "/etc/pki/tls/certs/{{ fqdn }}/{{ item.src }}"
+    dest: "/etc/ldap/tls/{{ item.dest }}"
+    owner: root
+    group: openldap
+    mode: "{{ item.mode }}"
+  loop:
+    # 中間証明書も送らないとクライアントが検証できないので fullchain を使う
+    - { src: fullchain.crt, dest: fullchain.crt, mode: "0644" }
+    - { src: "{{ fqdn }}.key", dest: server.key, mode: "0640" }
+  register: ldap_tls_files
+
+# 証明書と鍵は 1 回の modify で同時に設定する (片方ずつだと、途中で
+# 証明書と鍵が合わない状態になって slapd に拒否されることがある)
+- name: configure slapd TLS
+  ldap_attrs:
+    dn: cn=config
+    attributes:
+      olcTLSCertificateFile: /etc/ldap/tls/fullchain.crt
+      olcTLSCertificateKeyFile: /etc/ldap/tls/server.key
+    state: exact
+  register: ldap_tls_config
+  become: yes
+
+- name: restart slapd to load the certificate
+  systemd:
+    name: slapd
+    state: restarted
+  when: ldap_tls_files is changed or ldap_tls_config is changed

@@ -55,17 +55,19 @@
 #
 # delete group csv file
 #
-- name: remove ldap_groups.csv
-  file:
-    path: /tmp/ldap_groups.csv
-    state: absent
+
+# - name: remove ldap_groups.csv
+#   file:
+#     path: /tmp/ldap_groups.csv
+#     state: absent
 
 #
 # delete users csv file
 #
-- name: remove ldap_users.csv
-  file:
-    dest: /tmp/ldap_users.csv
-    #state: absent
-    state: present
+
+# - name: remove ldap_users.csv
+#   file:
+#     dest: /tmp/ldap_users.csv
+#     state: absent
+
 
