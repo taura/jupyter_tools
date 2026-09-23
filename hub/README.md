@@ -76,6 +76,7 @@ Google では `g.ecc.u-tokyo.ac.jp` 以外のアカウントは弾く (`hosted_d
 ## user_map
 
 Google のメールアドレスとローカルユーザの対応表 (`/var/lib/jupyterhub/user_map.sqlite`)。
+**ふだんの登録は `../enroll` が名簿から行う。** 以下は個別に見たり直したりするとき。
 初回ログイン時に、登録済みなら対応するローカルユーザになり、未登録なら
 `self_register` が on のときだけ空いているローカルユーザ (`user` が空の行) を割り当てる。
 

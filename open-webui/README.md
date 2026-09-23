@@ -106,22 +106,30 @@ Open WebUI は有効な接続それぞれに `GET /models` を投げ、返って
 | 経路 | 状態 |
 |---|---|
 | パスワードでの新規登録 | `ENABLE_SIGNUP` 既定 false |
-| Google からの新規登録 | 有効。ただしロールは `pending` |
+| Google からの新規登録 | `ENABLE_OAUTH_SIGNUP` 既定 false (名簿の人だけ)。true でもロールは `pending` |
 | IdP のグループで admin 付与 | `ENABLE_OAUTH_ROLE_MANAGEMENT` 既定 false。**有効にしない** |
 | ドメイン外 | `OAUTH_ALLOWED_DOMAINS` で拒否 |
 
 ## 履修者の絞り込み
 
 `ALLOWED_DOMAIN` はドメインまでしか絞れず、`g.ecc.u-tokyo.ac.jp` は東大の全構成員。
-ただし `DEFAULT_USER_ROLE` が `pending` なので、**新規ユーザは何も使えない**。
-素通しではない。
+履修者は **`../enroll` が名簿から事前登録する** (role=user)。
+`OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true` により、初回の Google ログインは新規作成ではなく
+事前登録済みアカウントへ紐づく (`utils/oauth.py`)。
 
-履修者だけを摩擦なく通すには、名簿からアカウントを**事前に作っておく**。
-`OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true` により初回ログイン時に新規作成ではなく
-事前登録済みアカウントへ紐づく (`utils/oauth.py`)。名簿に無い人は `pending` に落ちる。
+名簿にない人の扱いは `oauth.env` の `ENABLE_OAUTH_SIGNUP` 1 つで切り替える
+(変えたら `systemctl --user restart open-webui`)。
 
-- 管理者パネル → ユーザー の **Add User** (CSV インポートもある)
-- API なら `POST /api/v1/auths/add`
+| `ENABLE_OAUTH_SIGNUP` | 名簿にない g.ecc ユーザ |
+|---|---|
+| `false` (既定) | ログインできない |
+| `true` | `pending` (承認待ち) で作られ、何も使えない。管理者パネルで承認するか、名簿に足して `../enroll` を流す (pending は user に上がる) |
+
+`oauth.*` の設定は `ENABLE_OAUTH_PERSISTENT_CONFIG` が false (既定) の間は DB に
+焼き付かず、起動のたびに環境変数から読まれるので、この切り替えは再起動で効く。
+
+**最初の管理者は Google ログインで作られる** (上の「最初のユーザが管理者になる」)。
+新しく立てたときは、管理者がログインするまで `ENABLE_OAUTH_SIGNUP=true` にしておく。
 
 `DEFAULT_USER_ROLE` は `pending` のまま変えないこと。
 

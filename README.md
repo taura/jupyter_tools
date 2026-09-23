@@ -7,6 +7,7 @@
 * grading/     --- tools to grade .ipynb files
 * hub/         --- JupyterHub 本体 (root, /opt/jupyterhub)。Google (ECCS) + ローカルアカウントでログイン
 * singleuser/  --- 学生の Jupyter 環境 (share, /home/share/venv/jupyter)。JupyterLab, nbgrader, カーネル
+* enroll/      --- 既存アカウントを名簿から授業のサービスに登録する (user_map, LiteLLM の鍵, Open WebUI)
 * monitoring/  --- monitor, record, and visualize student activities
 * nbgrader/    --- example config files for nbgrader
 * ansible/     --- 新しい VM をサーバに仕立てる (ldap, nfs, apache, 証明書)
@@ -143,7 +144,8 @@ Google の OAuth クライアントは Open WebUI と同じもの。リダイレ
 
 ### 8. 学生への配布
 
-1. LiteLLM で virtual key を 1 人 1 本発行 (litellm/README.md)
+1. 名簿 (email, litellm_team 列つき) で `enroll/enroll` を流す (enroll/README.md)。
+   user_map、LiteLLM の鍵 (`~/.litellm_key`)、Open WebUI の事前登録までが済む
 2. `open-code/` の使い方を案内 (open-code/README.md)
 3. Open WebUI は URL を伝えるだけ。`https://` を明示するよう念を押す
 

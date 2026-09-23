@@ -41,7 +41,11 @@ export GOOGLE_REDIRECT_URI="$BASE_URL/oauth/google/login/callback"
 # ログアウトを機能させるために必須 (未設定だと起動時に警告が出る)
 export OPENID_PROVIDER_URL="https://accounts.google.com/.well-known/openid-configuration"
 
-export ENABLE_OAUTH_SIGNUP=true              # 初回ログインでユーザを自動作成
+# Whether Google users not pre-registered by ../enroll can sign up (as pending).
+# Default off: only the roster. oauth.* settings are read from the env at every
+# start (not persisted while ENABLE_OAUTH_PERSISTENT_CONFIG is off), so changing
+# this in oauth.env and restarting takes effect.
+export ENABLE_OAUTH_SIGNUP=${ENABLE_OAUTH_SIGNUP:-false}
 export OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true    # 同じメールの既存アカウントに紐づける
 
 # 二重の絞り込み:
