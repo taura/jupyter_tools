@@ -3,7 +3,7 @@
 #   ln -sf ~/jupyter_tools/open-webui/open-webui.service ~/.config/systemd/user/
 #   systemctl --user daemon-reload && systemctl --user enable --now open-webui
 #
-# ホスト起動時に上げるには `sudo loginctl enable-linger $USER` も必要。
+# ホスト起動時に上げるには linger が必要 (ansible の roles/open_webui が設定する)。
 
 [Unit]
 Description=Open WebUI (class LLM playground)

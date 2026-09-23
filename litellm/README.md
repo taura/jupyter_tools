@@ -28,11 +28,11 @@ Open WebUI / OpenCode / aider  --->  LiteLLM  --->  UTokyo Azure
 ## 設置
 
 LiteLLM は **sudo 権限の無いアカウント (`pd`)** の systemd user service として動かす。
-sudo が要る部分は ansible の `roles/litellm_host` に分けてある。
+sudo が要る部分は ansible の `roles/litellm` に分けてある。
 
 | 誰が | 何を |
 |---|---|
-| ansible (`roles/litellm_host`) | PostgreSQL の導入と LiteLLM 用のロール・DB の作成、`pd` の linger、Apache の `/litellm/v1/` 中継 |
+| ansible (`roles/litellm`) | PostgreSQL の導入と LiteLLM 用のロール・DB の作成、`pd` の linger、Apache の `/litellm/v1/` 中継 |
 | `pd` (`./install`) | `uv sync` + `prisma generate`、user service の登録と起動 |
 
 1. ansible 側。DB のパスワードは `ansible/vars/litellm.yml` (実体は gocryptfs の

@@ -61,3 +61,10 @@
   vars_files: [ vars/litellm.yml ]
   roles:
     - litellm
+
+# Open WebUI の sudo が要る部分 (linger, Apache の TLS 終端)。
+# apache/cert の後に置く (証明書を使うので)。
+- name: open webui
+  hosts: open_webui_host
+  roles:
+    - open_webui

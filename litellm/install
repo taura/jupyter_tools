@@ -7,7 +7,7 @@
 #   ./install service    # systemd user service の登録
 #
 # sudo が要る部分 (PostgreSQL のロールと DB、linger、Apache の中継) は
-# ansible の roles/litellm_host がやる:
+# ansible の roles/litellm がやる:
 #   cd ../ansible && ansible-playbook -i machines.ini litellm.yml
 set -eu
 cd "$(dirname "$0")"
@@ -42,7 +42,7 @@ do_service() {
     if [ ! -e "/var/lib/systemd/linger/$USER" ]; then
         echo
         echo "linger が無効です。ログアウトすると止まり、ホスト起動時にも上がりません。"
-        echo "ansible の roles/litellm_host を流してください (litellm_user: $USER)。"
+        echo "ansible の roles/litellm を流してください (litellm_user: $USER)。"
     fi
 }
 

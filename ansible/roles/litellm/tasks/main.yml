@@ -1,5 +1,5 @@
 ---
-# tasks file for litellm_host
+# tasks file for litellm
 #
 # LiteLLM (../litellm) を動かすための、sudo が要る部分だけをやる。
 # LiteLLM 本体は {{ litellm_user }} (sudo 権限なし) が自分で入れて
@@ -87,6 +87,7 @@
 - name: check the Apache configuration
   command: apache2ctl configtest
   changed_when: false
+  check_mode: false
 
 - name: reload Apache
   systemd:

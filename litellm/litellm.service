@@ -3,7 +3,7 @@
 #   ln -sf ~/jupyter_tools/litellm/litellm.service ~/.config/systemd/user/
 #   systemctl --user daemon-reload && systemctl --user enable --now litellm
 #
-# ホスト起動時に上げるには linger が必要 (ansible の roles/litellm_host が設定する)。
+# ホスト起動時に上げるには linger が必要 (ansible の roles/litellm が設定する)。
 
 [Unit]
 Description=LiteLLM proxy (class LLM gateway)

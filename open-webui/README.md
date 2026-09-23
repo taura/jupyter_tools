@@ -21,8 +21,8 @@
 | `oauth.env.example` | 秘密情報とホスト固有設定のテンプレート |
 | `run_open_webui` | 起動スクリプト |
 | `open-webui.service` | systemd user service |
-| `install` | まとめて実行 |
-| `apache/open-webui-tls.conf` | 3000 番の SSL vhost |
+| `install` | `deps` (uv sync) と `service` (user service の登録) |
+| `apache/open-webui-tls.conf.j2` | 3000 番の SSL vhost。ansible の template (`roles/open_webui`) |
 
 Python は **3.12 固定**。`open-webui` が `>=3.11,<3.13` を要求するため。
 また **`litellm[proxy]` と同居できない** (`cryptography==48.0.0` と `>=48.0.1` が
@@ -46,11 +46,32 @@ Python は **3.12 固定**。`open-webui` が `>=3.11,<3.13` を要求するた�
 
 ### 2. 導入
 
-```
-cp oauth.env.example oauth.env && chmod 600 oauth.env
-$EDITOR oauth.env
-./install
-```
+Open WebUI は **sudo 権限の無いアカウント (`pd`)** の systemd user service として動かす。
+sudo が要る部分は ansible の `roles/open_webui` に分けてある。
+
+| 誰が | 何を |
+|---|---|
+| ansible (`roles/open_webui`) | `pd` の linger、Apache の 3000 番 vhost (TLS 終端 → 127.0.0.1:8080) |
+| `pd` (`./install`) | `uv sync`、user service の登録と起動 |
+
+ポート (3000 / 8080) は `roles/open_webui/defaults/main.yml` にある。変えるときは
+`oauth.env` の `BASE_URL` / `BIND_PORT` も揃えること。
+
+1. `pd` 側。`ssh pd@taulec` で**ログインして**行う (`sudo -u pd` や `su pd` からでは
+   `systemctl --user` が使えない)。**先に `BASE_URL` と `BIND_PORT` を入れておく**
+   (下の「環境変数は初回起動時だけ DB に焼き付く」)。
+
+   ```
+   cp oauth.env.example oauth.env && chmod 600 oauth.env
+   $EDITOR oauth.env      # BASE_URL=https://taulec.zapto.org:3000, BIND_PORT=8080
+   ./install
+   ```
+
+2. ansible 側。3000 番を Apache 以外が掴んでいると止まる。
+
+   ```
+   cd ../ansible && ansible-playbook -i machines.ini open_webui.yml
+   ```
 
 ### 3. モデル接続を設定 (初回のみ、ブラウザから)
 
@@ -150,7 +171,8 @@ cp -a .venv/lib/python3.12/site-packages/open_webui/data/. ~/open-webui-data/
 ## ハマりどころ
 
 **Apache reload の前に Open WebUI を 8080 に移す。** 3000 番を掴んだままだと
-Apache が bind できない。
+Apache が bind できない。`roles/open_webui` は 3000 番を Apache 以外が使っていたら
+止まるようにしてある。
 
 **`/ws/socket.io/` を `/` より先にプロキシする。** 順序が逆だと画面は出るのに
 応答が流れてこない。

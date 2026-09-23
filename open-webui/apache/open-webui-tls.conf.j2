@@ -1,0 +1,39 @@
+# Open WebUI の前段で TLS を終端する Apache vhost
+# managed by ansible (roles/open_webui)。このファイルは template。
+#
+#   ブラウザ --https:{{ open_webui_port }}--> Apache --http:{{ open_webui_backend_port }}--> open-webui (127.0.0.1)
+#
+# open-webui 自身は TLS を張れない (uvicorn.run に ssl_keyfile を渡していない)。
+# 証明書は 443 の vhost と同じもの (roles/cert) を使い回す。
+
+# Listen もこのファイルに置く。a2dissite すれば待ち受けごと消える。
+Listen {{ open_webui_port }}
+
+<VirtualHost *:{{ open_webui_port }}>
+    ServerName {{ fqdn }}
+
+    SSLEngine on
+    # リーフだけでなく中間証明書も送る (roles/cert の fullchain_dest のコメント参照)。
+    # リーフ 1 枚だと curl / Python / Node が検証に失敗する。
+    SSLCertificateFile    /etc/pki/tls/certs/{{ fqdn }}/fullchain.crt
+    SSLCertificateKeyFile /etc/pki/tls/certs/{{ fqdn }}/{{ fqdn }}.key
+
+    # open-webui は uvicorn を forwarded_allow_ips='*' で起動しているので、
+    # ここで渡すヘッダを信用して https として振る舞う (__init__.py:81)
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port  "{{ open_webui_port }}"
+    ProxyPreserveHost On
+
+    # WebSocket (socket.io) を先に書く。順序が逆だと / に食われる
+    ProxyPass        /ws/socket.io/ ws://127.0.0.1:{{ open_webui_backend_port }}/ws/socket.io/
+    ProxyPassReverse /ws/socket.io/ ws://127.0.0.1:{{ open_webui_backend_port }}/ws/socket.io/
+
+    ProxyPass        / http://127.0.0.1:{{ open_webui_backend_port }}/
+    ProxyPassReverse / http://127.0.0.1:{{ open_webui_backend_port }}/
+
+    # LLM の応答は SSE で長時間流れ続ける。既定の 60 秒では切れる
+    ProxyTimeout 600
+
+    ErrorLog  ${APACHE_LOG_DIR}/open-webui-error.log
+    CustomLog ${APACHE_LOG_DIR}/open-webui-access.log combined
+</VirtualHost>

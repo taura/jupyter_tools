@@ -50,13 +50,19 @@ OpenCode / aider           認証・鍵発行・利用記録      mdx MaaS
 cd ansible
 cp vars/cert.yml.in vars/cert.yml   && $EDITOR vars/cert.yml
 cp vars/ldap.yml.in vars/ldap.yml   && $EDITOR vars/ldap.yml
+cp vars/litellm.yml.in files/plain/litellm_taulec.yml && ln -s ../files/plain/litellm_taulec.yml vars/litellm.yml
+$EDITOR vars/litellm.yml            # LiteLLM の DB パスワード
 cp files/ldap_users.csv.in  files/ldap_users.csv  && $EDITOR files/ldap_users.csv
 cp files/ldap_groups.csv.in files/ldap_groups.csv && $EDITOR files/ldap_groups.csv
 $EDITOR machines.ini
 ansible-playbook -i machines.ini all.yml
 ```
 
-ldap / nfs / apache / 証明書までがこれで整う。詳細は `ansible/README.md`。
+ldap / nfs / apache / 証明書に加えて、LiteLLM と Open WebUI のうち sudo が要る部分
+(PostgreSQL、linger、Apache の中継) までがこれで整う。詳細は `ansible/README.md`。
+
+以下の 1〜6 は **AI 関係を動かすアカウント `pd` (sudo 権限なし) で `ssh pd@taulec` して**
+行う。`sudo -u pd` や `su pd` からでは `systemctl --user` が使えない。
 
 ### 1. リポジトリ
 
@@ -114,11 +120,8 @@ $EDITOR oauth.env          # ← BASE_URL を最初から正しい https:// に�
 
 ### 6. 常駐化
 
-```
-sudo loginctl enable-linger $USER     # 一度だけ。これが無いとログアウトで止まる
-```
-
-`install service` が unit の symlink と `enable --now` まで行う。
+linger (これが無いとログアウトで止まる) は ansible (`roles/litellm`, `roles/open_webui`)
+が設定済み。`install service` が unit の symlink と `enable --now` まで行う。
 一度 `sudo reboot` して両方が自動で上がることを確認しておく。
 
 ### 7. JupyterHub
