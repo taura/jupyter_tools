@@ -49,8 +49,9 @@ class Config:
         env = parse_env(text)
         self.google_domain = env.get("GOOGLE_DOMAIN", "g.ecc.u-tokyo.ac.jp")
         self.notebooks_dir = env.get("NOTEBOOKS_DIR", "notebooks")
-        self.user_map_db = env.get("USER_MAP_DB", "/var/lib/jupyterhub/user_map.sqlite")
-        self.user_map_py = env.get("USER_MAP_PY", "/opt/jupyterhub/user_map.py")
+        hub = os.path.normpath(os.path.join(HERE, "..", "hub"))
+        self.user_map_db = env.get("USER_MAP_DB", os.path.join(hub, "state", "user_map.sqlite"))
+        self.user_map_py = env.get("USER_MAP_PY", os.path.join(hub, "user_map.py"))
         self.openwebui_url = env.get("OPENWEBUI_URL", "http://127.0.0.1:8080").rstrip("/")
         self.openwebui_api_key = env["OPENWEBUI_API_KEY"]
 

@@ -4,8 +4,8 @@
 #
 #   ./install
 #
-# Venv defaults to /home/share/venv/jupyter; must match jupyterhub_singleuser_venv
-# in ansible roles/jupyterhub.
+# Venv defaults to /home/share/venv/jupyter; must match SINGLEUSER_VENV
+# in ../hub/jupyterhub.env (same default).
 #   JUPYTER_VENV=/path/to/venv ./install
 #
 # Every student runs this venv's python, so the venv and uv's Python must be

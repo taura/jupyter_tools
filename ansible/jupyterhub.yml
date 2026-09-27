@@ -1,8 +1,7 @@
-# Run only JupyterHub (same play as in all.yml)
+# Run only JupyterHub (same play as in all.yml): configurable-http-proxy and the unit.
 #   ansible-playbook -i machines.ini jupyterhub.yml
-# Restarts the hub on changes, which also stops students' servers.
+# Needed once; config/venv changes in hub/ only need git pull + restart.
 - name: jupyterhub
   hosts: jupyterhub_host
-  vars_files: [ vars/jupyterhub.yml ]
   roles:
     - jupyterhub

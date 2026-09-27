@@ -1,17 +1,16 @@
 # JupyterHub (systemd system service)
-# Managed by ansible (roles/jupyterhub). This is a template.
+# Installed by ansible (roles/jupyterhub). This is a template.
 #
 #   sudo systemctl status  jupyterhub
-#   sudo systemctl restart jupyterhub
+#   sudo systemctl restart jupyterhub       # after git pull / uv sync in hub/
 #   journalctl -u jupyterhub -f
 #
-# The hub runs as root (LocalProcessSpawner switches to each student's uid).
-# Everything root executes is root-owned:
-#   {{ jupyterhub_dir }}/venv                  hub venv (../hub/pyproject.toml)
-#   {{ jupyterhub_dir }}/jupyterhub_config.py  config (../hub/jupyterhub_config.py)
-#   /etc/jupyterhub/jupyterhub.env    secrets (from vars/jupyterhub.yml)
-#   {{ jupyterhub_state_dir }}              jupyterhub.sqlite, cookie secret, user_map.sqlite
-# Students' servers run from the share-owned {{ jupyterhub_singleuser_venv }}.
+# Runs as root (LocalProcessSpawner switches to each student's uid), straight
+# from the checkout {{ jupyterhub_repo }}/hub:
+#   .venv/                 hub venv (uv sync)
+#   jupyterhub_config.py   config
+#   jupyterhub.env         secrets (not committed)
+#   state/                 working directory: jupyterhub.sqlite, cookie secret, user_map.sqlite
 #
 # Logs go to the journal.
 
@@ -19,18 +18,20 @@
 Description=JupyterHub
 After=network-online.target sssd.service
 Wants=network-online.target
-# Students' homes and {{ jupyterhub_singleuser_venv }} are on the separate /home disk
+# The checkout and students' homes are on the separate /home disk
 RequiresMountsFor=/home
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory={{ jupyterhub_state_dir }}
-EnvironmentFile=/etc/jupyterhub/jupyterhub.env
-ExecStart={{ jupyterhub_dir }}/venv/bin/jupyterhub -f {{ jupyterhub_dir }}/jupyterhub_config.py
+WorkingDirectory={{ jupyterhub_repo }}/hub/state
+# state/ holds tokens and the cookie secret: root only
+ExecStartPre=/usr/bin/install -d -m 0700 -o root -g root {{ jupyterhub_repo }}/hub/state
+EnvironmentFile={{ jupyterhub_repo }}/hub/jupyterhub.env
+ExecStart={{ jupyterhub_repo }}/hub/.venv/bin/jupyterhub -f {{ jupyterhub_repo }}/hub/jupyterhub_config.py
 
 # configurable-http-proxy is in /usr/local/bin (npm; the apt package is broken)
-Environment=PATH={{ jupyterhub_dir }}/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PATH={{ jupyterhub_repo }}/hub/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 Restart=on-failure
 RestartSec=5

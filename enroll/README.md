@@ -67,6 +67,6 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY は必須
 
 ## 前提
 
-- user_map は JupyterHub (`ansible/roles/jupyterhub`) の `/var/lib/jupyterhub/user_map.sqlite`
-  を `/opt/jupyterhub/user_map.py` で操作する
+- user_map は同じ checkout の `../hub/state/user_map.sqlite` を `../hub/user_map.py` で操作する
+  (JupyterHub が読むのと同じもの)
 - システムの python3 だけで動く (追加のパッケージ不要)

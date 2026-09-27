@@ -1,4 +1,6 @@
 # 秘密情報 (*.env.example はコミットする)
+hub/jupyterhub.env
+hub/state/
 litellm/litellm.env
 open-webui/oauth.env
 open-code/client.env
@@ -21,6 +23,7 @@ ansible/vars/ldap.yml
 ansible/files/ldap_users.csv
 ansible/files/ldap_groups.csv
 ansible/vars/litellm.yml
+# no longer used by ansible (secrets moved to hub/jupyterhub.env); keep ignored
 ansible/vars/jupyterhub.yml
 enroll/enroll.env
 open-code/opencode_setup.env

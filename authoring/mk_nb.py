@@ -19,6 +19,7 @@ def canonicalize_kernel_dict():
     comp = {
         "python" : "Python 3 (ipykernel)",
         "py" : "Python 3 (ipykernel)",
+        "md" : "Markdown",
         "wisteria" : "Python 3.14 (wisteria)",
         "bash" : "Bash",
         "c" : "C",
@@ -36,7 +37,7 @@ def canonicalize_kernel_dict():
         "ml" : "OCaml default",
         "rs" : "Rust",
         "rust" : "Rust",
-        "sos" : "SoS"
+        "sos" : "SoS",
     }
     update_comp = {v.lower() : v for v in comp.values()}
     comp.update(update_comp)
@@ -256,6 +257,7 @@ def make_metadata(syntax):
     """
     aux_data_dict = {
         "Python 3 (ipykernel)" : make_metadata_python,
+        "Markdown" : make_metadata_python,
         "Python 3.14 (wisteria)" : make_metadata_python_wisteria,
         "Bash" : make_metadata_bash,
         "C" : make_metadata_c,
@@ -329,12 +331,14 @@ class ParserBase:
     # source := include | other
     # include := <!--- dir* --->
     # dir := include filename | exec-include cmd
-    def __init__(self, input_file, output_file, syntax, labels):
+    def __init__(self, input_file, output_file, syntax, labels, output_kernel=None):
         self.input_file = input_file
         self.output_file = output_file
         self.kernel_dict = canonicalize_kernel_dict()
         self.syntax = self.canonicalize_kernel(syntax)
         self.labels = labels
+        self.output_kernel = (self.canonicalize_kernel(output_kernel)
+                              if output_kernel is not None else self.syntax)
         self.in_fp = None
         self.line = None
         self.token = None
@@ -360,7 +364,7 @@ class ParserBase:
         """
         make regexes for parsing a line
         """
-        if self.syntax == "SoS":
+        if self.syntax in ["SoS", "Markdown"]:
             self.patterns = [
                 (self.tok_begin_md,
                  re.compile(r'<\!\-\-\- (?P<cell_attrs>md.*) \-\-\->')),
@@ -490,7 +494,7 @@ class ParserBase:
             self.in_fp.close()
         result = {
             "cells" : cells,
-            "metadata" : make_metadata(self.syntax),
+            "metadata" : make_metadata(self.output_kernel),
             "nbformat" : 4,
             "nbformat_minor" : 4,
         }
@@ -551,7 +555,7 @@ class ParserBase:
         if ok == 0:
             return None
         cell_type = "markdown" if "md" in attrs_dict else "code"
-        kernel = attrs_dict.get("kernel", self.syntax)
+        kernel = attrs_dict.get("kernel", self.output_kernel)
         kernel = self.canonicalize_kernel(kernel)
         grade = "points" in attrs_dict
         solution = grade
@@ -756,7 +760,9 @@ def parse_args(argv):
     psr = argparse.ArgumentParser(prog=argv[0])
     psr.add_argument("input", help="input file")
     psr.add_argument("-o", "--output", help="output file")
-    psr.add_argument("--syntax", help="specify syntax (sos|python|ocaml|c)")
+    psr.add_argument("--syntax", help="specify input syntax (sos|python|ocaml|c)")
+    psr.add_argument("--output-kernel",
+                     help="default kernel for notebook/cells without explicit kernel= (e.g., python|sos|bash)")
     psr.add_argument("--labels", help="labels to generate (e.g., ans,en)",
                      default="prob")
     psr.add_argument("--dbg", help="dbg level", default=0)
@@ -776,7 +782,7 @@ def main(argv):
     main
     """
     opt = parse_args(argv)
-    psr = ParserBase(opt.input, opt.output, opt.syntax, opt.labels)
+    psr = ParserBase(opt.input, opt.output, opt.syntax, opt.labels, opt.output_kernel)
     psr.parse()
     return 0
 

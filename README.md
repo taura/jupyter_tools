@@ -5,7 +5,7 @@
 * README.md
 * authoring/   --- tools to convert texts (.py, .sos, .c) into .ipynb
 * grading/     --- tools to grade .ipynb files
-* hub/         --- JupyterHub 本体 (root, /opt/jupyterhub)。Google (ECCS) + ローカルアカウントでログイン
+* hub/         --- JupyterHub 本体 (root, この checkout から直接動く)。Google (ECCS) + ローカルアカウントでログイン
 * singleuser/  --- 学生の Jupyter 環境 (share, /home/share/venv/jupyter)。JupyterLab, nbgrader, カーネル
 * enroll/      --- 既存アカウントを名簿から授業のサービスに登録する (user_map, Open WebUI)
 * monitoring/  --- monitor, record, and visualize student activities
@@ -36,7 +36,7 @@ OpenCode / aider           認証・鍵発行・利用記録      mdx MaaS
 | `litellm/` | サーバ | 127.0.0.1:4000 → Apache が `https://FQDN/litellm/v1/` で中継 |
 | `open-webui/` | サーバ | 127.0.0.1:8080 → Apache が `https://FQDN:3000` で中継 |
 | `open-code/` | **学生の手元** | — |
-| `hub/` | サーバ | JupyterHub 本体 (root, `/opt/jupyterhub`, `jupyterhub.service`) |
+| `hub/` | サーバ | JupyterHub 本体 (root, checkout の `hub/` から直接, `jupyterhub.service`) |
 | `singleuser/` | サーバ | 学生の Jupyter 環境 (share, `/home/share/venv/jupyter`) |
 
 構成要素はそれぞれ独立した uv プロジェクト。**1 つの環境に同居させられない**
@@ -55,8 +55,6 @@ cp vars/cert.yml.in vars/cert.yml   && $EDITOR vars/cert.yml
 cp vars/ldap.yml.in vars/ldap.yml   && $EDITOR vars/ldap.yml
 cp vars/litellm.yml.in files/plain/litellm_taulec.yml && ln -s ../files/plain/litellm_taulec.yml vars/litellm.yml
 $EDITOR vars/litellm.yml            # LiteLLM の DB パスワード
-cp vars/jupyterhub.yml.in files/plain/jupyterhub_taulec.yml && ln -s ../files/plain/jupyterhub_taulec.yml vars/jupyterhub.yml
-$EDITOR vars/jupyterhub.yml         # Google の OAuth クライアント (Open WebUI と同じ)
 cp files/ldap_users.csv.in  files/ldap_users.csv  && $EDITOR files/ldap_users.csv
 cp files/ldap_groups.csv.in files/ldap_groups.csv && $EDITOR files/ldap_groups.csv
 $EDITOR machines.ini
@@ -131,13 +129,17 @@ linger (これが無いとログアウトで止まる) は ansible (`roles/litel
 
 ### 7. JupyterHub
 
-学生の環境を share で作ってから (`singleuser/README.md`)、hub を ansible で入れる
-(`hub/README.md`)。
+学生の環境を share で作り (`singleuser/README.md`)、hub の venv と秘密情報を tau で用意してから、
+configurable-http-proxy と unit を ansible で置く (最初の 1 回だけ。`hub/README.md`)。
 
 ```
 ssh share@taulec 'cd ~/jupyter_tools/singleuser && ./install'
-cd ansible && ansible-playbook -i machines.ini jupyterhub.yml
+cd ~/jupyter_tools/hub && uv sync && cp jupyterhub.env.example jupyterhub.env && chmod 600 jupyterhub.env
+$EDITOR jupyterhub.env
+cd ../ansible && ansible-playbook -i machines.ini jupyterhub.yml
 ```
+
+以後の設定変更は `git pull` → `sudo systemctl restart jupyterhub` だけ。
 
 Google の OAuth クライアントは Open WebUI と同じもの。リダイレクト URI に
 `https://FQDN:8000/hub/google/oauth_callback` を追加しておく。

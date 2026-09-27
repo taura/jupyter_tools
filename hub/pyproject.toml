@@ -1,13 +1,13 @@
 [project]
 name = "jupyter-tools-hub"
 version = "0.1.0"
-description = "JupyterHub itself (runs as root; installed by ansible roles/jupyterhub)"
+description = "JupyterHub itself (run by root from this checkout)"
 
 requires-python = ">=3.12,<3.13"
 
-# Hub only. Run by root, so it goes in root-owned /opt/jupyterhub
-# (uv sync by ansible roles/jupyterhub). Students' servers (jupyterhub-singleuser,
-# jupyterlab, nbgrader, kernels) use a separate share-owned venv (../singleuser).
+# Hub only; uv sync makes hub/.venv, which root runs straight from the checkout.
+# Students' servers (jupyterhub-singleuser, jupyterlab, nbgrader, kernels) use a
+# separate share-owned venv (../singleuser).
 #
 # Keep the jupyterhub version identical to ../singleuser/pyproject.toml.
 #

@@ -18,7 +18,7 @@ venv で、**share が所有する `/home/share/venv/jupyter`** に入れる。�
 
 ## 設置・更新
 
-share で (sudo 不要)。uv は ansible (`roles/jupyterhub`) が `/usr/local/bin` に入れてある。
+share で (sudo 不要)。uv が無ければ先に入れる (`curl -LsSf https://astral.sh/uv/install.sh | sh`)。
 
 ```
 cd ~/jupyter_tools/singleuser

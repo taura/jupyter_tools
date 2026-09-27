@@ -4,9 +4,9 @@ c = get_config()  #noqa
 
 ################ 
 #
-# Managed by ansible (roles/jupyterhub): copied to /opt/jupyterhub/ and run by root.
-# Values come from /etc/jupyterhub/jupyterhub.env (systemd EnvironmentFile).
-# Working directory (sqlite files etc.) is /var/lib/jupyterhub.
+# Run by root straight from the checkout (unit: ansible/roles/jupyterhub).
+# Values come from hub/jupyterhub.env (systemd EnvironmentFile).
+# Working directory (sqlite files etc.) is hub/state.
 
 import sys
 import os
@@ -72,7 +72,7 @@ class MyPAMAuthenticator(PAMAuthenticator):
         print(f"--> {local}")
         return local
 
-# Students' servers run from share's venv, not the hub's (root, /opt/jupyterhub).
+# Students' servers run from share's venv, not the hub's (hub/.venv, run by root).
 # Don't inherit the hub's PATH (not in env_keep); set it here so python,
 # jupyter and kernels resolve to that venv.
 c.Spawner.cmd = [f"{SINGLEUSER_VENV}/bin/jupyterhub-singleuser"]
@@ -82,7 +82,7 @@ c.Spawner.environment = {
 }
 c.Spawner.env_keep = ['LANG', 'LC_ALL', 'JUPYTERHUB_SINGLEUSER_APP']
 # Pass AI tutor settings (API key etc.) to each user. Values go in
-# jupyterhub.env (ansible jupyterhub_extra_env); unset names are not passed.
+# hub/jupyterhub.env; unset names are not passed.
 c.Spawner.env_keep.extend(["HEYTUTOR_ENDPOINT", "HEYTUTOR_API_KEY", "HEYTUTOR_API_VERSION", "HEYTUTOR_MODEL", "HEYTUTOR_PROBLEM_SET_DIR"])
 
 # Google + Local

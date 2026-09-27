@@ -68,10 +68,9 @@
   roles:
     - open_webui
 
-# JupyterHub itself (root). Students' environment: ../singleuser/install as share.
+# JupyterHub: configurable-http-proxy and the unit; the hub runs from the checkout (hub/).
 # After apache/cert (uses the certificate).
 - name: jupyterhub
   hosts: jupyterhub_host
-  vars_files: [ vars/jupyterhub.yml ]
   roles:
     - jupyterhub
