@@ -6,7 +6,7 @@
 #   hub/.venv            built by tau: cd hub && uv sync
 #   hub/jupyterhub_config.py, hub/user_map.py   read directly from the checkout
 #   hub/jupyterhub.env   secrets (tau writes it; not committed)
-#   hub/state/           working directory (jupyterhub.sqlite, cookie secret, user_map.sqlite)
+#   hub/state/           working directory, {{ jupyterhub_state_owner }}-owned (jupyterhub.sqlite, cookie secret, user_map.sqlite)
 #
 # This role:
 #  - installs configurable-http-proxy (npm)

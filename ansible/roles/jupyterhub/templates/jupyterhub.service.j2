@@ -10,7 +10,7 @@
 #   .venv/                 hub venv (uv sync)
 #   jupyterhub_config.py   config
 #   jupyterhub.env         secrets (not committed)
-#   state/                 working directory: jupyterhub.sqlite, cookie secret, user_map.sqlite
+#   state/                 working directory ({{ jupyterhub_state_owner }}-owned): jupyterhub.sqlite, cookie secret, user_map.sqlite
 #
 # Logs go to the journal.
 
@@ -25,8 +25,9 @@ RequiresMountsFor=/home
 Type=simple
 User=root
 WorkingDirectory={{ jupyterhub_repo }}/hub/state
-# state/ holds tokens and the cookie secret: root only
-ExecStartPre=/usr/bin/install -d -m 0700 -o root -g root {{ jupyterhub_repo }}/hub/state
+# state/ is owned by {{ jupyterhub_state_owner }} so user_map.py can be run without sudo.
+# Files the hub creates there (jupyterhub.sqlite, the 0600 cookie secret) stay root-owned.
+ExecStartPre=/usr/bin/install -d -m 0700 -o {{ jupyterhub_state_owner }} -g {{ jupyterhub_state_owner }} {{ jupyterhub_repo }}/hub/state
 EnvironmentFile={{ jupyterhub_repo }}/hub/jupyterhub.env
 ExecStart={{ jupyterhub_repo }}/hub/.venv/bin/jupyterhub -f {{ jupyterhub_repo }}/hub/jupyterhub_config.py
 

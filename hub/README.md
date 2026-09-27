@@ -35,7 +35,7 @@ hub は root で動くが、tau はもともと sudoer なので、tau のファ
 | `user_map.py` | Google のメール → ローカルユーザの対応表。config から import される + CLI |
 | `jupyterhub.env.example` | 秘密情報 (`jupyterhub.env`) の雛形 |
 | `jupyterhub.env` | `FQDN`, Google のクライアント ID/シークレット等。commit しない (0600) |
-| `state/` | 作業ディレクトリ (root 0700, commit しない)。`jupyterhub.sqlite`, cookie secret, `user_map.sqlite` |
+| `state/` | 作業ディレクトリ (tau 所有 0700, commit しない)。`jupyterhub.sqlite`, cookie secret (root 所有 0600), `user_map.sqlite` (tau 所有) |
 
 systemd unit は `../ansible/roles/jupyterhub/templates/jupyterhub.service.j2`。
 `state/` は起動時に unit が作る。
@@ -89,12 +89,12 @@ Google では `g.ecc.u-tokyo.ac.jp` 以外のアカウントは弾く (`hosted_d
 Google のメールアドレスとローカルユーザの対応表 (`state/user_map.sqlite`)。
 **ふだんの登録は `../enroll` が名簿から行う。** 以下は個別に見たり直したりするとき。
 
-`state/` で root として操作する (`user_map.py` は `state/` の `user_map.sqlite` を開く。
-標準ライブラリだけなので venv は要らない):
+`state/` で tau として操作する (`user_map.py` はカレントディレクトリの `user_map.sqlite`
+を開く。標準ライブラリだけなので venv は要らない)。`state/` と `user_map.sqlite` は tau
+所有にしてあるので sudo は要らない (hub が root で書き込んでも所有者は変わらない):
 
 ```
-sudo -s
-cd ~tau/jupyter_tools/hub/state
+cd ~/jupyter_tools/hub/state
 python3 ../user_map.py show
 python3 ../user_map.py binds users.csv   # user,local 列
 python3 ../user_map.py local u26000      # 割り当て候補に追加
