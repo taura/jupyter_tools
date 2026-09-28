@@ -1,0 +1,29 @@
+# Codex CLI -> LiteLLM
+#
+# Install as ~/.codex/config.toml (agent_setup copies it).
+# No key here: with requires_openai_auth, Codex sends the OPENAI_API_KEY in
+# ~/.codex/auth.json (written by agent_setup, or by
+#   printf %s "$KEY" | codex login --with-api-key
+# ). The model names must match model_name in ../litellm/config.yaml.
+
+model_provider = "litellm"
+
+model = "gpt-5.3-codex-utokyo-azure"
+# model = "Kimi-K2.7-Code-utokyo-azure"
+
+# model = "gpt-6-luna-utokyo-azure"
+# model = "gpt-6-sol-utokyo-azure"
+# model = "gpt-6-astra-utokyo-azure"
+
+# model = "gpt-5.6-luna-utokyo-azure"
+# model = "gpt-5.6-terra-utokyo-azure"
+# model = "gpt-5.6-sol-utokyo-azure"
+
+# model = "gpt-oss-20b-mdx-maas"
+# can't use this because Codex requires responses API, which litellm + mdx-maas does not support
+
+[model_providers.litellm]
+name = "LiteLLM (taulec)"
+base_url = "https://taulec.zapto.org/litellm/v1"
+wire_api = "responses"
+requires_openai_auth = true

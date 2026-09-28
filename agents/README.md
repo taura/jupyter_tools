@@ -180,6 +180,10 @@ curl -s https://taulec.zapto.org/litellm/v1/models -H "Authorization: Bearer $KE
 
 `opencode models litellm` でも OpenCode 側から見えているモデルを確認できる。
 
+GPT-6 は Chat Completions の `max_tokens` を受け付けないため、`opencode.jsonc` ではモデルごとの
+`provider.npm` を `@ai-sdk/openai` にして LiteLLM の `/v1/responses` を使う。ほかのモデルは
+`@ai-sdk/openai-compatible` のまま `/v1/chat/completions` を使う。
+
 ## ⚠ モデル名は完全一致
 
 `opencode.jsonc` の `models` のキーと `codex.toml` の `model` は、LiteLLM の `config.yaml` の
