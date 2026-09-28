@@ -14,9 +14,24 @@ general_settings:
     - header_name: X-OpenWebUI-User-Email
       litellm_user_role: customer
 model_list:
-  - model_name: gpt-5.6-luna-utokyo-azure
+  - model_name: gpt-oss-20b-mdx-maas
     litellm_params:
-      model: openai/gpt-5.6-luna
+      model: openai/openai/gpt-oss-20b
+      api_base: https://api.maas.mdx1.jp/v1
+      api_key: os.environ/MDX_MAAS_API_KEY
+  - model_name: gpt-6-luna-utokyo-azure
+    litellm_params:
+      model: openai/gpt-6-luna
+      api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gpt-6-sol-utokyo-azure
+    litellm_params:
+      model: openai/gpt-6-sol
+      api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gpt-6-astra-utokyo-azure
+    litellm_params:
+      model: openai/gpt-6-astra
       api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
       api_key: os.environ/OPENAI_API_KEY
   - model_name: gpt-5.3-codex-utokyo-azure
@@ -24,8 +39,23 @@ model_list:
       model: openai/gpt-5.3-codex
       api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
       api_key: os.environ/OPENAI_API_KEY
-  - model_name: gpt-oss-20b-mdx-maas
+  - model_name: Kimi-K2.7-Code-utokyo-azure
     litellm_params:
-      model: openai/openai/gpt-oss-20b
-      api_base: https://api.maas.mdx1.jp/v1
-      api_key: os.environ/MDX_MAAS_API_KEY
+      model: openai/Kimi-K2.7-Code
+      api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gpt-5.6-luna-utokyo-azure
+    litellm_params:
+      model: openai/gpt-5.6-luna
+      api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gpt-5.6-terra-utokyo-azure
+    litellm_params:
+      model: openai/gpt-5.6-terra
+      api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gpt-5.6-sol-utokyo-azure
+    litellm_params:
+      model: openai/gpt-5.6-sol
+      api_base: https://tau-lecture-ai.openai.azure.com/openai/v1
+      api_key: os.environ/OPENAI_API_KEY
