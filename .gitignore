@@ -3,7 +3,7 @@ hub/jupyterhub.env
 hub/state/
 litellm/litellm.env
 open-webui/oauth.env
-open-code/client.env
+agents/client.env
 hub/*/cfg.sh
 
 # 実行時に作られるもの
@@ -26,4 +26,4 @@ ansible/vars/litellm.yml
 # no longer used by ansible (secrets moved to hub/jupyterhub.env); keep ignored
 ansible/vars/jupyterhub.yml
 enroll/enroll.env
-open-code/opencode_setup.env
+agents/agent_setup.env

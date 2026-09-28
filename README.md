@@ -13,7 +13,7 @@
 * ansible/     --- 新しい VM をサーバに仕立てる (ldap, nfs, apache, 証明書)
 * litellm/     --- 授業用 LLM ゲートウェイ (鍵の発行・利用記録・上流 API の秘匿)
 * open-webui/  --- 学生向けチャット playground (Google 認証)
-* open-code/   --- コーディングエージェント (学生の手元に入れる)
+* agents/      --- コーディングエージェント (OpenCode, Codex CLI) の鍵と設定。サーバで仕込む agent_setup と、手元での設定
 
 These tools are mostly independent.  You can use monitoring, for example, without using any other directories
 
@@ -35,7 +35,7 @@ OpenCode / aider           認証・鍵発行・利用記録      mdx MaaS
 |---|---|---|
 | `litellm/` | サーバ | 127.0.0.1:4000 → Apache が `https://FQDN/litellm/v1/` で中継 |
 | `open-webui/` | サーバ | 127.0.0.1:8080 → Apache が `https://FQDN:3000` で中継 |
-| `open-code/` | **学生の手元** | — |
+| `agents/` | サーバ / **学生の手元** | OpenCode, Codex CLI -> `https://FQDN/litellm/v1` |
 | `hub/` | サーバ | JupyterHub 本体 (root, checkout の `hub/` から直接, `jupyterhub.service`) |
 | `singleuser/` | サーバ | 学生の Jupyter 環境 (share, `/home/share/venv/jupyter`) |
 
@@ -149,8 +149,8 @@ Google の OAuth クライアントは Open WebUI と同じもの。リダイレ
 1. LMS の課題で g.ecc のアドレスを申告させ、名簿の `jupyter_user` / `webui_user` / `litellm_user` 列に入れる
    (使わせないサービスの列は空にする)
 2. `enroll/enroll` を流す (enroll/README.md)。user_map と Open WebUI の事前登録までが済む
-3. `open-code/opencode_setup` を流す (open-code/README.md)。鍵を 1 人 1 本発行し、
-   taulec の各ホームに auth.json と opencode.jsonc を置き、鍵を埋めた名簿を出力する。
+3. `agents/agent_setup` を流す (agents/README.md)。鍵を 1 人 1 本発行し、taulec の各ホームに
+   OpenCode と Codex CLI の鍵 (auth.json) と設定を置き、鍵を埋めた名簿を出力する。
    その鍵を LMS の課題への返答で各学生に返す
 4. Open WebUI は URL を伝えるだけ。`https://` を明示するよう念を押す
 

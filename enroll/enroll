@@ -20,7 +20,7 @@ rows enrolls just the new ones:
     1. ~/notebooks (always)
     2. JupyterHub user_map: jupyter_user -> user
     3. Open WebUI user webui_user (role=user); a pending user is promoted
-LiteLLM keys (litellm_user) are issued by ../open-code/opencode_setup.
+LiteLLM keys (litellm_user) are issued by ../agents/agent_setup.
 
 Accounts and homes are NOT created here; rows whose account doesn't exist
 are skipped. Nothing is ever deleted; entries not in the roster are only

@@ -1,8 +1,8 @@
 // OpenCode -> LiteLLM
 //
-// Install as ~/.config/opencode/opencode.jsonc (opencode_setup does this).
+// Install as ~/.config/opencode/opencode.jsonc (agent_setup does this).
 // No key here: opencode takes it from ~/.local/share/opencode/auth.json, entry "litellm"
-// (written by opencode_setup, or by "opencode auth login" -> Other -> litellm).
+// (written by agent_setup, or by "opencode auth login" -> Other -> litellm).
 //
 // models のキーは LiteLLM の config.yaml の model_name と完全一致させること。
 // 片方だけ変えると OpenCode 側から見えなくなる。

@@ -2,7 +2,7 @@
 
 **すでにある Unix (LDAP) アカウント**に、Jupyter と Open WebUI の設定を注入する。
 アカウントとホームは別の手段 (ansible の `ldap_users` など) で事前に多めに作っておく前提。
-LiteLLM の鍵は `../open-code/opencode_setup` が発行する (1 人 1 本)。
+LiteLLM の鍵は `../agents/agent_setup` が発行する (1 人 1 本)。
 
 ```
 roster.csv  (user, jupyter_user, webui_user, class, real_name)
@@ -57,7 +57,7 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY は必須
 `jupyter_user` を書く。もう一方は Local Account (パスワード) でログインする。`jupyter_user` が
 重複していたら 2 行目以降の user_map だけスキップしてレポートに出す。
 
-ほかの列は無視するので、`opencode_setup` と同じ名簿 (`litellm_user`, `litellm_key` などの列つき)
+ほかの列は無視するので、`agent_setup` と同じ名簿 (`litellm_user`, `litellm_key` などの列つき)
 をそのまま渡せる。アドレスは小文字にそろえる。`GOOGLE_DOMAIN` (既定 `g.ecc.u-tokyo.ac.jp`)
 以外のアドレス、`user` の重複、別のユーザに対応付け済みの `jupyter_user` はスキップして
 レポートに出す。
@@ -76,7 +76,7 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY は必須
 | | |
 |---|---|
 | `enroll` | 本体 |
-| `litellm_admin.py` | 名簿の読み込み・sudo し直し・LiteLLM の管理 API。`../open-code/opencode_setup` と共用 |
+| `litellm_admin.py` | 名簿の読み込み・sudo し直し・LiteLLM の管理 API。`../agents/agent_setup` と共用 |
 | `enroll.env.example` | 設定の雛形 |
 
 ## 前提

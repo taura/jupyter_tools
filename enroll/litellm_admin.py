@@ -1,5 +1,5 @@
 """
-Shared helpers for ./enroll and ../open-code/opencode_setup:
+Shared helpers for ./enroll and ../agents/agent_setup:
 env/roster parsing, the LiteLLM admin API, and rerunning under sudo.
 Standard library only.
 """
