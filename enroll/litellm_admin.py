@@ -36,32 +36,35 @@ def split_set(arg):
 
 def read_roster(text, users=None, classes=None):
     """Returns (rows, problems). Only rows whose user is in users and whose
-    class is in classes (None = no filter) are kept; rows with a duplicate
-    user or email are dropped. email is lowercased; "raw" is the original row."""
-    rows, problems, seen_user, seen_email = [], [], {}, {}
+    class is in classes (None = no filter) are kept; a row repeating an
+    earlier user is dropped. Per-service columns (each empty = don't set up
+    that service for the row):
+        jupyter_user  Google account that logs in to JupyterHub as user
+        webui_user    Google account for Open WebUI
+        litellm_user  LiteLLM user_id owning the key (issue one if litellm_key is empty)
+    Google accounts are lowercased; "raw" is the original row. Uniqueness of
+    jupyter_user is up to the caller (only JupyterHub needs it)."""
+    rows, problems, seen_user = [], [], {}
     for lineno, r in enumerate(csv.DictReader(io.StringIO(text)), start=2):
-        user = (r.get("user") or "").strip()
+        def col(name):
+            return (r.get(name) or "").strip()
+        user = col("user")
         if not user:
             continue
         if users is not None and user not in users:
             continue
-        if classes is not None and (r.get("class") or "").strip() not in classes:
+        if classes is not None and col("class") not in classes:
             continue
-        email = (r.get("email") or "").strip().lower()
-        row = {"line": lineno, "user": user, "email": email,
-               "team": (r.get("litellm_team") or "").strip(),
-               "key": (r.get("litellm_key") or "").strip(),
-               "name": (r.get("real_name") or "").strip() or user, "raw": r}
         if user in seen_user:
             problems.append((user, f"line {lineno}: duplicate user (first at line {seen_user[user]})"))
             continue
-        if email and email in seen_email:
-            problems.append((user, f"line {lineno}: duplicate email {email} (first at line {seen_email[email]})"))
-            continue
         seen_user[user] = lineno
-        if email:
-            seen_email[email] = lineno
-        rows.append(row)
+        rows.append({"line": lineno, "user": user,
+                     "jupyter_user": col("jupyter_user").lower(),
+                     "webui_user": col("webui_user").lower(),
+                     "litellm_user": col("litellm_user"),
+                     "key": col("litellm_key"), "team": col("litellm_team"),
+                     "name": col("real_name") or user, "raw": r})
     return rows, problems
 
 

@@ -38,9 +38,10 @@ OpenCode はプロバイダ `litellm` に送るとき、接続先を `opencode.j
 
 ## サーバで仕込む (opencode_setup)
 
-名簿 (`user`, `email`, `litellm_key`, `litellm_team`, `class`) の選んだ行について、
+名簿 (`user`, `litellm_user`, `litellm_key`, `litellm_team`, `class`) の選んだ行について、
 
-1. 鍵: `litellm_key` 列の鍵を使う。空なら LiteLLM で発行する (`key_alias` = user)
+1. 鍵: `litellm_key` 列の鍵を使う。空なら `litellm_user` を持ち主 (LiteLLM の `user_id`) として
+   発行する (`key_alias` = user)。**両方とも空の行は何もしない**
 2. `{prefix}/share/opencode/auth.json` の `"litellm"` の行をその鍵にする (ほかの行は残す)
 3. `{config}/opencode/opencode.jsonc` に `--config-src` をコピー (または symlink) する
 

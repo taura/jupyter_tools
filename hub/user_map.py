@@ -131,6 +131,50 @@ class user_map:
                 if u != user:
                     err += 1
         return int(err == 0)
+    def unbind(self, user, local, keep_local):
+        """
+        remove the entry (user, ?); if local is given, only when it is (user, local).
+        with keep_local, turn it into ("", local) so local can be allocated again.
+        return the local user it was mapped to, or None if nothing was removed.
+        """
+        self.begin()
+        found = list(self.sql("select local from users where user = ?", user))
+        assert(len(found) < 2)
+        if len(found) == 0:
+            self.rollback()
+            print(f"error: no entry for {user}", file=sys.stderr)
+            return None
+        [(l,)] = found
+        if local is not None and l != local:
+            self.rollback()
+            print(f"error: {user} is mapped to {l}, not {local}", file=sys.stderr)
+            return None
+        if keep_local:
+            self.sql("update users set user = ? where user = ?", "", user)
+        else:
+            self.sql("delete from users where user = ?", user)
+        self.commit()
+        return l
+    def unbindl(self, local, keep_local):
+        """
+        remove the entry (?, local); with keep_local, turn it into ("", local).
+        return the user it was mapped from ("" for an unmapped local user),
+        or None if there is no such entry.
+        """
+        self.begin()
+        found = list(self.sql("select user from users where local = ?", local))
+        assert(len(found) < 2)
+        if len(found) == 0:
+            self.rollback()
+            print(f"error: no entry for local user {local}", file=sys.stderr)
+            return None
+        [(u,)] = found
+        if keep_local:
+            self.sql("update users set user = ? where local = ?", "", local)
+        else:
+            self.sql("delete from users where local = ?", local)
+        self.commit()
+        return u
     def query(self, user):
         """
         (user, ?) exists?
@@ -209,6 +253,17 @@ def parse_args(argv):
     p_binds = subp.add_parser("binds", help="map USER to LOCAL from csv")
     p_binds.add_argument("file", help="csv having 'user' and 'local' columns", metavar="FILE")
     p_binds.add_argument("--force", help="overwrite existing entry", action="store_true")
+    # --- subcommand: unbind ---
+    p_unbind = subp.add_parser("unbind", help="remove the mapping of USER (inverse of bind)")
+    p_unbind.add_argument("user", help="user whose mapping to remove", metavar="USER")
+    p_unbind.add_argument("local", nargs="?", help="remove only if USER is mapped to LOCAL", metavar="LOCAL")
+    p_unbind.add_argument("--keep-local", action="store_true",
+                          help="keep LOCAL as an unmapped local user (can be allocated again)")
+    # --- subcommand: unbindl ---
+    p_unbindl = subp.add_parser("unbindl", help="remove the entry of local user LOCAL")
+    p_unbindl.add_argument("local", help="local user whose entry to remove", metavar="LOCAL")
+    p_unbindl.add_argument("--keep-local", action="store_true",
+                           help="keep LOCAL as an unmapped local user (can be allocated again)")
     # --- subcommand: alloc ---
     p_alloc = subp.add_parser("alloc", help="allocate a local user to USER")
     p_alloc.add_argument("user")
@@ -269,6 +324,18 @@ def main():
             return 0            # OK
         else:
             return 1
+    elif cmd == "unbind":
+        local = um.unbind(opts.user, opts.local, opts.keep_local)
+        if local is not None:
+            return 0            # OK
+        else:
+            return 1
+    elif cmd == "unbindl":
+        user = um.unbindl(opts.local, opts.keep_local)
+        if user is not None:
+            return 0            # OK
+        else:
+            return 1
     elif cmd == "alloc":
         local = um.alloc(opts.user)
         if local is not None:
@@ -283,4 +350,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

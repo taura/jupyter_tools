@@ -99,6 +99,11 @@ python3 ../user_map.py show
 python3 ../user_map.py binds users.csv   # user,local 列
 python3 ../user_map.py local u26000      # 割り当て候補に追加
 python3 ../user_map.py register on       # 自己登録を許す
+
+python3 ../user_map.py unbind a@g.ecc.u-tokyo.ac.jp            # その行を消す (bind の逆)
+python3 ../user_map.py unbind a@g.ecc.u-tokyo.ac.jp u26000     # a -> u26000 のときだけ消す
+python3 ../user_map.py unbind a@g.ecc.u-tokyo.ac.jp --keep-local   # u26000 を空き枠に戻す
+python3 ../user_map.py unbindl u26000                          # ローカルユーザ名から指定して消す
 ```
 
 **別のディレクトリで実行すると、そこに空の `user_map.sqlite` ができる** (hub が見ている

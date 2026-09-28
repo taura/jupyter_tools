@@ -13,8 +13,9 @@ the shared opencode.jsonc.
 
 Roster columns (others are ignored and copied to the output as they are):
     user          account on this server (required)
-    email         owner of the key in LiteLLM (needed only to issue one)
-    litellm_key   the student's key; empty = issue one
+    litellm_user  LiteLLM user_id owning a new key (may repeat); empty and no
+                  litellm_key = the row is skipped
+    litellm_key   the student's key; empty = issue one for litellm_user
     litellm_team  LiteLLM team alias for a new key; created if missing
     class         used by --class
 
@@ -169,7 +170,7 @@ def ensure_config(t, opts):
 
 
 def needs_key(rows):
-    return [r for r in rows if not r["key"] and r["email"]]
+    return [r for r in rows if not r["key"] and r["litellm_user"]]
 
 
 def write_output(fp, roster_text, issued):
@@ -209,6 +210,9 @@ def run(opts, roster_text, env_text, log, emit):
     counts = {}
     for row in rows:
         user = row["user"]
+        if not row["key"] and not row["litellm_user"]:
+            problems.append((user, "no litellm_key or litellm_user; skipped"))
+            continue
         try:
             t = Target(user, opts)
         except KeyError:
@@ -220,17 +224,15 @@ def run(opts, roster_text, env_text, log, emit):
             nonlocal key
             if key:
                 return "given"
-            if not row["email"]:
-                raise Skip("no litellm_key and no email to issue one")
             alias = f"{user}@{opts.site}" if opts.site else user
-            key, note = litellm().issue_key(alias, row["email"], row["team"])
+            key, note = litellm().issue_key(alias, row["litellm_user"], row["team"])
             if key:
                 emit(user, key)
             return "issued" + note
 
         def step_auth():
             # on a dry run a key that would be issued is still None
-            if not key and not (opts.dry_run and row["email"]):
+            if not key and not opts.dry_run:
                 raise Skip("no key")
             return ensure_auth(t, key, opts)
 
@@ -277,7 +279,7 @@ def root_args(opts):
 
 def main():
     ap = argparse.ArgumentParser(description="Set up OpenCode (LiteLLM key in auth.json + opencode.jsonc) for a roster")
-    ap.add_argument("roster", nargs="?", help="roster csv (user, email, litellm_key, litellm_team, class)")
+    ap.add_argument("roster", nargs="?", help="roster csv (user, litellm_user, litellm_key, litellm_team, class)")
     ap.add_argument("-o", "--output", help="write the roster with newly issued keys here (required if keys are issued)")
     ap.add_argument("--config", default="~{user}/.config", help="config dir template (default: ~{user}/.config)")
     ap.add_argument("--prefix", default="~{user}/.local", help="data prefix template; auth.json goes in "

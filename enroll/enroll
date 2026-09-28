@@ -7,18 +7,20 @@ Enroll existing Unix (LDAP) accounts into the class services on this host.
     ./enroll --class pl roster.csv
     ./enroll --user u26000,u26001 roster.csv   # with --class: rows matching both
 
-Roster columns (others are ignored):
+Roster columns (others are ignored). Each xxx_user column is the Google
+account used for that service; leave it empty to skip that service for the row:
     user          existing Unix account (required)
+    jupyter_user  Google account that logs in to JupyterHub as user (unique in the roster)
+    webui_user    Google account for Open WebUI (may repeat)
     class         course (used by --class)
-    email         Google address the student logs in with (g.ecc)
     real_name     display name for Open WebUI (optional)
 
 For each row, only what is missing is created, so re-running after adding
 rows enrolls just the new ones:
-    1. ~/notebooks
-    2. JupyterHub user_map: email -> user
-    3. Open WebUI user (role=user); a pending user is promoted
-LiteLLM keys are issued by ../open-code/opencode_setup.
+    1. ~/notebooks (always)
+    2. JupyterHub user_map: jupyter_user -> user
+    3. Open WebUI user webui_user (role=user); a pending user is promoted
+LiteLLM keys (litellm_user) are issued by ../open-code/opencode_setup.
 
 Accounts and homes are NOT created here; rows whose account doesn't exist
 are skipped. Nothing is ever deleted; entries not in the roster are only
@@ -71,10 +73,13 @@ class OpenWebUI:
                 # (OAUTH_MERGE_ACCOUNTS_BY_EMAIL).
                 http("POST", self.url + "/api/v1/auths/add", self.token,
                      {"name": name, "email": email, "password": secrets.token_urlsafe(32), "role": "user"})
+            # a later row with the same webui_user then sees it as existing
+            self.users[email] = {"email": email, "role": "user"}
             return "added"
         if u.get("role") == "pending":
             if not self.dry_run:
                 http("POST", f"{self.url}/api/v1/users/{u['id']}/update", self.token, {"role": "user"})
+            u["role"] = "user"
             return "promoted"
         return "exists"
 
@@ -115,7 +120,7 @@ def ensure_user_map(um, email, user, dry_run):
 
 def main():
     ap = argparse.ArgumentParser(description="Enroll existing accounts into JupyterHub and Open WebUI")
-    ap.add_argument("roster", nargs="?", help="roster csv (user, email, class, real_name)")
+    ap.add_argument("roster", nargs="?", help="roster csv (user, jupyter_user, webui_user, class, real_name)")
     ap.add_argument("--dry-run", action="store_true", help="show what would be done without changing anything")
     ap.add_argument("--user", help="comma-separated users to process")
     ap.add_argument("--class", dest="klass", help="comma-separated classes (class column) to process")
@@ -149,9 +154,26 @@ def main():
         key = (step, result.split()[0])
         counts[key] = counts.get(key, 0) + 1
 
+    def google_ok(user, col, account):
+        if account.endswith("@" + cfg.google_domain):
+            return True
+        problems.append((user, f"{col} {account} is not @{cfg.google_domain}; skipped"))
+        return False
+
+    # JupyterHub lands a Google login on exactly one account
+    first_jupyter = {}
+    for row in rows:
+        acct = row["jupyter_user"]
+        if acct and acct in first_jupyter:
+            problems.append((row["user"], f"jupyter_user {acct} is also on line {first_jupyter[acct]}; "
+                             "user_map skipped (a Google login lands on one account)"))
+            row["jupyter_user"] = ""
+        elif acct:
+            first_jupyter[acct] = row["line"]
+
     prefix = "[dry-run] " if opts.dry_run else ""
     for row in rows:
-        user, email = row["user"], row["email"]
+        user, jupyter_user, webui_user = row["user"], row["jupyter_user"], row["webui_user"]
         try:
             pw = pwd.getpwnam(user)
         except KeyError:
@@ -162,15 +184,10 @@ def main():
             continue
         done = []
         steps = [("notebooks", lambda: ensure_notebooks(cfg, pw, opts.dry_run))]
-        if not email:
-            problems.append((user, "no email; only notebooks done"))
-        elif not email.endswith("@" + cfg.google_domain):
-            problems.append((user, f"email {email} is not @{cfg.google_domain}; only notebooks done"))
-        else:
-            steps += [
-                ("user_map", lambda: ensure_user_map(um, email, user, opts.dry_run)),
-                ("openwebui", lambda: owui.ensure_user(email, row["name"])),
-            ]
+        if jupyter_user and google_ok(user, "jupyter_user", jupyter_user):
+            steps.append(("user_map", lambda: ensure_user_map(um, jupyter_user, user, opts.dry_run)))
+        if webui_user and google_ok(user, "webui_user", webui_user):
+            steps.append(("openwebui", lambda: owui.ensure_user(webui_user, row["name"])))
         for step, fn in steps:
             try:
                 result = fn()
@@ -179,7 +196,7 @@ def main():
                 problems.append((user, f"{step}: {e}"))
             count(step, result)
             done.append(f"{step}:{result}")
-        print(f"{prefix}{user:10s} {email:40s} " + "  ".join(done))
+        print(f"{prefix}{user:10s} " + "  ".join(done))
 
     # Report
     print()
@@ -195,9 +212,10 @@ def main():
 
     # only meaningful against the whole roster
     if users is None and classes is None:
-        emails = {r["email"] for r in rows if r["email"]}
-        stale_um = [(u, l) for u, l in um.sql("select user, local from users") if u and u not in emails]
-        stale_owui = [e for e, u in owui.users.items() if u.get("role") != "admin" and e not in emails]
+        jupyter_users = {r["jupyter_user"] for r in rows if r["jupyter_user"]}
+        webui_users = {r["webui_user"] for r in rows if r["webui_user"]}
+        stale_um = [(u, l) for u, l in um.sql("select user, local from users") if u and u not in jupyter_users]
+        stale_owui = [e for e, u in owui.users.items() if u.get("role") != "admin" and e not in webui_users]
         if stale_um or stale_owui:
             print()
             print("registered but not in the roster (not removed)")

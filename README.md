@@ -146,7 +146,8 @@ Google の OAuth クライアントは Open WebUI と同じもの。リダイレ
 
 ### 8. 学生への配布
 
-1. LMS の課題で g.ecc のアドレスを申告させ、名簿 (email 列つき) を作る
+1. LMS の課題で g.ecc のアドレスを申告させ、名簿の `jupyter_user` / `webui_user` / `litellm_user` 列に入れる
+   (使わせないサービスの列は空にする)
 2. `enroll/enroll` を流す (enroll/README.md)。user_map と Open WebUI の事前登録までが済む
 3. `open-code/opencode_setup` を流す (open-code/README.md)。鍵を 1 人 1 本発行し、
    taulec の各ホームに auth.json と opencode.jsonc を置き、鍵を埋めた名簿を出力する。
