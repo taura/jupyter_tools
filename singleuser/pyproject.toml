@@ -12,6 +12,7 @@ dependencies = [
     "jupyter-ai-magics>=2.31.7",
     "jupyterhub>=6.0.1",
     "nbgrader>=0.9.6",
+    "openai>=3.23.0",
     "remote-ipykernel>=1.0.2",
 ]
 
