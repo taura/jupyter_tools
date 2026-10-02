@@ -18,11 +18,11 @@
       "models": {
         "llm-jp-4.1-32b-a3b-thinking": {
 	   "name": "LLM-jp-4.1 32b-a3b-thinking (LLM-jp)",
-           "povider": { "npm": "@ai-sdk/openai" }
+           "provider": { "npm": "@ai-sdk/openai" }
         },
         "llm-jp-4.1-33b-thinking": {
 	   "name": "LLM-jp-4.1 33b-thinking (LLM-jp)",
-           "povider": { "npm": "@ai-sdk/openai" }
+           "provider": { "npm": "@ai-sdk/openai" }
         },
         "gpt-oss-20b-mdx-maas": {
           "name": "gpt-oss-20b (mdx MaaS)",
