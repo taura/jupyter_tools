@@ -26,6 +26,7 @@ GOOGLE_DOMAIN = os.environ.get("GOOGLE_DOMAIN", "g.ecc.u-tokyo.ac.jp")
 # Venv for students' servers (share-owned, built by ../singleuser/install)
 # SINGLEUSER_VENV = os.environ.get("SINGLEUSER_VENV", "/home/share/venv/jupyter")
 SINGLEUSER_VENV = os.environ.get("SINGLEUSER_VENV", "/home/share/lectures/jupyter_tools/singleuser/.venv")
+OPENCODE_DIR = "/home/share/jupyter_tools/singleuser/oc/inst"
 
 c.JupyterHub.ssl_cert = f'/etc/pki/tls/certs/{FQDN}/fullchain.crt'
 c.JupyterHub.ssl_key = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.key'
@@ -78,7 +79,7 @@ class MyPAMAuthenticator(PAMAuthenticator):
 # jupyter and kernels resolve to that venv.
 c.Spawner.cmd = [f"{SINGLEUSER_VENV}/bin/jupyterhub-singleuser"]
 c.Spawner.environment = {
-    "PATH": f"{SINGLEUSER_VENV}/bin:/usr/local/bin:/usr/bin:/bin",
+    "PATH": f"{SINGLEUSER_VENV}/bin:{OPENCODE_DIR}/bin:/usr/local/bin:/usr/bin:/bin",
     "VIRTUAL_ENV": SINGLEUSER_VENV,
 }
 c.Spawner.env_keep = ['LANG', 'LC_ALL', 'JUPYTERHUB_SINGLEUSER_APP']
