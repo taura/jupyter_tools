@@ -1,11 +1,12 @@
 # singleuser — 学生の Jupyter 環境
 
 JupyterHub (`../hub`) が学生ごとに起動するサーバの環境。hub (root) とは別の
-venv で、**share が所有する `/home/share/venv/jupyter`** に入れる。学生全員が
-この venv の python を実行するので、全員が読める場所に置く。
+venv で、**share が所有する `/home/share/jupyter_tools/singleuser/.venv`** に入れる
+(`../hub/jupyterhub.env` の `SINGLEUSER_VENV`)。学生全員がこの venv の python を
+実行するので、全員が読める場所に置く。
 
-中身: jupyterhub-singleuser, JupyterLab 4, Notebook 7, nbgrader, ipywidgets,
-カーネル (python3, bash, sos), numpy / pandas / matplotlib / networkx / pydot。
+中身: jupyterhub-singleuser, JupyterLab 4, Notebook 7, nbgrader, Jupyter AI,
+remote_ipykernel。カーネルは python3 (taulec 上) と Python (Miyabi G)。
 
 **jupyterhub のバージョンは `../hub/pyproject.toml` と必ず揃えること。**
 
@@ -14,7 +15,8 @@ venv で、**share が所有する `/home/share/venv/jupyter`** に入れる。�
 | | |
 |---|---|
 | `pyproject.toml` / `uv.lock` / `.python-version` | Python 環境 (3.12) |
-| `install` | venv を作り、カーネルと nbgrader の共通設定を入れる |
+| `install` | venv を作り、nbgrader の共通設定とカーネルを入れる |
+| `kernels/miyabig/kernel.json` | Miyabi G のカーネル (全員共通) |
 
 ## 設置・更新
 
@@ -27,19 +29,58 @@ cd ~/jupyter_tools/singleuser
 
 `install` がやること:
 
-- `uv sync --frozen` で `/home/share/venv/jupyter` を作る。uv が入れる Python も
-  `/home/share/venv/python` に置く (どちらも全員が読める)
-- bash / sos カーネルを venv の中に登録する
+- `uv sync --frozen` で `.venv` を作る
 - `../nbgrader/common/nbgrader_config.py` を venv の `etc/jupyter/` に symlink する
   (全学生・全教員アカウントに効く共通設定)
+- `kernels/*` を `jupyter kernelspec install --sys-prefix` で venv の
+  `share/jupyter/kernels/` に入れる (全員に見える)
+- venv と uv の Python を全員が読めるようにする
 
 パッケージを足すときは `pyproject.toml` を直して `uv lock` し、`./install` を流し直す。
 **新しい環境は、次に起動する学生のサーバから使われる。** 起動中のサーバは
 学生が一度止める (File → Hub Control Panel → Stop My Server) か、hub を再起動するまで
-古い環境のまま。
+古い環境のまま。カーネルの追加・変更は、ランチャーを開き直せば起動中のサーバにも見える。
 
-以前の pip の venv (`python -m venv` で作ったもの) が同じ場所に残っていると
-`install` は止まる。中身を確認して消してから流し直す。
+## Miyabi G カーネル
+
+remote_ipykernel が `ssh miyabig` でログインし、Miyabi の
+`/work/gt81/share/pd2026/.venv` の ipython kernel を起動して、ポートを ssh で転送する。
+
+`kernel.json` は `remote_ipykernel --add` が作るものと同じ形を手で書いたもの。
+ユーザごとの情報は含まない (ユーザ名は各自の `~/.ssh/config` の `Host miyabig` で決まる)
+ので、各ユーザが `--add` する必要はない。
+
+各ユーザに要るもの:
+
+- `~/.ssh/config` に `Host miyabig` (`User t81xxx`, `ControlMaster auto`,
+  `ControlPath`, `ControlPersist`)
+- **taulec から `ssh miyabig` で (TOTP で) ログインして、その接続を生かしておくこと。**
+  カーネルはその ControlMaster に相乗りするだけで、自分では認証しない
+
+`kernel.json` のオプション:
+
+| | |
+|---|---|
+| `--launch-args=-o BatchMode=yes -o ControlMaster=no` | ControlMaster が無い・使えないときに TOTP 待ちで固まらず、すぐ失敗させる。`-o` で始まるので `=` でつなぐこと (空白で区切ると argparse が値と見なさない) |
+| `--verbose` | リモートの出力 (`Permission denied` など) を `journalctl -u jupyterhub` に出す |
+
+### 繋がらないとき
+
+remote_ipykernel はトンネル用に `ssh miyabig sleep 600` を開き、これが ControlMaster の
+セッションを 10 分間ひとつ占有する。カーネルの起動・再起動を繰り返すと Miyabi 側の
+1 接続あたりのセッション数の上限に達し、`Session open refused by peer` で
+新しいセッションが開けなくなる (10 分待てば空く)。すぐ直したいときは:
+
+```
+ssh -O exit miyabig     # ControlMaster ごと閉じる (残った sleep 600 は新しい接続の枠を使わない)
+ssh miyabig             # TOTP で入り直し、開いたままにする
+```
+
+してから Kernel → Restart Kernel。
+
+`~/.ssh/config` の `User` を変えたときは、変更前に起動したカーネルを止めること。
+トンネルの張り直しは新しい設定で行われるため、別ユーザの ControlMaster の
+セッションを 5 秒ごとに食い続ける。
 
 ## 既知の警告
 

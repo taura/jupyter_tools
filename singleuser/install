@@ -1,12 +1,11 @@
 #!/bin/bash
-# Build the students' Jupyter environment (jupyterhub-singleuser, JupyterLab,
-# nbgrader, kernels). Idempotent; no sudo. Run as share.
+# Build the students' Jupyter environment. Idempotent; no sudo. Run as share.
 #
 #   ./install
 #
-# Venv defaults to /home/share/venv/jupyter; must match SINGLEUSER_VENV
-# in ../hub/jupyterhub.env (same default).
-#   JUPYTER_VENV=/path/to/venv ./install
+# - uv sync -> ./.venv (must match SINGLEUSER_VENV in ../hub/jupyterhub.env)
+# - common nbgrader config -> .venv/etc/jupyter
+# - kernels/* (e.g. Miyabi G) -> .venv/share/jupyter/kernels
 #
 # Every student runs this venv's python, so the venv and uv's Python must be
 # world-readable (share's home is 755).
@@ -14,44 +13,29 @@ set -eu
 cd "$(dirname "$0")"
 HERE=$(pwd)
 REPO=$(dirname "$HERE")
-
-VENV=${JUPYTER_VENV:-/home/share/venv/jupyter}
-# uv-managed Python, next to the venv so everything students read is in one place
-PYDIR=$(dirname "$VENV")/python
+VENV=$HERE/.venv
 
 command -v uv >/dev/null || {
     echo "uv がありません: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2; exit 1; }
 
-# Refuse to reuse an old pip venv (python -m venv).
-# uv-created venvs have a "uv = <version>" line in pyvenv.cfg.
-if [ -e "$VENV" ] && ! grep -q '^uv = ' "$VENV/pyvenv.cfg" 2>/dev/null; then
-    echo "$VENV は uv で作った venv ではありません (以前の pip の venv?)。" >&2
-    echo "中身を確認してから消して、もう一度実行してください:" >&2
-    echo "  rm -rf $VENV" >&2
-    exit 1
-fi
-
 umask 022
-mkdir -p "$(dirname "$VENV")"
-export UV_PROJECT_ENVIRONMENT="$VENV"
-export UV_PYTHON_INSTALL_DIR="$PYDIR"
 uv sync --frozen
-
-# Register kernels inside the venv (share/jupyter/kernels).
-# ipykernel installs python3 itself.
-"$VENV/bin/python" -m bash_kernel.install --sys-prefix
-"$VENV/bin/python" -m sos_notebook.install --sys-prefix
 
 # Common nbgrader config for everyone (../nbgrader/README.md);
 # the venv's etc/jupyter is on every user's config path.
 mkdir -p "$VENV/etc/jupyter"
 ln -sfn "$REPO/nbgrader/common/nbgrader_config.py" "$VENV/etc/jupyter/nbgrader_config.py"
 
+# Shared kernelspecs; visible to every user whose server runs from this venv.
+for k in kernels/*/; do
+    "$VENV/bin/jupyter" kernelspec install --sys-prefix --replace "$k"
+done
+
 # ensure world-readable regardless of umask
-chmod -R a+rX "$VENV" "$PYDIR"
+chmod -R a+rX "$VENV" "$(uv python dir)"
 
 echo
 "$VENV/bin/jupyter" kernelspec list
 echo
 echo "OK: $VENV"
-echo "JupyterHub を再起動すると、新しく起動する学生のサーバからこの環境が使われます。"
+echo "新しく起動する学生のサーバからこの環境が使われます。"

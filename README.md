@@ -6,7 +6,7 @@
 * authoring/   --- tools to convert texts (.py, .sos, .c) into .ipynb
 * grading/     --- tools to grade .ipynb files
 * hub/         --- JupyterHub 本体 (root, この checkout から直接動く)。Google (ECCS) + ローカルアカウントでログイン
-* singleuser/  --- 学生の Jupyter 環境 (share, /home/share/venv/jupyter)。JupyterLab, nbgrader, カーネル
+* singleuser/  --- 学生の Jupyter 環境 (share, /home/share/jupyter_tools/singleuser/.venv)。JupyterLab, nbgrader, カーネル (Miyabi G を含む)
 * enroll/      --- 既存アカウントを名簿から授業のサービスに登録する (user_map, Open WebUI)
 * monitoring/  --- monitor, record, and visualize student activities
 * nbgrader/    --- example config files for nbgrader
@@ -37,7 +37,7 @@ OpenCode / aider           認証・鍵発行・利用記録      mdx MaaS
 | `open-webui/` | サーバ | 127.0.0.1:8080 → Apache が `https://FQDN:3000` で中継 |
 | `agents/` | サーバ / **学生の手元** | OpenCode, Codex CLI -> `https://FQDN/litellm/v1` |
 | `hub/` | サーバ | JupyterHub 本体 (root, checkout の `hub/` から直接, `jupyterhub.service`) |
-| `singleuser/` | サーバ | 学生の Jupyter 環境 (share, `/home/share/venv/jupyter`) |
+| `singleuser/` | サーバ | 学生の Jupyter 環境 (share, `/home/share/jupyter_tools/singleuser/.venv`) |
 
 構成要素はそれぞれ独立した uv プロジェクト。**1 つの環境に同居させられない**
 (`open-webui` が `cryptography==48.0.0` を厳密固定し、`litellm[proxy]` は

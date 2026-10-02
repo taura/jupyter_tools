@@ -4,7 +4,7 @@
 ブラウザ --https:8000--> JupyterHub (root, このディレクトリから直接動く)
                            |  Google (ECCS) / Local (PAM) でログイン
                            v
-                         学生のサーバ (学生の uid, /home/share/venv/jupyter)
+                         学生のサーバ (学生の uid, /home/share/jupyter_tools/singleuser/.venv)
                            jupyterhub-singleuser + JupyterLab + nbgrader + カーネル
 ```
 
@@ -17,7 +17,7 @@ venv は 2 つに分けてある。
 | | 場所 | 所有 | 中身 | 作る人 |
 |---|---|---|---|---|
 | hub | `hub/.venv` | tau | jupyterhub, oauthenticator, multiauthenticator | tau (`uv sync`) |
-| 学生 | `/home/share/venv/jupyter` | share | jupyterhub-singleuser, jupyterlab, nbgrader, カーネル, numpy 等 | share (`../singleuser/install`) |
+| 学生 | `/home/share/jupyter_tools/singleuser/.venv` | share | jupyterhub-singleuser, jupyterlab, nbgrader, カーネル, numpy 等 | share (`../singleuser/install`) |
 
 hub は root で動くが、tau はもともと sudoer なので、tau のファイルを root が実行しても
 権限が広がることはない。学生の環境は share が sudo なしで更新できる (share は sudoer
