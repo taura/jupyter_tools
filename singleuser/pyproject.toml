@@ -1,33 +1,20 @@
 [project]
-name = "jupyter-tools-singleuser"
+name = "singleuser"
 version = "0.1.0"
-description = "Students' Jupyter server environment (jupyterhub-singleuser, JupyterLab, nbgrader, kernels)"
-
-requires-python = ">=3.12,<3.13"
-
-# Students' environment, separate from the hub (root): share-owned
-# /home/share/venv/jupyter (./install), so share can update it without sudo.
-# The hub itself is in ../hub.
-#
-# Keep the jupyterhub version identical to ../hub/pyproject.toml.
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Kenjiro Taura", email = "tau@eidos.ic.i.u-tokyo.ac.jp" }
+]
+requires-python = ">=3.12"
 dependencies = [
-    "jupyterhub==5.5.2",     # jupyterhub-singleuser
-    "jupyterlab>=4.3,<5",    # nbgrader 0.9 needs JupyterLab 4
-    "notebook>=7.3,<8",
-    "nbgrader>=0.9.5",
-    "ipywidgets",
-    # kernels (./install registers their kernelspecs in the venv)
-    "bash_kernel",
-    "sos",
-    "sos-notebook",
-    "jupyterlab-sos",
-    # libraries used in classes
-    "numpy",
-    "pandas",
-    "matplotlib",
-    "networkx",
-    "pydot",
+    "jupyterhub>=6.0.1",
+    "nbgrader>=0.9.6",
 ]
 
-[tool.uv]
-package = false
+[project.scripts]
+singleuser = "singleuser:main"
+
+[build-system]
+requires = ["uv_build>=0.12.21,<0.13.0"]
+build-backend = "uv_build"

@@ -24,7 +24,8 @@ GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
 # Email domain allowed to log in (same as Open WebUI's ALLOWED_DOMAIN)
 GOOGLE_DOMAIN = os.environ.get("GOOGLE_DOMAIN", "g.ecc.u-tokyo.ac.jp")
 # Venv for students' servers (share-owned, built by ../singleuser/install)
-SINGLEUSER_VENV = os.environ.get("SINGLEUSER_VENV", "/home/share/venv/jupyter")
+# SINGLEUSER_VENV = os.environ.get("SINGLEUSER_VENV", "/home/share/venv/jupyter")
+SINGLEUSER_VENV = os.environ.get("SINGLEUSER_VENV", "/home/share/lectures/jupyter_tools/singleuser/.venv")
 
 c.JupyterHub.ssl_cert = f'/etc/pki/tls/certs/{FQDN}/fullchain.crt'
 c.JupyterHub.ssl_key = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.key'

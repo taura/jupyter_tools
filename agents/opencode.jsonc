@@ -16,13 +16,29 @@
         "baseURL": "https://taulec.zapto.org/litellm/v1"
       },
       "models": {
-        "gpt-5.3-codex-utokyo-azure": {
-          "name": "GPT-5.3 Codex (UTokyo Azure)",
-          "provider": { "npm": "@ai-sdk/openai" }
+        "llm-jp-4.1-32b-a3b-thinking": {
+	   "name": "LLM-jp-4.1 32b-a3b-thinking (LLM-jp)",
+           "povider": { "npm": "@ai-sdk/openai" }
+        },
+        "llm-jp-4.1-33b-thinking": {
+	   "name": "LLM-jp-4.1 33b-thinking (LLM-jp)",
+           "povider": { "npm": "@ai-sdk/openai" }
         },
         "gpt-oss-20b-mdx-maas": {
           "name": "gpt-oss-20b (mdx MaaS)",
           "provider": { "npm": "@ai-sdk/openai-compatible" }
+        },
+        "llm-jp/llm-jp-4-32b-a3b-thinking": {
+          "name": "LLM-jp-4 32b-a3b-thinking (mdx MaaS)",
+          "provider": { "npm": "@ai-sdk/openai-compatible" }
+        },
+        "llm-jp/llm-jp-4-8b-thinking": {
+          "name": "LLM-jp-4 8b-thinking (mdx MaaS)",
+          "provider": { "npm": "@ai-sdk/openai-compatible" }
+        },
+        "gpt-5.3-codex-utokyo-azure": {
+          "name": "GPT-5.3 Codex (UTokyo Azure)",
+          "provider": { "npm": "@ai-sdk/openai" }
         },
         "Kimi-K2.7-Code-utokyo-azure": {
           "name": "Kimi-K2.7-Code-utokyo-azure (UTokyo Azure)",
@@ -55,5 +71,5 @@
       }
     }
   },
-  "model": "litellm/gpt-5.3-codex-utokyo-azure"
+  "model": "litellm/llm-jp-4.1-32b-a3b-thinking"
 }
