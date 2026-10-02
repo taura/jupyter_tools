@@ -23,7 +23,9 @@ rows enrolls just the new ones:
     3. Open WebUI user webui_user (role=user); a pending user is promoted
     4. ~/.ssh/config: Host blocks from ./ssh_config ({miyabi} -> miyabi)
        whose host isn't there yet are appended (an existing Host miyabig
-       is left alone); written as the user, not root
+       is left alone)
+Steps 1 and 4 run as the user (not root), so links planted in the home
+can't redirect them.
 LiteLLM keys (litellm_user) are issued by ../agents/agent_setup.
 
 Accounts and homes are NOT created here; rows whose account doesn't exist
@@ -49,7 +51,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from litellm_admin import ApiError, http, parse_env, read_roster, rerun_as_root, split_set  # noqa: E402
+from litellm_admin import ApiError, as_user, http, parse_env, read_roster, rerun_as_root, split_set  # noqa: E402
 
 
 class Config:
@@ -102,13 +104,14 @@ def load_user_map(cfg):
 
 
 def ensure_notebooks(cfg, pw, dry_run):
-    path = os.path.join(pw.pw_dir, cfg.notebooks_dir)
-    if os.path.isdir(path):
-        return "exists"
-    if not dry_run:
-        os.mkdir(path, 0o775)
-        os.chown(path, pw.pw_uid, pw.pw_gid)
-    return "created"
+    def work():
+        path = os.path.join(pw.pw_dir, cfg.notebooks_dir)
+        if os.path.isdir(path):
+            return "exists"
+        if not dry_run:
+            os.mkdir(path, 0o775)
+        return "created"
+    return as_user(pw, work)
 
 
 def ensure_user_map(um, email, user, dry_run):
@@ -148,34 +151,6 @@ def ssh_blocks(template):
     if cur:
         blocks.append(cur)
     return [(ssh_hosts("".join(b)), "".join(b)) for b in blocks]
-
-
-def as_user(pw, fn):
-    """Run fn() in a child with pw's uid/gids, so symlinks the user planted
-    can't redirect root's writes. Returns fn's str result; raises OSError."""
-    r, w = os.pipe()
-    pid = os.fork()
-    if pid == 0:
-        os.close(r)
-        try:
-            os.setgroups(os.getgrouplist(pw.pw_name, pw.pw_gid))
-            os.setgid(pw.pw_gid)
-            os.setuid(pw.pw_uid)
-            out = "ok " + fn()
-        except BaseException as e:
-            out = f"err {e}"
-        os.write(w, out.encode())
-        os._exit(0)
-    os.close(w)
-    data = b""
-    while chunk := os.read(r, 65536):
-        data += chunk
-    os.close(r)
-    os.waitpid(pid, 0)
-    tag, _, msg = data.decode().partition(" ")
-    if tag != "ok":
-        raise OSError(msg or "child failed")
-    return msg
 
 
 def ensure_ssh_config(pw, miyabi, template, dry_run):

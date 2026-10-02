@@ -47,7 +47,7 @@ LMS で行う (`agent_setup` が鍵を埋めた名簿を出力する)。LiteLLM 
 | `oc_auth` | `{prefix}/share/opencode/auth.json` の `"litellm"` の行をその鍵にする (ほかの行は残す) |
 | `oc_config` | `{config}/opencode/opencode.jsonc` に `--opencode-config` をコピー (または symlink) |
 | `codex_auth` | `{codex_home}/auth.json` を作る |
-| `codex_config` | `{codex_home}/config.toml` に `--codex-config` をコピー (または symlink) |
+| `codex_config` | `{codex_home}/config.toml` に `--codex-config` をコピー (常にコピー。Codex 自身が書き込むため) |
 
 **設定ファイルと Codex の auth.json は上書きしない。** すでにあって中身が違えば、そのまま残して
 警告に出す (学生が自分で書いた設定や、ChatGPT でのログインを壊さないため)。`--agents opencode` /
@@ -71,8 +71,10 @@ $EDITOR agent_setup.env                       # LITELLM_API_KEY (下記)
 ```
 
 `--config` / `--prefix` / `--codex-home` の既定は `~{user}/.config` / `~{user}/.local` /
-`~{user}/.codex` (本人のホーム)。`--sudo` で root として流し直し、作ったものを本人の所有にする
-(名簿と設定ファイルは sudo の前に実行したユーザの権限で読む)。学生は taulec にログインして
+`~{user}/.codex` (本人のホーム)。`--sudo` で root として流し直す (名簿は sudo の前に実行したユーザの
+権限で読む)。鍵の発行は root のまま行い、**本人のホームを読み書きする段階 (auth.json、設定ファイル) は
+本人の uid に落とした子プロセスで行う**。学生がホームに仕込んだシンボリックリンクで root に別の場所を
+読み書きさせる (他人の auth.json を読ませる等) ことを防ぐため。作ったものは最初から本人の所有になる。学生は taulec にログインして
 `opencode` / `codex` と打つだけ。
 
 `roster_keys.csv` の `litellm_key` を LMS で各学生に返す。
@@ -120,9 +122,13 @@ curl -s http://127.0.0.1:4000/user/new -H "Authorization: Bearer $LITELLM_MASTER
 
 ### モデルを足したとき
 
-- コピーした設定は上書きしないので、雛形を直しても配り直されない。学生の設定を消してから流し直すか、
-  各自で取り直してもらう
-- `--config-mode symlink` なら雛形を直すだけで全員に効く。雛形は学生が読める場所に置くこと
+- コピーした設定は上書きしないので、雛形を直しても配り直されない。`--force-opencode-jsonc` を付けて
+  流し直すと、違っている `opencode.jsonc` を置き換える (元のものは `opencode.jsonc.bak` に残る。
+  学生が自分で直した設定も置き換わるので注意)
+- `--opencode-config-mode symlink` なら `opencode.jsonc` を雛形への symlink にするので、雛形を直すだけで
+  全員に効く。雛形は学生が読める場所に置くこと (例: `--opencode-config /home/share/jupyter_tools/agents/opencode.jsonc`)。
+  既にコピーが配ってあるなら `--force-opencode-jsonc` と併用して置き換える。Codex の `config.toml` は
+  Codex 自身が書き込む (trust したディレクトリなど) ので常にコピー
   (スクリプトが確かめる)
 
 ## 自分で設定する (ラップトップなど)
@@ -183,6 +189,11 @@ curl -s https://taulec.zapto.org/litellm/v1/models -H "Authorization: Bearer $KE
 GPT-6 は Chat Completions の `max_tokens` を受け付けないため、`opencode.jsonc` ではモデルごとの
 `provider.npm` を `@ai-sdk/openai` にして LiteLLM の `/v1/responses` を使う。ほかのモデルは
 `@ai-sdk/openai-compatible` のまま `/v1/chat/completions` を使う。
+
+**`/v1/responses` を持たない上流 (vLLM で動く LLM-jp, mdx MaaS など) を `@ai-sdk/openai` にしてはいけない。**
+LiteLLM が上流に `/responses` を投げて `{"detail":"Method Not Allowed"}` (405) が返る。鍵やモデルの
+権限の問題に見えるが、LiteLLM の認証は通っている (`OpenAIException` は上流からの応答)。
+新しいモデルを足したら、その鍵で `/chat/completions` と `/responses` を curl で試して決める。
 
 ## ⚠ モデル名は完全一致
 

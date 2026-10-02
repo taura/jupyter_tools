@@ -17,12 +17,12 @@
       },
       "models": {
         "llm-jp-4.1-32b-a3b-thinking": {
-	   "name": "LLM-jp-4.1 32b-a3b-thinking (LLM-jp)",
-           "provider": { "npm": "@ai-sdk/openai" }
+          "name": "LLM-jp-4.1 32b-a3b-thinking (LLM-jp)",
+          "provider": { "npm": "@ai-sdk/openai-compatible" }
         },
         "llm-jp-4.1-33b-thinking": {
-	   "name": "LLM-jp-4.1 33b-thinking (LLM-jp)",
-           "provider": { "npm": "@ai-sdk/openai" }
+          "name": "LLM-jp-4.1 33b-thinking (LLM-jp)",
+          "provider": { "npm": "@ai-sdk/openai-compatible" }
         },
         "gpt-oss-20b-mdx-maas": {
           "name": "gpt-oss-20b (mdx MaaS)",

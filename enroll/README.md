@@ -9,7 +9,7 @@ roster.csv  (user, jupyter_user, webui_user, miyabi, class, real_name)
    │  ./enroll roster.csv          ← tau が taulec 上で実行。自分で sudo し直す
    ▼
  0. アカウントが実在するか         (なければスキップ)
- 1. ~/notebooks                    なければ作る (本人所有。列によらず常に)
+ 1. ~/notebooks                    なければ作る (本人の権限で。列によらず常に)
  2. JupyterHub user_map            jupyter_user -> user を bind      (jupyter_user が空なら何もしない)
  3. Open WebUI                     webui_user を事前登録 (role=user)  (webui_user が空なら何もしない)
                                    pending なら user に上げる
@@ -73,7 +73,7 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY (webui_user のある行�
 - 既に `Host miyabig` があれば (学生が自分で書いたものも) その Host は触らない。`miyabic` だけ無ければ `miyabic` だけ足す
 - テンプレートを直しても、既に書かれた学生の設定は書き換わらない (直したいなら本人のものを消して流し直す)
 
-書き込みは root ではなく**そのユーザの権限**で行う (学生が `~/.ssh` をシンボリックリンクにして root に
+書き込みは (`~/notebooks` も) root ではなく**そのユーザの権限**で行う (学生が `~/.ssh` をシンボリックリンクにして root に
 別の場所を書かせることを防ぐ)。
 
 鍵は学生が自分で用意する (手元の PC の鍵を Miyabi のポータルと taulec の両方に登録する)。

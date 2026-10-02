@@ -1,6 +1,7 @@
 """
 Shared helpers for ./enroll and ../agents/agent_setup:
-env/roster parsing, the LiteLLM admin API, and rerunning under sudo.
+env/roster parsing, the LiteLLM admin API, rerunning under sudo, and
+dropping to a user's uid for work in that user's home.
 Standard library only.
 """
 
@@ -84,6 +85,45 @@ def rerun_as_root(script, files, args, capture=False):
     r = subprocess.run(argv, input=json.dumps(payload), text=True,
                        stdout=subprocess.PIPE if capture else None)
     return (r.returncode, r.stdout) if capture else r.returncode
+
+
+def as_user(pw, fn, errors=()):
+    """Run fn() in a forked child with pw's uid and groups; return its result
+    (must be JSON-serializable). Used when root reads or writes a user's home,
+    so links the user planted can't make root touch other files. An exception
+    that is an instance of a class in errors is re-raised as that class (by
+    message); anything else becomes OSError. Results come back as JSON, never
+    pickle: the child runs as the user."""
+    r, w = os.pipe()
+    pid = os.fork()
+    if pid == 0:
+        os.close(r)
+        try:
+            os.setgroups(os.getgrouplist(pw.pw_name, pw.pw_gid))
+            os.setgid(pw.pw_gid)
+            os.setuid(pw.pw_uid)
+            out = {"ok": fn()}
+        except BaseException as e:
+            cls = next((c for c in errors if isinstance(e, c)), OSError)
+            out = {"err": cls.__name__, "msg": str(e)}
+        try:
+            os.write(w, json.dumps(out).encode())
+        finally:
+            os._exit(0)
+    os.close(w)
+    data = b""
+    while chunk := os.read(r, 65536):
+        data += chunk
+    os.close(r)
+    os.waitpid(pid, 0)
+    try:
+        out = json.loads(data)
+    except ValueError:
+        raise OSError(f"child for {pw.pw_name} failed")
+    if "ok" in out:
+        return out["ok"]
+    cls = {c.__name__: c for c in errors}.get(out["err"], OSError)
+    raise cls(out["msg"])
 
 
 class ApiError(Exception):
