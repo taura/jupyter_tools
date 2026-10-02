@@ -27,7 +27,12 @@ mkdir -p "$VENV/etc/jupyter"
 ln -sfn "$REPO/nbgrader/common/nbgrader_config.py" "$VENV/etc/jupyter/nbgrader_config.py"
 
 # Shared kernelspecs; visible to every user whose server runs from this venv.
-for k in kernels/*/; do
+shopt -s nullglob
+KERNELS=(kernels/*/)
+if [ ${#KERNELS[@]} -eq 0 ]; then
+    echo "$HERE/kernels/*/ がありません (git に入っていない?)" >&2; exit 1
+fi
+for k in "${KERNELS[@]}"; do
     "$VENV/bin/jupyter" kernelspec install --sys-prefix --replace "$k"
 done
 
