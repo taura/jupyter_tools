@@ -42,6 +42,7 @@ def read_roster(text, users=None, classes=None):
         jupyter_user  Google account that logs in to JupyterHub as user
         webui_user    Google account for Open WebUI
         litellm_user  LiteLLM user_id owning the key (issue one if litellm_key is empty)
+        miyabi        Miyabi account (~/.ssh/config Host miyabig/miyabic)
     Google accounts are lowercased; "raw" is the original row. Uniqueness of
     jupyter_user is up to the caller (only JupyterHub needs it)."""
     rows, problems, seen_user = [], [], {}
@@ -63,6 +64,7 @@ def read_roster(text, users=None, classes=None):
                      "jupyter_user": col("jupyter_user").lower(),
                      "webui_user": col("webui_user").lower(),
                      "litellm_user": col("litellm_user"),
+                     "miyabi": col("miyabi"),
                      "key": col("litellm_key"), "team": col("litellm_team"),
                      "name": col("real_name") or user, "raw": r})
     return rows, problems

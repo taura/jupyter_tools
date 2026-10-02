@@ -1,11 +1,11 @@
 # enroll — 学生を授業のサービスに登録する
 
-**すでにある Unix (LDAP) アカウント**に、Jupyter と Open WebUI の設定を注入する。
+**すでにある Unix (LDAP) アカウント**に、Jupyter、Open WebUI、Miyabi への ssh の設定を注入する。
 アカウントとホームは別の手段 (ansible の `ldap_users` など) で事前に多めに作っておく前提。
 LiteLLM の鍵は `../agents/agent_setup` が発行する (1 人 1 本)。
 
 ```
-roster.csv  (user, jupyter_user, webui_user, class, real_name)
+roster.csv  (user, jupyter_user, webui_user, miyabi, class, real_name)
    │  ./enroll roster.csv          ← tau が taulec 上で実行。自分で sudo し直す
    ▼
  0. アカウントが実在するか         (なければスキップ)
@@ -13,6 +13,7 @@ roster.csv  (user, jupyter_user, webui_user, class, real_name)
  2. JupyterHub user_map            jupyter_user -> user を bind      (jupyter_user が空なら何もしない)
  3. Open WebUI                     webui_user を事前登録 (role=user)  (webui_user が空なら何もしない)
                                    pending なら user に上げる
+ 4. ~/.ssh/config                  ssh_config の Host miyabig / miyabic を追記 (miyabi が空なら何もしない)
    ▼
  レポート: 各段階の件数 / スキップ・エラー (理由つき) / 名簿にない登録者
 ```
@@ -25,7 +26,7 @@ roster.csv  (user, jupyter_user, webui_user, class, real_name)
 
 ```
 cp enroll.env.example enroll.env && chmod 600 enroll.env
-$EDITOR enroll.env                 # OPENWEBUI_API_KEY は必須
+$EDITOR enroll.env                 # OPENWEBUI_API_KEY (webui_user のある行があるときだけ必要)
 
 ./enroll --dry-run roster.csv      # 何が起きるかだけ見る
 ./enroll roster.csv
@@ -47,6 +48,7 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY は必須
 | `user` | Unix アカウント名 (必須)。実在しない行はスキップ |
 | `jupyter_user` | JupyterHub に Google でログインしてこの `user` に着地するアカウント。**名簿の中で一意** (Google ログインの着地先は 1 つだけ) |
 | `webui_user` | Open WebUI のアカウント (= Google アカウント)。重複してよい (同じアカウントになるだけ) |
+| `miyabi` | Miyabi のアカウント (`t81xxx`)。`~/.ssh/config` の `User` になる |
 | `class` | 授業。`--class` で絞るときに使う |
 | `real_name` | Open WebUI の表示名 (任意。空なら `user`) |
 
@@ -62,6 +64,31 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY は必須
 以外のアドレス、`user` の重複、別のユーザに対応付け済みの `jupyter_user` はスキップして
 レポートに出す。
 
+## ~/.ssh/config (Miyabi)
+
+`ssh_config` (このディレクトリ) がテンプレート。`{miyabi}` が名簿の `miyabi` 列に置き換わる。
+**中身を変えたいときはこのファイルを直す。** Host ごとに、まだ無いものだけを末尾に追記する:
+
+- `~/.ssh/config` が無ければ作る (`~/.ssh` 0700, `config` 0600)
+- 既に `Host miyabig` があれば (学生が自分で書いたものも) その Host は触らない。`miyabic` だけ無ければ `miyabic` だけ足す
+- テンプレートを直しても、既に書かれた学生の設定は書き換わらない (直したいなら本人のものを消して流し直す)
+
+書き込みは root ではなく**そのユーザの権限**で行う (学生が `~/.ssh` をシンボリックリンクにして root に
+別の場所を書かせることを防ぐ)。
+
+鍵は学生が自分で用意する (手元の PC の鍵を Miyabi のポータルと taulec の両方に登録する)。
+秘密鍵は taulec に置かない。PC から `ssh -A taulec` (または PC 側の `~/.ssh/config` で
+`Host taulec` に `ForwardAgent yes`) で入り、そこで `ssh miyabig` する。認証に agent が要るのは
+ControlMaster を作るときだけなので、taulec 側の `Host miyabig` に `ForwardAgent` は付けない
+(付けると Miyabi 上に agent が露出する)。ControlMaster ができた後は、taulec からログアウトしても
+`ControlPersist` の間、カーネルや Jupyter の端末からの `ssh miyabig` はそれに相乗りできる。
+
+`HostName` は `miyabi-g.jcahpc.jp` (DNS で g1/g3 に振り分け)。相乗りは ControlPath のソケット経由で
+DNS を引き直さないので、ControlMaster がある限り同じノードに行き、TOTP は再要求されない。
+ログインノードの host key は g1/g2/g3 で共通 (2026-10 に確認)。
+Jupyter の Miyabi G カーネルは `ssh miyabig` のログイン (ControlMaster) に相乗りするので、
+使う前に一度 `ssh miyabig` で TOTP を通しておく (`../singleuser/README.md`)。
+
 ## Open WebUI
 
 名簿の人は事前登録されるので、Google でログインすればすぐ使える。名簿にない人の
@@ -76,6 +103,7 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY は必須
 | | |
 |---|---|
 | `enroll` | 本体 |
+| `ssh_config` | `~/.ssh/config` に足す Host のテンプレート |
 | `litellm_admin.py` | 名簿の読み込み・sudo し直し・LiteLLM の管理 API。`../agents/agent_setup` と共用 |
 | `enroll.env.example` | 設定の雛形 |
 

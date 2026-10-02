@@ -12,6 +12,7 @@ account used for that service; leave it empty to skip that service for the row:
     user          existing Unix account (required)
     jupyter_user  Google account that logs in to JupyterHub as user (unique in the roster)
     webui_user    Google account for Open WebUI (may repeat)
+    miyabi        Miyabi account (t81xxx); empty = no ssh config
     class         course (used by --class)
     real_name     display name for Open WebUI (optional)
 
@@ -20,6 +21,9 @@ rows enrolls just the new ones:
     1. ~/notebooks (always)
     2. JupyterHub user_map: jupyter_user -> user
     3. Open WebUI user webui_user (role=user); a pending user is promoted
+    4. ~/.ssh/config: Host blocks from ./ssh_config ({miyabi} -> miyabi)
+       whose host isn't there yet are appended (an existing Host miyabig
+       is left alone); written as the user, not root
 LiteLLM keys (litellm_user) are issued by ../agents/agent_setup.
 
 Accounts and homes are NOT created here; rows whose account doesn't exist
@@ -30,7 +34,8 @@ Runs as tau and re-executes itself with sudo (writes into users' homes
 and the root-owned user_map). The roster and enroll.env are read as tau
 before that and handed over on stdin, so they may live on a FUSE mount
 (e.g. gocryptfs) that root cannot read.
-Settings: enroll.env next to this script (see enroll.env.example).
+Settings: enroll.env next to this script (see enroll.env.example);
+OPENWEBUI_API_KEY is needed only when some row has webui_user.
 """
 
 import argparse
@@ -38,6 +43,7 @@ import importlib.util
 import json
 import os
 import pwd
+import re
 import secrets
 import sys
 
@@ -55,11 +61,13 @@ class Config:
         self.user_map_db = env.get("USER_MAP_DB", os.path.join(hub, "state", "user_map.sqlite"))
         self.user_map_py = env.get("USER_MAP_PY", os.path.join(hub, "user_map.py"))
         self.openwebui_url = env.get("OPENWEBUI_URL", "http://127.0.0.1:8080").rstrip("/")
-        self.openwebui_api_key = env["OPENWEBUI_API_KEY"]
+        self.openwebui_api_key = env.get("OPENWEBUI_API_KEY")
 
 
 class OpenWebUI:
     def __init__(self, cfg, dry_run):
+        if not cfg.openwebui_api_key:
+            raise SystemExit("OPENWEBUI_API_KEY is not set in enroll.env (needed for webui_user)")
         self.url, self.token, self.dry_run = cfg.openwebui_url, cfg.openwebui_api_key, dry_run
         users = http("GET", self.url + "/api/v1/users/all", self.token)["users"]
         self.users = {u["email"].lower(): u for u in users}
@@ -118,6 +126,86 @@ def ensure_user_map(um, email, user, dry_run):
     return "bound"
 
 
+def ssh_hosts(text):
+    """Host names declared by "Host" lines in an ssh config."""
+    names = set()
+    for line in text.splitlines():
+        m = re.match(r"\s*Host\s+(.*)", line, re.IGNORECASE)
+        if m:
+            names.update(m.group(1).split())
+    return names
+
+
+def ssh_blocks(template):
+    """Split a template into [(host names, text)] at unindented Host lines;
+    lines before the first Host go with the first block."""
+    blocks, cur = [], []
+    for line in template.splitlines(keepends=True):
+        if re.match(r"Host\s", line, re.IGNORECASE) and any(re.match(r"Host\s", l, re.IGNORECASE) for l in cur):
+            blocks.append(cur)
+            cur = []
+        cur.append(line)
+    if cur:
+        blocks.append(cur)
+    return [(ssh_hosts("".join(b)), "".join(b)) for b in blocks]
+
+
+def as_user(pw, fn):
+    """Run fn() in a child with pw's uid/gids, so symlinks the user planted
+    can't redirect root's writes. Returns fn's str result; raises OSError."""
+    r, w = os.pipe()
+    pid = os.fork()
+    if pid == 0:
+        os.close(r)
+        try:
+            os.setgroups(os.getgrouplist(pw.pw_name, pw.pw_gid))
+            os.setgid(pw.pw_gid)
+            os.setuid(pw.pw_uid)
+            out = "ok " + fn()
+        except BaseException as e:
+            out = f"err {e}"
+        os.write(w, out.encode())
+        os._exit(0)
+    os.close(w)
+    data = b""
+    while chunk := os.read(r, 65536):
+        data += chunk
+    os.close(r)
+    os.waitpid(pid, 0)
+    tag, _, msg = data.decode().partition(" ")
+    if tag != "ok":
+        raise OSError(msg or "child failed")
+    return msg
+
+
+def ensure_ssh_config(pw, miyabi, template, dry_run):
+    def work():
+        sshdir = os.path.join(pw.pw_dir, ".ssh")
+        path = os.path.join(sshdir, "config")
+        try:
+            with open(path, encoding="utf-8") as fp:
+                text = fp.read()
+        except FileNotFoundError:
+            text = None
+        have = ssh_hosts(text or "")
+        add = [(names, b) for names, b in ssh_blocks(template) if not names & have]
+        if not add:
+            return "exists"
+        hosts = ",".join(sorted(set().union(*(names for names, _ in add))))
+        body = "".join(b for _, b in add).replace("{miyabi}", miyabi)
+        if not dry_run:
+            os.makedirs(sshdir, 0o700, exist_ok=True)
+            if text is None:
+                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(fd, "w", encoding="utf-8") as fp:
+                    fp.write(body)
+            else:
+                with open(path, "a", encoding="utf-8") as fp:
+                    fp.write(("" if text.endswith("\n") or not text else "\n") + "\n" + body)
+        return f"{'created' if text is None else 'appended'} ({hosts})"
+    return as_user(pw, work)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Enroll existing accounts into JupyterHub and Open WebUI")
     ap.add_argument("roster", nargs="?", help="roster csv (user, jupyter_user, webui_user, class, real_name)")
@@ -125,11 +213,13 @@ def main():
     ap.add_argument("--user", help="comma-separated users to process")
     ap.add_argument("--class", dest="klass", help="comma-separated classes (class column) to process")
     ap.add_argument("--env", default=os.path.join(HERE, "enroll.env"), help="settings file (default: enroll.env)")
+    ap.add_argument("--ssh-config", default=os.path.join(HERE, "ssh_config"),
+                    help="~/.ssh/config template (default: ssh_config next to this script)")
     ap.add_argument("--stdin", action="store_true", help=argparse.SUPPRESS)  # internal: inputs on stdin
     opts = ap.parse_args()
     if opts.stdin:
         payload = json.load(sys.stdin)
-        roster_text, env_text = payload["roster"], payload["env"]
+        roster_text, env_text, ssh_template = payload["roster"], payload["env"], payload["ssh_config"]
     else:
         if not opts.roster:
             ap.error("roster is required")
@@ -137,17 +227,21 @@ def main():
             args = (["--dry-run"] if opts.dry_run else []) \
                 + (["--user", opts.user] if opts.user else []) \
                 + (["--class", opts.klass] if opts.klass else [])
-            return rerun_as_root(__file__, {"roster": opts.roster, "env": opts.env}, args)
+            return rerun_as_root(__file__, {"roster": opts.roster, "env": opts.env,
+                                            "ssh_config": opts.ssh_config}, args)
         with open(opts.roster, encoding="utf-8") as fp:
             roster_text = fp.read()
         with open(opts.env, encoding="utf-8") as fp:
             env_text = fp.read()
+        with open(opts.ssh_config, encoding="utf-8") as fp:
+            ssh_template = fp.read()
 
     cfg = Config(env_text)
     users, classes = split_set(opts.user), split_set(opts.klass)
     rows, problems = read_roster(roster_text, users, classes)
     um = load_user_map(cfg)
-    owui = OpenWebUI(cfg, opts.dry_run)
+    # Connect to Open WebUI only when some row uses it
+    owui = OpenWebUI(cfg, opts.dry_run) if any(r["webui_user"] for r in rows) else None
 
     counts = {}
     def count(step, result):
@@ -188,6 +282,11 @@ def main():
             steps.append(("user_map", lambda: ensure_user_map(um, jupyter_user, user, opts.dry_run)))
         if webui_user and google_ok(user, "webui_user", webui_user):
             steps.append(("openwebui", lambda: owui.ensure_user(webui_user, row["name"])))
+        miyabi = row["miyabi"]
+        if miyabi and not re.fullmatch(r"[A-Za-z0-9_.-]+", miyabi):
+            problems.append((user, f"miyabi {miyabi!r} is not a valid account name; skipped"))
+        elif miyabi:
+            steps.append(("ssh", lambda: ensure_ssh_config(pw, miyabi, ssh_template, opts.dry_run)))
         for step, fn in steps:
             try:
                 result = fn()
@@ -201,7 +300,7 @@ def main():
     # Report
     print()
     print(f"{prefix}summary ({len(rows)} rows)")
-    for step in ("notebooks", "user_map", "openwebui"):
+    for step in ("notebooks", "user_map", "openwebui", "ssh"):
         results = ", ".join(f"{r}={n}" for (s, r), n in sorted(counts.items()) if s == step)
         print(f"  {step:10s} {results}")
     if problems:
@@ -215,7 +314,8 @@ def main():
         jupyter_users = {r["jupyter_user"] for r in rows if r["jupyter_user"]}
         webui_users = {r["webui_user"] for r in rows if r["webui_user"]}
         stale_um = [(u, l) for u, l in um.sql("select user, local from users") if u and u not in jupyter_users]
-        stale_owui = [e for e, u in owui.users.items() if u.get("role") != "admin" and e not in webui_users]
+        stale_owui = [e for e, u in owui.users.items() if u.get("role") != "admin" and e not in webui_users] \
+            if owui else []
         if stale_um or stale_owui:
             print()
             print("registered but not in the roster (not removed)")
