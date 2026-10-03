@@ -10,7 +10,7 @@
     "--launch-args=-o BatchMode=yes -o ControlMaster=no",
     "--verbose",
     "--kernel_cmd",
-    "/work/gt81/share/pd2026/.venv/bin/ipython kernel -f {host_connection_file}",
+    "/work/gt81/share/home/.venv/bin/ipython kernel -f {host_connection_file}",
     "{connection_file}"
   ],
   "display_name": "Python (Miyabi G)",

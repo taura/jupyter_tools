@@ -44,7 +44,7 @@ cd ~/jupyter_tools/singleuser
 ## Miyabi G カーネル
 
 remote_ipykernel が `ssh miyabig` でログインし、Miyabi の
-`/work/gt81/share/pd2026/.venv` の ipython kernel を起動して、ポートを ssh で転送する。
+`/work/gt81/share/home/.venv` の ipython kernel を起動して、ポートを ssh で転送する。
 
 `kernel.json` は `remote_ipykernel --add` が作るものと同じ形を手で書いたもの。
 ユーザごとの情報は含まない (ユーザ名は各自の `~/.ssh/config` の `Host miyabig` で決まる)
