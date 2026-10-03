@@ -1,6 +1,7 @@
 #!/bin/bash
 # Mount your Miyabi directory /work/gt81/share/home/<Miyabi user> on ~/miyabi
-# with sshfs, riding on your "ssh miyabig" login (ControlMaster): no TOTP here.
+# with sshfs, riding on your "ssh miyabig" login (ControlMaster). Without one,
+# log in first (verification code); ControlPersist keeps that login alive.
 #
 #   mount-miyabi        mount (then create missing targets of ~/notebooks/* links)
 #   mount-miyabi -u     unmount
@@ -22,14 +23,19 @@ have_master() { ssh -O check "$HOST" >/dev/null 2>&1; }
 # Mounted and answering (a dead sshfs leaves "Transport endpoint is not connected")
 mounted_ok() { mountpoint -q "$MNT" && timeout 10 stat -t "$MNT/." >/dev/null 2>&1; }
 
-need_login() {
-    cat >&2 <<EOF
-mount-miyabi: you are not logged in to Miyabi.
-  1. On your PC, log in to taulec with: ssh -A $USER@taulec.zapto.org
-  2. In that terminal, run: ssh miyabig   (and enter the verification code)
-  3. Run mount-miyabi again
+# Log in to Miyabi; the login stays as the master (ControlMaster auto + ControlPersist)
+login() {
+    echo "Logging in to Miyabi ($HOST); enter your verification code if asked."
+    if ! ssh -o ControlMaster=auto "$HOST" true || ! have_master; then
+        cat >&2 <<EOF
+mount-miyabi: could not log in to Miyabi.
+  Your Miyabi key is on your PC, so log in to taulec from your PC with
+  agent forwarding, then run mount-miyabi there:
+    ssh -A $USER@taulec.zapto.org
+  (A Jupyter terminal has no access to your key; once mounted, it works there too.)
 EOF
-    exit 1
+        exit 1
+    fi
 }
 
 case "${1:-}" in
@@ -39,7 +45,7 @@ case "${1:-}" in
     echo "Unmounted $MNT"
     exit 0 ;;
 -s)
-    if have_master; then echo "Miyabi login: yes"; else echo "Miyabi login: no (run ssh miyabig first)"; fi
+    if have_master; then echo "Miyabi login: yes"; else echo "Miyabi login: no (mount-miyabi will ask for it)"; fi
     if mounted_ok; then echo "Mount: $MNT (OK)"
     elif mountpoint -q "$MNT"; then echo "Mount: $MNT (not responding; run mount-miyabi -u, then mount-miyabi)"
     else echo "Mount: none"; fi
@@ -57,7 +63,7 @@ else
         # leftover of a dead sshfs (e.g. the Miyabi login ended)
         fusermount3 -uz "$MNT" 2>/dev/null
     fi
-    have_master || need_login
+    have_master || login
     MUSER=$(ssh -G "$HOST" | awk '$1 == "user" { print $2 }')
     [ -n "$MUSER" ] || die "no User for Host $HOST in ~/.ssh/config"
     REMOTE=$REMOTE_BASE/$MUSER
