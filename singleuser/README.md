@@ -44,7 +44,7 @@ cd ~/jupyter_tools/singleuser
 ## Miyabi G カーネル
 
 remote_ipykernel が `ssh miyabig` でログインし、Miyabi の
-`/work/gt81/share/home/.venv` の ipython kernel を起動して、ポートを ssh で転送する。
+`/work/gt81/share/env/.venv` の ipython kernel を起動して、ポートを ssh で転送する。
 
 `kernel.json` は `remote_ipykernel --add` が作るものと同じ形を手で書いたもの。
 ユーザごとの情報は含まない (ユーザ名は各自の `~/.ssh/config` の `Host miyabig` で決まる)
@@ -81,6 +81,28 @@ ssh miyabig             # TOTP で入り直し、開いたままにする
 `~/.ssh/config` の `User` を変えたときは、変更前に起動したカーネルを止めること。
 トンネルの張り直しは新しい設定で行われるため、別ユーザの ControlMaster の
 セッションを 5 秒ごとに食い続ける。
+
+## Miyabi G カーネル (新): kernels/miyabi
+
+remote_ipykernel の代わりの自前ランチャー `kernels/miyabi/miyabi_kernel.py` (表示名 "Python (Miyabi G, new)")。
+動作確認が済んだら `kernels/miyabig` (remote_ipykernel) を消して、こちらだけにする。
+
+- ControlMaster に相乗りするだけで自分では認証しない (`BatchMode=yes`, `ControlMaster=no`)
+- カーネル 1 つにつき Miyabi のセッションは 1 本 (カーネル本体)。ポート転送はマスターに `ssh -O forward` で
+  張り (セッションを使わない)、終了時に `-O cancel` する。マスターの転送は頼んだ ssh が終わっても残るので、
+  強制終了で残ったものは `~/.local/state/miyabi-kernel/forwards/` の記録から次回起動時に消す
+- ポートは Miyabi 側で空いているものを選ぶ (taulec の番号をそのまま使う remote_ipykernel は Miyabi 側の
+  他人のポートと衝突しうる。miyabi-g3 の実測で起動 1 回あたり約 5%)
+- カーネルの鍵は ssh の標準入力で渡す (コマンドラインに出さない)。Miyabi 側の接続ファイルは
+  `~/.local/share/miyabi-kernel/` に 0600 で作り、終了時に消す。taulec 側が消えると (標準入力の EOF)
+  Miyabi 側のカーネルも止まる
+- notebook が `~/miyabi/...` にあれば Miyabi の `/work/gt81/share/home/<user>/...` で動く (それ以外は Miyabi のホーム)
+- 起動できないとき (未ログイン、セッション上限、venv が無い、起動直後に落ちた) は、理由と対処を英語で
+  表示するだけの代わりのカーネルが taulec で動く。学生はセルを実行すると理由が見える。カーネルは死なない
+  ので Jupyter の再起動の連鎖も起きない
+- 中断は `interrupt_mode: message` (Jupyter が制御チャネルで送り、ipykernel が受ける)
+- ログ: 各ユーザの `~/.local/state/miyabi-kernel/log` と、journal (`[miyabi-kernel <user> ...]` 付き)
+- Miyabi 側の venv は `REMOTE_PYTHON` (`/work/gt81/share/env/.venv/bin/python`)。ipykernel が入っていればよい
 
 ## Miyabi のファイルをマウントする (mount-miyabi)
 
