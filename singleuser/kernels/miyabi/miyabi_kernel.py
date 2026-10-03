@@ -246,7 +246,8 @@ def run(conn):
         raise StartError(explain(tail))
 
     t0 = time.monotonic()
-    log(f"kernel on {started['host']} pid {started['pid']} cwd {started['cwd']}")
+    log(f"kernel on {started['host']} pid {started['pid']} cwd {started['cwd']}"
+        + ("" if cwd else f" (notebook dir {os.getcwd()} is not under {MOUNT})"))
     if started["note"]:
         log(started["note"])
 

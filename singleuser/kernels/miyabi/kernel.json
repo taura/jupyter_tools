@@ -4,7 +4,7 @@
     "{resource_dir}/miyabi_kernel.py",
     "{connection_file}"
   ],
-  "display_name": "Python (Miyabi G, new)",
+  "display_name": "Python (Miyabi G)",
   "language": "python",
   "interrupt_mode": "message"
 }
