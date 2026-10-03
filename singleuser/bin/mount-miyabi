@@ -1,0 +1,87 @@
+#!/bin/bash
+# Mount your Miyabi directory /work/gt81/share/home/<Miyabi user> on ~/miyabi
+# with sshfs, riding on your "ssh miyabig" login (ControlMaster): no TOTP here.
+#
+#   mount-miyabi        mount (then create missing targets of ~/notebooks/* links)
+#   mount-miyabi -u     unmount
+#   mount-miyabi -s     show status
+#
+# Installed as /usr/local/bin/mount-miyabi (ansible roles/jupyterhub).
+set -u
+
+HOST=miyabig
+MNT=$HOME/miyabi
+REMOTE_BASE=/work/gt81/share/home
+# Never authenticate by ourselves: use the existing master or fail at once
+SSH="ssh -o BatchMode=yes -o ControlMaster=no"
+
+die() { echo "mount-miyabi: $*" >&2; exit 1; }
+
+have_master() { ssh -O check "$HOST" >/dev/null 2>&1; }
+
+# Mounted and answering (a dead sshfs leaves "Transport endpoint is not connected")
+mounted_ok() { mountpoint -q "$MNT" && timeout 10 stat -t "$MNT/." >/dev/null 2>&1; }
+
+need_login() {
+    cat >&2 <<EOF
+mount-miyabi: you are not logged in to Miyabi.
+  1. On your PC, log in to taulec with: ssh -A $USER@taulec.zapto.org
+  2. In that terminal, run: ssh miyabig   (and enter the verification code)
+  3. Run mount-miyabi again
+EOF
+    exit 1
+}
+
+case "${1:-}" in
+-u)
+    mountpoint -q "$MNT" || { echo "Not mounted: $MNT"; exit 0; }
+    fusermount3 -u "$MNT" || fusermount3 -uz "$MNT" || die "cannot unmount $MNT"
+    echo "Unmounted $MNT"
+    exit 0 ;;
+-s)
+    if have_master; then echo "Miyabi login: yes"; else echo "Miyabi login: no (run ssh miyabig first)"; fi
+    if mounted_ok; then echo "Mount: $MNT (OK)"
+    elif mountpoint -q "$MNT"; then echo "Mount: $MNT (not responding; run mount-miyabi -u, then mount-miyabi)"
+    else echo "Mount: none"; fi
+    exit 0 ;;
+"") ;;
+*) die "usage: mount-miyabi [-u|-s]" ;;
+esac
+
+[ -d "$MNT" ] || die "$MNT does not exist (not enrolled in a Miyabi class?); ask your instructor"
+
+if mounted_ok; then
+    echo "Already mounted: $MNT"
+else
+    if mountpoint -q "$MNT"; then
+        # leftover of a dead sshfs (e.g. the Miyabi login ended)
+        fusermount3 -uz "$MNT" 2>/dev/null
+    fi
+    have_master || need_login
+    MUSER=$(ssh -G "$HOST" | awk '$1 == "user" { print $2 }')
+    [ -n "$MUSER" ] || die "no User for Host $HOST in ~/.ssh/config"
+    REMOTE=$REMOTE_BASE/$MUSER
+    # Base is made by the teacher (sticky, group gt81); each student's dir is private
+    $SSH "$HOST" "test -d $REMOTE_BASE || exit 2; test -d $REMOTE || mkdir -m 700 $REMOTE"
+    case $? in
+    0) ;;
+    2) die "$REMOTE_BASE does not exist on Miyabi; ask your instructor" ;;
+    *) die "cannot create $REMOTE on Miyabi" ;;
+    esac
+    sshfs "$HOST:$REMOTE" "$MNT" -o ssh_command="$SSH" -o reconnect -o idmap=user \
+        || die "sshfs failed"
+    mounted_ok || die "mounted, but $MNT does not respond"
+    echo "Mounted $MNT -> Miyabi:$REMOTE"
+fi
+
+# Create missing targets of ~/notebooks/<course> -> ~/miyabi/... links (made by enroll)
+for link in "$HOME"/notebooks/*; do
+    [ -L "$link" ] || continue
+    target=$(realpath -m "$link")
+    case $target in
+    "$MNT"/*)
+        if [ ! -d "$target" ]; then
+            mkdir -p "$target" && echo "Created $target"
+        fi ;;
+    esac
+done
