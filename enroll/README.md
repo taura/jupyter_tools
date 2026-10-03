@@ -5,7 +5,7 @@
 LiteLLM の鍵は `../agents/agent_setup` が発行する (1 人 1 本)。
 
 ```
-roster.csv  (user, jupyter_user, webui_user, miyabi, class, real_name)
+roster.csv  (user, jupyter_user, webui_user, miyabi, notebooks, class, real_name)
    │  ./enroll roster.csv          ← tau が taulec 上で実行。自分で sudo し直す
    ▼
  0. アカウントが実在するか         (なければスキップ)
@@ -14,6 +14,7 @@ roster.csv  (user, jupyter_user, webui_user, miyabi, class, real_name)
  3. Open WebUI                     webui_user を事前登録 (role=user)  (webui_user が空なら何もしない)
                                    pending なら user に上げる
  4. ~/.ssh/config                  ssh_config の Host miyabig / miyabic を追記 (miyabi が空なら何もしない)
+ 5. ~/miyabi, ~/notebooks/<class>  notebooks 列が miyabi の行だけ (下記)
    ▼
  レポート: 各段階の件数 / スキップ・エラー (理由つき) / 名簿にない登録者
 ```
@@ -49,6 +50,7 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY (webui_user のある行�
 | `jupyter_user` | JupyterHub に Google でログインしてこの `user` に着地するアカウント。**名簿の中で一意** (Google ログインの着地先は 1 つだけ) |
 | `webui_user` | Open WebUI のアカウント (= Google アカウント)。重複してよい (同じアカウントになるだけ) |
 | `miyabi` | Miyabi のアカウント (`t81xxx`)。`~/.ssh/config` の `User` になる |
+| `notebooks` | `~/notebooks/<class>` の置き場所。空または `local` = taulec (`~/notebooks` を作るだけ)、`miyabi` = Miyabi (下記)。それ以外の値はエラーとして報告 |
 | `class` | 授業。`--class` で絞るときに使う |
 | `real_name` | Open WebUI の表示名 (任意。空なら `user`) |
 
@@ -88,6 +90,28 @@ DNS を引き直さないので、ControlMaster がある限り同じノード�
 ログインノードの host key は g1/g2/g3 で共通 (2026-10 に確認)。
 Jupyter の Miyabi G カーネルは `ssh miyabig` のログイン (ControlMaster) に相乗りするので、
 使う前に一度 `ssh miyabig` で TOTP を通しておく (`../singleuser/README.md`)。
+
+## Miyabi とセットのクラス (notebooks=miyabi)
+
+名簿の `notebooks` 列が `miyabi` の行では、
+
+```
+~/miyabi/                                    mount-miyabi のマウントポイント (空, 0700)
+~/notebooks/<class> -> ../miyabi/notebooks/<class>
+```
+
+を作る。`~/miyabi` には `mount-miyabi` が Miyabi の `/work/gt81/share/home/<miyabi>` を sshfs でマウントする
+(`../singleuser/README.md`)。
+
+- nbgrader は `~/notebooks/<course>/<assignment>` に fetch する (`path_includes_course`) ので、そのクラスの
+  教材は Miyabi に置かれる。**`class` は nbgrader の course id と同じにすること**
+- マウントしていないとリンク先が無いので fetch は `No such file or directory` で失敗する
+  (taulec 側に黙って書かれることはない)。ほかのクラスの `~/notebooks/<course>` は普通のディレクトリのまま
+- `~/notebooks` 自体は普通のディレクトリなので、マウントしていなくても JupyterHub には入れる
+- 既に `~/notebooks/<class>` が普通のディレクトリとしてあると、触らずにエラーとして報告する
+- Miyabi 側の `notebooks/<class>` は、enroll からは作れないので `mount-miyabi` がマウント直後に作る
+
+Miyabi が使えない週は、`~/notebooks/<class>` を taulec 上の普通のディレクトリに付け替える (未実装)。
 
 ## Open WebUI
 

@@ -82,6 +82,34 @@ ssh miyabig             # TOTP で入り直し、開いたままにする
 トンネルの張り直しは新しい設定で行われるため、別ユーザの ControlMaster の
 セッションを 5 秒ごとに食い続ける。
 
+## Miyabi のファイルをマウントする (mount-miyabi)
+
+Miyabi とセットのクラスでは、学生のファイルは Miyabi の `/work/gt81/share/home/<Miyabi のユーザ>` に置き、
+taulec の `~/miyabi` に sshfs でマウントして見せる。`~/notebooks/<class>` はそこへのリンク
+(enroll が作る。`../enroll/README.md`)。
+
+```
+PC$ ssh -A u26xxx@taulec.zapto.org
+taulec$ ssh miyabig          # TOTP。ControlMaster ができる
+taulec$ mount-miyabi         # ~/miyabi にマウント (TOTP 不要)。Jupyter の端末からでもよい
+taulec$ mount-miyabi -s      # 状態
+taulec$ mount-miyabi -u      # アンマウント
+```
+
+- `bin/mount-miyabi`。`/usr/local/bin/mount-miyabi` からのリンクと sshfs の導入は ansible (`roles/jupyterhub`)
+- sshfs は `ssh -o BatchMode=yes -o ControlMaster=no` で ControlMaster に相乗りする。マスターが無ければ
+  すぐ失敗し、手順を表示する
+- マウント中は sshfs がマスターの利用者なので、`ControlPersist` が切れてもマスターは残る
+- Miyabi 側の自分のディレクトリが無ければ 0700 で作る。**`/work/gt81/share/home` は教員が先に作っておく**
+  (他人のディレクトリを消せないよう sticky にする):
+  ```
+  miyabi$ mkdir /work/gt81/share/home && chmod 3770 /work/gt81/share/home    # root:gt81 の下, setgid + sticky
+  ```
+- マウント直後に、`~/notebooks/*` のリンクのうち `~/miyabi` の中を指して先が無いもの
+  (`notebooks/<class>`) を作る
+- マスターが切れると sshfs は応答しなくなる (`Transport endpoint is not connected`)。`ssh miyabig` して
+  `mount-miyabi` し直せばよい (古いマウントは自動で外す)
+
 ## 既知の警告
 
 `jupyter labextension list` で `@jupyter/nbgrader` に ✗ (incompatible) が付く。

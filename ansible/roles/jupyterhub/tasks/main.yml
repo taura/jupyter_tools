@@ -11,6 +11,7 @@
 # This role:
 #  - installs configurable-http-proxy (npm)
 #  - installs the systemd unit pointing at the checkout, and enables it
+#  - installs sshfs and links mount-miyabi (students' ~/miyabi) into /usr/local/bin
 
 #
 # configurable-http-proxy
@@ -38,6 +39,23 @@
     version: "{{ configurable_http_proxy_version }}"
     global: yes
   register: jupyterhub_chp
+
+#
+# Miyabi: students mount /work/gt81/share/home/<user> on ~/miyabi with
+# mount-miyabi (sshfs over their ssh miyabig ControlMaster). A link, so
+# git pull in share's checkout updates it.
+#
+- name: install sshfs
+  apt:
+    state: present
+    name: sshfs
+
+- name: link mount-miyabi into /usr/local/bin
+  file:
+    src: "{{ jupyterhub_singleuser_repo }}/singleuser/bin/mount-miyabi"
+    dest: /usr/local/bin/mount-miyabi
+    state: link
+    force: yes
 
 #
 # unit

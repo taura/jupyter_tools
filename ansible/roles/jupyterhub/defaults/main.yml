@@ -2,6 +2,9 @@
 # The jupyter_tools checkout the hub runs from (its hub/ directory)
 jupyterhub_repo: /home/tau/jupyter_tools
 
+# share's checkout: students' venv (singleuser/.venv) and singleuser/bin tools
+jupyterhub_singleuser_repo: /home/share/jupyter_tools
+
 # Owner of hub/state (and, by hand, of state/user_map.sqlite): runs user_map.py without sudo
 jupyterhub_state_owner: tau
 

@@ -13,6 +13,7 @@ account used for that service; leave it empty to skip that service for the row:
     jupyter_user  Google account that logs in to JupyterHub as user (unique in the roster)
     webui_user    Google account for Open WebUI (may repeat)
     miyabi        Miyabi account (t81xxx); empty = no ssh config
+    notebooks     "" or "local": ~/notebooks only; "miyabi": see 5
     class         course (used by --class)
     real_name     display name for Open WebUI (optional)
 
@@ -24,7 +25,11 @@ rows enrolls just the new ones:
     4. ~/.ssh/config: Host blocks from ./ssh_config ({miyabi} -> miyabi)
        whose host isn't there yet are appended (an existing Host miyabig
        is left alone)
-Steps 1 and 4 run as the user (not root), so links planted in the home
+    5. notebooks=miyabi: ~/miyabi (mount point of mount-miyabi) and
+       ~/notebooks/<class> -> ../miyabi/notebooks/<class>, so nbgrader
+       fetches for that course land on Miyabi, and fail while ~/miyabi
+       isn't mounted. <class> must be the nbgrader course id
+Steps 1, 4 and 5 run as the user (not root), so links planted in the home
 can't redirect them.
 LiteLLM keys (litellm_user) are issued by ../agents/agent_setup.
 
@@ -181,6 +186,35 @@ def ensure_ssh_config(pw, miyabi, template, dry_run):
     return as_user(pw, work)
 
 
+# Mount point of mount-miyabi (fixed there too)
+MIYABI_MOUNT = "miyabi"
+
+
+def ensure_miyabi_link(cfg, pw, klass, dry_run):
+    """~/miyabi and ~/notebooks/<class> -> ../miyabi/notebooks/<class>.
+    An existing ~/notebooks/<class> that is anything else is left alone."""
+    def work():
+        mnt = os.path.join(pw.pw_dir, MIYABI_MOUNT)
+        link = os.path.join(pw.pw_dir, cfg.notebooks_dir, klass)
+        target = os.path.join("..", MIYABI_MOUNT, "notebooks", klass)
+        made = []
+        if not os.path.isdir(mnt):
+            if not dry_run:
+                os.mkdir(mnt, 0o700)
+            made.append(MIYABI_MOUNT)
+        if os.path.islink(link):
+            if os.readlink(link) != target:
+                raise OSError(f"{link} -> {os.readlink(link)}, not {target}; left alone")
+        elif os.path.lexists(link):
+            raise OSError(f"{link} exists and is not a link (local files?); left alone")
+        else:
+            if not dry_run:
+                os.symlink(target, link)
+            made.append(f"{cfg.notebooks_dir}/{klass}")
+        return f"created ({','.join(made)})" if made else "exists"
+    return as_user(pw, work)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Enroll existing accounts into JupyterHub and Open WebUI")
     ap.add_argument("roster", nargs="?", help="roster csv (user, jupyter_user, webui_user, class, real_name)")
@@ -262,6 +296,18 @@ def main():
             problems.append((user, f"miyabi {miyabi!r} is not a valid account name; skipped"))
         elif miyabi:
             steps.append(("ssh", lambda: ensure_ssh_config(pw, miyabi, ssh_template, opts.dry_run)))
+        where = row["notebooks"]
+        klass = (row["raw"].get("class") or "").strip()
+        if where == "miyabi":
+            if not klass:
+                problems.append((user, "notebooks=miyabi needs class (the nbgrader course id); skipped"))
+            else:
+                if not miyabi:
+                    problems.append((user, "notebooks=miyabi but miyabi is empty; "
+                                     "~/notebooks link made, but mount-miyabi won't work"))
+                steps.append(("miyabi", lambda: ensure_miyabi_link(cfg, pw, klass, opts.dry_run)))
+        elif where not in ("", "local"):
+            problems.append((user, f"notebooks {where!r} is neither local nor miyabi; skipped"))
         for step, fn in steps:
             try:
                 result = fn()
@@ -275,7 +321,7 @@ def main():
     # Report
     print()
     print(f"{prefix}summary ({len(rows)} rows)")
-    for step in ("notebooks", "user_map", "openwebui", "ssh"):
+    for step in ("notebooks", "user_map", "openwebui", "ssh", "miyabi"):
         results = ", ".join(f"{r}={n}" for (s, r), n in sorted(counts.items()) if s == step)
         print(f"  {step:10s} {results}")
     if problems:
