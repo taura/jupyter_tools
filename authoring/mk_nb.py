@@ -21,6 +21,7 @@ def canonicalize_kernel_dict():
         "py" : "Python 3 (ipykernel)",
         "md" : "Markdown",
         "wisteria" : "Python 3.14 (wisteria)",
+        "miyabi" : "Python 3.9 (Miyabi G)",
         "bash" : "Bash",
         "c" : "C",
         "cc" : "C",
@@ -65,6 +66,30 @@ def make_metadata_python():
             "nbconvert_exporter": "python",
             "pygments_lexer": "ipython3",
             "version": "3.8.10"
+        }
+    }
+
+def make_metadata_miyabi():
+    """
+    aux data for python kernel
+    """
+    return {
+        "kernelspec": {
+            "display_name": "Python 3 (Miyabi G)",
+            "language": "python",
+            "name": "miyabi"
+        },
+        "language_info": {
+            "codemirror_mode": {
+                "name": "ipython",
+                "version": 3
+            },
+            "file_extension": ".py",
+            "mimetype": "text/x-python",
+            "name": "python",
+            "nbconvert_exporter": "python",
+            "pygments_lexer": "ipython3",
+            "version": "3.9.25"
         }
     }
 
@@ -259,6 +284,7 @@ def make_metadata(syntax):
         "Python 3 (ipykernel)" : make_metadata_python,
         "Markdown" : make_metadata_python,
         "Python 3.14 (wisteria)" : make_metadata_python_wisteria,
+        "Python 3.9 (Miyabi G)" : make_metadata_miyabi,
         "Bash" : make_metadata_bash,
         "C" : make_metadata_c,
         "Go" : make_metadata_go,
@@ -379,7 +405,9 @@ class ParserBase:
                 (self.tok_eof,
                  re.compile(r'<!--- eof --->')),
             ]
-        elif self.syntax in ["Python 3 (ipykernel)", "Python 3.14 (wisteria)"]:
+        elif self.syntax in ["Python 3 (ipykernel)",
+                             "Python 3.14 (wisteria)",
+                             "Python 3.9 (Miyabi G)"]:
             self.patterns = [
                 (self.tok_begin_md,
                  re.compile(r'""" *(?P<cell_attrs>md.*)')),

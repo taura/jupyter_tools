@@ -23,6 +23,21 @@ have_master() { ssh -O check "$HOST" >/dev/null 2>&1; }
 # Mounted and answering (a dead sshfs leaves "Transport endpoint is not connected")
 mounted_ok() { mountpoint -q "$MNT" && timeout 10 stat -t "$MNT/." >/dev/null 2>&1; }
 
+# Unmount, or say which of your programs keep it busy (current directory or
+# an open file in it) and fail
+unmount() {
+    fusermount3 -u "$MNT" 2>/dev/null && return 0
+    echo "mount-miyabi: cannot unmount $MNT: it is in use by" >&2
+    for p in /proc/[0-9]*; do
+        [ -O "$p" ] || continue
+        if readlink "$p/cwd" "$p"/fd/* 2>/dev/null | grep -q "^$MNT\(/\|\$\)"; then
+            printf '  %s %s\n' "${p#/proc/}" "$(tr '\0' ' ' < "$p/cmdline" | cut -c1-100)" >&2
+        fi
+    done
+    echo "Close them (or cd out of $MNT in terminals) and try again." >&2
+    exit 1
+}
+
 # Log in to Miyabi; the login stays as the master (ControlMaster auto + ControlPersist)
 login() {
     echo "Logging in to Miyabi ($HOST); enter your verification code if asked."
@@ -41,7 +56,7 @@ EOF
 case "${1:-}" in
 -u)
     mountpoint -q "$MNT" || { echo "Not mounted: $MNT"; exit 0; }
-    fusermount3 -u "$MNT" || fusermount3 -uz "$MNT" || die "cannot unmount $MNT"
+    unmount
     echo "Unmounted $MNT"
     exit 0 ;;
 -s)
@@ -61,7 +76,7 @@ if mounted_ok; then
 else
     if mountpoint -q "$MNT"; then
         # leftover of a dead sshfs (e.g. the Miyabi login ended)
-        fusermount3 -uz "$MNT" 2>/dev/null
+        unmount
     fi
     have_master || login
     MUSER=$(ssh -G "$HOST" | awk '$1 == "user" { print $2 }')

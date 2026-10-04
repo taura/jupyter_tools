@@ -96,8 +96,12 @@ if cwd and not os.path.isdir(cwd):
     note = "no such directory on Miyabi: " + cwd + "; using the home directory"
     cwd = ""
 os.chdir(cwd or os.path.expanduser("~"))
+# as if the venv were activated: !sub, !pip, !python in a cell use the venv's
+venv_bin = os.path.dirname(sys.executable)
+env = dict(os.environ, VIRTUAL_ENV=os.path.dirname(venv_bin),
+           PATH=venv_bin + os.pathsep + os.environ.get("PATH", ""))
 p = subprocess.Popen([sys.executable, "-m", "ipykernel_launcher", "-f", path],
-                     stdin=subprocess.DEVNULL, stdout=sys.stderr)
+                     stdin=subprocess.DEVNULL, stdout=sys.stderr, env=env)
 print(json.dumps({"ports": ports, "pid": p.pid, "host": socket.gethostname(),
                   "cwd": os.getcwd(), "note": note}), flush=True)
 def watch():
@@ -143,9 +147,9 @@ def remote_user():
     return None
 
 
-def remote_cwd():
-    """Miyabi directory for the notebook's directory ("" = Miyabi home)."""
-    here, mnt = os.path.realpath(os.getcwd()), os.path.realpath(MOUNT)
+def remote_cwd(here):
+    """Miyabi directory for the notebook's directory here ("" = Miyabi home)."""
+    mnt = os.path.realpath(MOUNT)
     user = remote_user()
     if user and (here == mnt or here.startswith(mnt + os.sep)):
         return REMOTE_BASE + "/" + user + here[len(mnt):]
@@ -202,12 +206,12 @@ def explain(tail):
     return MSG_OTHER.format(detail=text or "(no output)")
 
 
-def run(conn):
+def run(conn, notebook_dir):
     """Run the remote kernel until it exits; return its exit code."""
     if ssh_ctl("-O", "check").returncode != 0:
         raise StartError(MSG_LOGIN)
 
-    cwd = remote_cwd()
+    cwd = remote_cwd(notebook_dir)
     code = base64.b64encode(BOOTSTRAP.encode()).decode()
     pycmd = f"import base64;exec(compile(base64.b64decode('{code}'),'miyabi-boot','exec'))"
     cmd = f"exec {shlex.quote(REMOTE_PYTHON)} -c {shlex.quote(pycmd)}"
@@ -247,7 +251,7 @@ def run(conn):
 
     t0 = time.monotonic()
     log(f"kernel on {started['host']} pid {started['pid']} cwd {started['cwd']}"
-        + ("" if cwd else f" (notebook dir {os.getcwd()} is not under {MOUNT})"))
+        + ("" if cwd else f" (notebook dir {notebook_dir} is not under {MOUNT})"))
     if started["note"]:
         log(started["note"])
 
@@ -303,13 +307,18 @@ def stand_in_kernel(connection_file, message):
 
 
 def main():
-    connection_file = sys.argv[1]
+    connection_file = os.path.abspath(sys.argv[1])
     with open(connection_file) as fp:
         conn = json.load(fp)
+    # Jupyter starts us in the notebook's directory, often inside the sshfs
+    # mount (~/miyabi); staying there would keep it busy (mount-miyabi -u
+    # fails, and a lazily unmounted sshfs lingers with its Miyabi session)
+    notebook_dir = os.path.realpath(os.getcwd())
+    os.chdir(os.path.expanduser("~"))
     # Interrupts come as messages (kernel.json interrupt_mode); a stray SIGINT must not kill us
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     try:
-        return run(conn)
+        return run(conn, notebook_dir)
     except StartError as e:
         log("start failed: " + str(e).replace("\n", " | "))
         stand_in_kernel(connection_file, str(e))
