@@ -27,6 +27,9 @@ GOOGLE_DOMAIN = os.environ.get("GOOGLE_DOMAIN", "g.ecc.u-tokyo.ac.jp")
 SINGLEUSER_VENV = os.environ.get("SINGLEUSER_VENV", "/home/share/jupyter_tools/singleuser/.venv")
 OPENCODE_DIR = "/home/share/jupyter_tools/singleuser/oc/inst"
 
+# Our templates (templates/login.html: spacing between the login buttons)
+c.JupyterHub.template_paths = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")]
+
 c.JupyterHub.ssl_cert = f'/etc/pki/tls/certs/{FQDN}/fullchain.crt'
 c.JupyterHub.ssl_key = f'/etc/pki/tls/certs/{FQDN}/{FQDN}.key'
 

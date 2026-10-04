@@ -107,7 +107,8 @@ Jupyter の Miyabi G カーネルは `ssh miyabig` のログイン (ControlMaste
   (taulec 側に黙って書かれることはない)。ほかのクラスの `~/notebooks/<course>` は普通のディレクトリのまま
 - `~/notebooks` 自体は普通のディレクトリなので、マウントしていなくても JupyterHub には入れる
 - 既に `~/notebooks/<class>` が普通のディレクトリとしてあると、触らずにエラーとして報告する
-- Miyabi 側の `notebooks/<class>` は、enroll からは作れないので `mount-miyabi` がマウント直後に作る
+- Miyabi 側の `/work/gt81/share/home/<miyabi>/notebooks/<class>` は教員が先に作っておく (`../singleuser/README.md`)。
+  無ければ `mount-miyabi` が警告する
 
 Miyabi が使えない週は、`~/notebooks/<class>` を taulec 上の普通のディレクトリに付け替える (未実装)。
 

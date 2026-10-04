@@ -89,13 +89,15 @@ taulec$ mount-miyabi -u      # アンマウント
   agent を転送して入ってきた人は、agent の鍵でもよい
 - sshfs は `ssh -o BatchMode=yes -o ControlMaster=no` で ControlMaster に相乗りする (TOTP 不要)
 - マウント中は sshfs がマスターの利用者なので、`ControlPersist` が切れてもマスターは残る
-- Miyabi 側の自分のディレクトリが無ければ 0700 で作る。**`/work/gt81/share/home` は教員が先に作っておく**
-  (他人のディレクトリを消せないよう sticky にする):
+- Miyabi 側のディレクトリは何も作らない。自分のディレクトリが無ければエラー、`~/notebooks/*` のリンク先
+  (`notebooks/<class>`) が無ければ警告 (どちらも「教員に連絡」)
+- **Miyabi 側のディレクトリは教員が先に作る。** `miyabi` repo の `scripts/mk-course-dirs.sh` を t81000 で
+  (`/work/gt81/share/env/miyabi` から) 流す。教員の所有で 0700、ACL でその学生と他の教員 (t81148) に rwx、
+  default ACL で中に作られるものにも付く。グループ (gt81) は授業の全員なので、グループには権限を与えない:
   ```
-  miyabi$ mkdir /work/gt81/share/home && chmod 3770 /work/gt81/share/home    # root:gt81 の下, setgid + sticky
+  miyabi$ /work/gt81/share/env/miyabi/scripts/mk-course-dirs.sh -n t81149 t81150   # 確認
+  miyabi$ /work/gt81/share/env/miyabi/scripts/mk-course-dirs.sh t81149 t81150
   ```
-- マウント直後に、`~/notebooks/*` のリンクのうち `~/miyabi` の中を指して先が無いもの
-  (`notebooks/<class>`) を作る
 - マスターが切れると sshfs は応答しなくなる (`Transport endpoint is not connected`)。`mount-miyabi` し直せば
   ログインからやり直す (古いマウントは自動で外す)
 

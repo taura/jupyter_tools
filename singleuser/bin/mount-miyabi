@@ -3,7 +3,10 @@
 # with sshfs, riding on your "ssh miyabig" login (ControlMaster). Without one,
 # log in first (verification code); ControlPersist keeps that login alive.
 #
-#   mount-miyabi        mount (then create missing targets of ~/notebooks/* links)
+#   mount-miyabi        mount (then check the targets of ~/notebooks/* links)
+#
+# The directories on Miyabi are made by the instructor beforehand (owned by the
+# instructor, opened to the student by an ACL); nothing is created here.
 #   mount-miyabi -u     unmount
 #   mount-miyabi -s     show status
 #
@@ -98,27 +101,24 @@ else
     MUSER=$(ssh -G "$HOST" | awk '$1 == "user" { print $2 }')
     [ -n "$MUSER" ] || die "no User for Host $HOST in ~/.ssh/config"
     REMOTE=$REMOTE_BASE/$MUSER
-    # Base is made by the teacher (sticky, group gt81); each student's dir is private
-    $SSH "$HOST" "test -d $REMOTE_BASE || exit 2; test -d $REMOTE || mkdir -m 700 $REMOTE"
-    case $? in
-    0) ;;
-    2) die "$REMOTE_BASE does not exist on Miyabi; ask your instructor" ;;
-    *) die "cannot create $REMOTE on Miyabi" ;;
-    esac
+    # made by the instructor beforehand
+    $SSH "$HOST" "test -d $REMOTE" \
+        || die "your directory on Miyabi ($REMOTE) does not exist; ask your instructor"
     sshfs "$HOST:$REMOTE" "$MNT" -o ssh_command="$SSH" -o reconnect -o idmap=user \
         || die "sshfs failed"
     mounted_ok || die "mounted, but $MNT does not respond"
     echo "Mounted $MNT -> Miyabi:$REMOTE"
 fi
 
-# Create missing targets of ~/notebooks/<course> -> ~/miyabi/... links (made by enroll)
+# ~/notebooks/<course> -> ~/miyabi/... links (made by enroll) need their targets
 for link in "$HOME"/notebooks/*; do
     [ -L "$link" ] || continue
     target=$(realpath -m "$link")
     case $target in
     "$MNT"/*)
         if [ ! -d "$target" ]; then
-            mkdir -p "$target" && echo "Created $target"
+            echo "mount-miyabi: warning: $target does not exist on Miyabi, so" >&2
+            echo "  $link cannot be used; ask your instructor" >&2
         fi ;;
     esac
 done
