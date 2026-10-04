@@ -45,7 +45,7 @@ class MyGoogleOAuthenticator(GoogleOAuthenticator):
     # local name (u26000) then lacks the prefix and check_allowed rejects everyone.
     prefix = ""
     # button label on the login page (service_name in config is deprecated)
-    login_service = "Google (ECCS)"
+    login_service = "UTokyo Google (ECCS)"
 
     def normalize_username(self, u):
         print(f"MyGoogleOAuthenticator::normalize_username {u}")

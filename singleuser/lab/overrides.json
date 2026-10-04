@@ -1,0 +1,5 @@
+{
+  "@jupyterlab/terminal-extension:plugin": {
+    "fontFamily": "Liberation Mono, DejaVu Sans Mono, Consolas, Menlo, Courier New, monospace"
+  }
+}

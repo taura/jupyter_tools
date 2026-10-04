@@ -79,7 +79,7 @@ journalctl -u jupyterhub -f
 
 | ボタン | 誰が | ユーザ名 |
 |---|---|---|
-| Google (ECCS) | 学生 | 申告された g.ecc のアドレスを `user_map` でローカルユーザ (`u26000` 等) に変換 |
+| UTokyo Google (ECCS) | 学生 | 申告された g.ecc のアドレスを `user_map` でローカルユーザ (`u26000` 等) に変換 |
 | Local Account | 教員, TA, 授業用アカウント | LDAP のユーザ名とパスワード (PAM, sssd 経由) |
 
 Google では `g.ecc.u-tokyo.ac.jp` 以外のアカウントは弾く (`hosted_domain`)。

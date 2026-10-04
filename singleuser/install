@@ -6,6 +6,7 @@
 # - uv sync -> ./.venv (must match SINGLEUSER_VENV in ../hub/jupyterhub.env)
 # - common nbgrader config -> .venv/etc/jupyter
 # - kernels/* (e.g. Miyabi G) -> .venv/share/jupyter/kernels
+# - lab/overrides.json -> .venv/share/jupyter/lab/settings (JupyterLab defaults)
 #
 # Every student runs this venv's python, so the venv and uv's Python must be
 # world-readable (share's home is 755).
@@ -25,6 +26,13 @@ uv sync --frozen
 # the venv's etc/jupyter is on every user's config path.
 mkdir -p "$VENV/etc/jupyter"
 ln -sfn "$REPO/nbgrader/common/nbgrader_config.py" "$VENV/etc/jupyter/nbgrader_config.py"
+
+# Defaults for everyone's JupyterLab settings (a user's own settings still win).
+# Terminal font: JupyterLab's default "ui-monospace, monospace" falls back to a
+# CJK font on Japanese systems, whose tall cells stretch the QR code Miyabi
+# shows at the first login. The fonts are the browser's, so list common ones.
+mkdir -p "$VENV/share/jupyter/lab/settings"
+ln -sfn "$HERE/lab/overrides.json" "$VENV/share/jupyter/lab/settings/overrides.json"
 
 # Shared kernelspecs; visible to every user whose server runs from this venv.
 shopt -s nullglob

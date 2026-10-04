@@ -4,11 +4,11 @@
 # log in first (verification code); ControlPersist keeps that login alive.
 #
 #   mount-miyabi        mount (then check the targets of ~/notebooks/* links)
+#   mount-miyabi -u     unmount
+#   mount-miyabi -s     show status
 #
 # The directories on Miyabi are made by the instructor beforehand (owned by the
 # instructor, opened to the student by an ACL); nothing is created here.
-#   mount-miyabi -u     unmount
-#   mount-miyabi -s     show status
 #
 # Installed as /usr/local/bin/mount-miyabi (ansible roles/jupyterhub).
 set -u

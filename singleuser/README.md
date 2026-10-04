@@ -17,6 +17,7 @@ remote_ipykernel。カーネルは python3 (taulec 上) と Python (Miyabi G)。
 | `pyproject.toml` / `uv.lock` / `.python-version` | Python 環境 (3.12) |
 | `install` | venv を作り、nbgrader の共通設定とカーネルを入れる |
 | `kernels/miyabi/` | Miyabi G のカーネル (全員共通)。`kernel.json` とランチャー `miyabi_kernel.py` |
+| `lab/overrides.json` | 全員の JupyterLab の設定の既定値 (端末のフォント)。`install` が venv の `share/jupyter/lab/settings/` に symlink する |
 
 ## 設置・更新
 
@@ -34,6 +35,12 @@ cd ~/jupyter_tools/singleuser
   (全学生・全教員アカウントに効く共通設定)
 - `kernels/*` を `jupyter kernelspec install --sys-prefix` で venv の
   `share/jupyter/kernels/` に入れる (全員に見える)
+- `lab/overrides.json` を venv の `share/jupyter/lab/settings/` に symlink する。端末のフォントを
+  `Liberation Mono, DejaVu Sans Mono, Consolas, Menlo, Courier New, monospace` にする。JupyterLab の既定の
+  `ui-monospace, monospace` は日本語環境だと日本語フォントに落ち、セルが縦長になって、Miyabi の初回ログインで
+  端末に出る QR コードが縦に伸びて読めない。フォントは学生の PC のブラウザにあるものが使われるので、
+  OS ごとの標準のものを並べてある。それでも読めなければ、QR の下に出る secret key を認証アプリの
+  「セットアップキーを入力」に手で入れればよい
 - venv と uv の Python を全員が読めるようにする
 
 パッケージを足すときは `pyproject.toml` を直して `uv lock` し、`./install` を流し直す。
