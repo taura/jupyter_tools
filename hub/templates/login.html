@@ -1,0 +1,9 @@
+{# JupyterHub's login page with some room between the MultiAuthenticator buttons #}
+{% extends "templates/login.html" %}
+{% block stylesheet %}
+{{ super() }}
+<style>
+  #login-main .service-login + .service-login { margin-top: 1.5rem; }
+  #login-main .service-login .btn { min-width: 20rem; }
+</style>
+{% endblock stylesheet %}
