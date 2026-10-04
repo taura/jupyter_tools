@@ -78,18 +78,16 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY (webui_user のある行�
 書き込みは (`~/notebooks` も) root ではなく**そのユーザの権限**で行う (学生が `~/.ssh` をシンボリックリンクにして root に
 別の場所を書かせることを防ぐ)。
 
-鍵は学生が自分で用意する (手元の PC の鍵を Miyabi のポータルと taulec の両方に登録する)。
-秘密鍵は taulec に置かない。PC から `ssh -A taulec` (または PC 側の `~/.ssh/config` で
-`Host taulec` に `ForwardAgent yes`) で入り、そこで `ssh miyabig` する。認証に agent が要るのは
-ControlMaster を作るときだけなので、taulec 側の `Host miyabig` に `ForwardAgent` は付けない
-(付けると Miyabi 上に agent が露出する)。ControlMaster ができた後は、taulec からログアウトしても
-`ControlPersist` の間、カーネルや Jupyter の端末からの `ssh miyabig` はそれに相乗りできる。
+鍵は学生が taulec 上で作る (`ssh-keygen -t ed25519`、パスフレーズは空にしない)。公開鍵を Miyabi の
+ポータルに登録し、Jupyter の端末で `mount-miyabi` すると (パスフレーズと TOTP を入力) ControlMaster が
+でき、`ControlPersist` の間、カーネル・sshfs・`ssh miyabig` はそれに相乗りする。PC から taulec への ssh や
+agent の転送は要らない (PC の鍵で直接 Miyabi に入りたい人は、その公開鍵も別にポータルに登録する)。
 
 `HostName` は `miyabi-g.jcahpc.jp` (DNS で g1/g3 に振り分け)。相乗りは ControlPath のソケット経由で
 DNS を引き直さないので、ControlMaster がある限り同じノードに行き、TOTP は再要求されない。
 ログインノードの host key は g1/g2/g3 で共通 (2026-10 に確認)。
 Jupyter の Miyabi G カーネルは `ssh miyabig` のログイン (ControlMaster) に相乗りするので、
-使う前に一度 `ssh miyabig` で TOTP を通しておく (`../singleuser/README.md`)。
+使う前に `mount-miyabi` (または `ssh miyabig`) でログインしておく (`../singleuser/README.md`)。
 
 ## Miyabi とセットのクラス (notebooks=miyabi)
 

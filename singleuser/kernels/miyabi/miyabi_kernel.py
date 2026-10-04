@@ -48,7 +48,7 @@ START_TIMEOUT = 60        # seconds to wait for the bootstrap to report ports
 EARLY_EXIT = 20           # a kernel dying this soon is shown as a start failure
 
 MSG_LOGIN = """Not logged in to Miyabi.
-Open a terminal on taulec (from your PC: ssh -A <user>@taulec.zapto.org) and run:
+Open a terminal (File > New > Terminal) and run:
     mount-miyabi
 then restart the kernel (Kernel > Restart Kernel)."""
 

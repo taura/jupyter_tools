@@ -38,16 +38,32 @@ unmount() {
     exit 1
 }
 
+# A key on taulec (made with ssh-keygen here), or one in a forwarded agent
+have_key() {
+    ls ~/.ssh/id_* 2>/dev/null | grep -qv '\.pub$' || ssh-add -l >/dev/null 2>&1
+}
+
+no_key() {
+    cat >&2 <<EOF
+mount-miyabi: you have no SSH key for Miyabi here yet.
+  1. Create one (set a passphrase; do not leave it empty):
+       ssh-keygen -t ed25519
+  2. Register the public key on the Miyabi portal; this prints it:
+       cat ~/.ssh/id_ed25519.pub
+  3. Run mount-miyabi again.
+EOF
+    exit 1
+}
+
 # Log in to Miyabi; the login stays as the master (ControlMaster auto + ControlPersist)
 login() {
-    echo "Logging in to Miyabi ($HOST); enter your verification code if asked."
+    have_key || no_key
+    echo "Logging in to Miyabi ($HOST): enter your key's passphrase and the verification code."
     if ! ssh -o ControlMaster=auto "$HOST" true || ! have_master; then
         cat >&2 <<EOF
 mount-miyabi: could not log in to Miyabi.
-  Your Miyabi key is on your PC, so log in to taulec from your PC with
-  agent forwarding, then run mount-miyabi there:
-    ssh -A $USER@taulec.zapto.org
-  (A Jupyter terminal has no access to your key; once mounted, it works there too.)
+  Check that your public key (~/.ssh/id_ed25519.pub) is registered on the
+  Miyabi portal, and that the passphrase and the verification code are right.
 EOF
         exit 1
     fi

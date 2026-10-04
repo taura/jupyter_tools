@@ -1,11 +1,10 @@
 # Miyabi (added by enroll; edit freely)
-#   PC$ ssh -A taulec       # forward the agent holding your Miyabi key
-#   taulec$ ssh miyabig     # log in (TOTP) before using the Miyabi G kernel in Jupyter
-# The kernel (and later ssh miyabig, e.g. from a Jupyter terminal) rides on
-# this login (ControlMaster); it lives on for ControlPersist after the last
-# session closes, even after you log out of taulec.
-# No ForwardAgent here: the agent is needed only to log in to Miyabi,
-# not on Miyabi itself.
+#   ssh-keygen -t ed25519   # once, with a passphrase; register ~/.ssh/id_ed25519.pub
+#                           # on the Miyabi portal
+#   mount-miyabi            # log in (passphrase + verification code), mount ~/miyabi
+# The Miyabi G kernel in Jupyter, sshfs and later "ssh miyabig" ride on this
+# login (ControlMaster); it lives on for ControlPersist after the last session
+# closes.
 Host miyabig
     HostName miyabi-g.jcahpc.jp
     User {miyabi}

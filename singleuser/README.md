@@ -74,17 +74,19 @@ taulec の `~/miyabi` に sshfs でマウントして見せる。`~/notebooks/<c
 (enroll が作る。`../enroll/README.md`)。
 
 ```
-PC$ ssh -A u26xxx@taulec.zapto.org
-taulec$ mount-miyabi         # Miyabi にログイン (TOTP) してから ~/miyabi にマウント
+taulec$ ssh-keygen -t ed25519   # 最初の 1 回。パスフレーズを付ける。~/.ssh/id_ed25519.pub を Miyabi のポータルに登録
+taulec$ mount-miyabi         # Miyabi にログイン (パスフレーズ + TOTP) してから ~/miyabi にマウント
 taulec$ mount-miyabi -s      # 状態
 taulec$ mount-miyabi -u      # アンマウント
 ```
 
 - `bin/mount-miyabi`。`/usr/local/bin/mount-miyabi` からのリンクと sshfs の導入は ansible (`roles/jupyterhub`)
-- マスターが無ければ、まず `ssh miyabig true` でログインさせる (verification code を聞かれる)。
-  `ControlMaster auto` + `ControlPersist` なので、これがそのままマスターとして残る。鍵は PC の agent に
-  あるので `ssh -A` で入った端末で実行すること。Jupyter の端末では鍵が無く失敗する (案内を出す) が、
-  マスターがあれば Jupyter の端末からでも使える
+- 端末は Jupyter の端末でよい (PC から taulec に ssh する必要はない)
+- マスターが無ければ、まず `ssh miyabig true` でログインさせる (パスフレーズと verification code を聞かれる)。
+  `ControlMaster auto` + `ControlPersist` なので、これがそのままマスターとして残る
+- 鍵は学生が taulec 上で `ssh-keygen` して作り、公開鍵を Miyabi のポータルに登録する。鍵が無ければ
+  (`~/.ssh/id_*` も agent の鍵も無ければ) 作り方を英語で案内して終わる。自動では作らない。
+  agent を転送して入ってきた人は、agent の鍵でもよい
 - sshfs は `ssh -o BatchMode=yes -o ControlMaster=no` で ControlMaster に相乗りする (TOTP 不要)
 - マウント中は sshfs がマスターの利用者なので、`ControlPersist` が切れてもマスターは残る
 - Miyabi 側の自分のディレクトリが無ければ 0700 で作る。**`/work/gt81/share/home` は教員が先に作っておく**
