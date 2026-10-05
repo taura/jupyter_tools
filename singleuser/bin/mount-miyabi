@@ -90,6 +90,10 @@ esac
 
 [ -d "$MNT" ] || die "$MNT does not exist (not enrolled in a Miyabi class?); ask your instructor"
 
+# Log in first: the Miyabi G kernel needs only this, and a mount left dead by a
+# lost login may come back by itself (sshfs -o reconnect) once it is there
+have_master || login
+
 if mounted_ok; then
     echo "Already mounted: $MNT"
 else
@@ -97,7 +101,6 @@ else
         # leftover of a dead sshfs (e.g. the Miyabi login ended)
         unmount
     fi
-    have_master || login
     MUSER=$(ssh -G "$HOST" | awk '$1 == "user" { print $2 }')
     [ -n "$MUSER" ] || die "no User for Host $HOST in ~/.ssh/config"
     REMOTE=$REMOTE_BASE/$MUSER
