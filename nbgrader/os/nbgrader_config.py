@@ -7,7 +7,7 @@ c = get_config()  #noqa
 import os
 c.CourseDirectory.course_id = 'os'
 c.CourseDirectory.root = os.path.expanduser('~/assignments')
-c.ClearSolutions.code_stub = dict(sos='') # python='', OCaml='', c='', bash='', 
+c.ClearSolutions.code_stub = dict(python='') # sos='', OCaml='', c='', bash='', 
 
 ###############################
 

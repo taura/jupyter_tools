@@ -71,5 +71,5 @@
       }
     }
   },
-  "model": "litellm/llm-jp-4.1-32b-a3b-thinking"
+  "model": "gpt-oss-20b-mdx-maas"
 }
