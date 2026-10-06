@@ -49,6 +49,8 @@ LMS で行う (`agent_setup` が鍵を埋めた名簿を出力する)。LiteLLM 
 | `codex_auth` | `{codex_home}/auth.json` を作る |
 | `codex_config` | `{codex_home}/config.toml` に `--codex-config` をコピー (常にコピー。Codex 自身が書き込むため) |
 
+`litellm_user` は enroll と同じく `@g.ecc.u-tokyo.ac.jp` (`agent_setup.env` の `GOOGLE_DOMAIN`) でなければ、鍵を発行せずに飛ばしてレポートに出す。`litellm_key` が既に書かれている行は、その鍵をそのまま使い、警告だけ出す。
+
 **設定ファイルと Codex の auth.json は上書きしない。** すでにあって中身が違えば、そのまま残して
 警告に出す (学生が自分で書いた設定や、ChatGPT でのログインを壊さないため)。`--agents opencode` /
 `--agents codex` で片方だけにできる。

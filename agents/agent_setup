@@ -14,7 +14,9 @@ agent's credential file, plus each agent's shared config.
 Roster columns (others are ignored and copied to the output as they are):
     user          account on this server (required)
     litellm_user  LiteLLM user_id owning a new key (may repeat); empty and no
-                  litellm_key = the row is skipped
+                  litellm_key = the row is skipped. Must be @GOOGLE_DOMAIN
+                  (agent_setup.env, default g.ecc.u-tokyo.ac.jp) for a key to
+                  be issued; with a given litellm_key it is only warned about
     litellm_key   the key; empty = issue one for litellm_user
     litellm_team  LiteLLM team alias for a new key; created if missing
     class         used by --class
@@ -207,8 +209,17 @@ def ensure_config(t, src, content, dest, opts, mode="copy", force=False):
     return result
 
 
-def needs_key(rows):
-    return [r for r in rows if not r["key"] and r["litellm_user"]]
+def google_domain(env_text):
+    return parse_env(env_text).get("GOOGLE_DOMAIN", "g.ecc.u-tokyo.ac.jp")
+
+
+def in_domain(email, domain):
+    return email.lower().endswith("@" + domain.lower())
+
+
+def needs_key(rows, domain):
+    return [r for r in rows if not r["key"] and r["litellm_user"]
+            and in_domain(r["litellm_user"], domain)]
 
 
 def write_output(fp, roster_text, issued):
@@ -229,6 +240,7 @@ def write_output(fp, roster_text, issued):
 def run(opts, roster_text, env_text, log, emit):
     """Process the roster. log(str) reports; emit(user, key) records a new key."""
     env = parse_env(env_text)
+    domain = google_domain(env_text)
     url = opts.litellm_server or env.get("LITELLM_URL", "http://127.0.0.1:4000")
     budget = env.get("LITELLM_KEY_MAX_BUDGET")
     agents = split_set(opts.agents) or set(AGENTS)
@@ -263,6 +275,14 @@ def run(opts, roster_text, env_text, log, emit):
         if not row["key"] and not row["litellm_user"]:
             problems.append((user, "no litellm_key or litellm_user; skipped"))
             continue
+        # The key's owner in LiteLLM: same addresses as JupyterHub / Open WebUI
+        if row["litellm_user"] and not in_domain(row["litellm_user"], domain):
+            if not row["key"]:
+                problems.append((user, f"litellm_user {row['litellm_user']} is not @{domain}; "
+                                 "no key issued, skipped"))
+                continue
+            problems.append((user, f"litellm_user {row['litellm_user']} is not @{domain} "
+                             "(the given litellm_key is used as it is)"))
         try:
             t = Target(user, opts)
         except KeyError:
@@ -403,9 +423,10 @@ def main():
     # Create the output first, so a key is never issued without a place to save it.
     out = None
     rows, _ = read_roster(roster_text, split_set(opts.user), split_set(opts.klass))
-    if not opts.dry_run and needs_key(rows):
+    domain = google_domain(env_text)
+    if not opts.dry_run and needs_key(rows, domain):
         if not opts.output:
-            ap.error(f"{len(needs_key(rows))} keys would be issued; give -o/--output to save them")
+            ap.error(f"{len(needs_key(rows, domain))} keys would be issued; give -o/--output to save them")
         try:
             out = open(opts.output, "x", encoding="utf-8")   # never overwrite
         except FileExistsError:
