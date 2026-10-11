@@ -100,7 +100,10 @@ os.chdir(cwd or os.path.expanduser("~"))
 venv_bin = os.path.dirname(sys.executable)
 env = dict(os.environ, VIRTUAL_ENV=os.path.dirname(venv_bin),
            PATH=venv_bin + os.pathsep + os.environ.get("PATH", ""))
-p = subprocess.Popen([sys.executable, "-m", "ipykernel_launcher", "-f", path],
+# %%sub without %load_ext, and without having to redo it after every kernel
+# restart; a missing extension is reported by IPython, not fatal
+p = subprocess.Popen([sys.executable, "-m", "ipykernel_launcher", "-f", path,
+                      "--IPKernelApp.extensions=['miyabi']"],
                      stdin=subprocess.DEVNULL, stdout=sys.stderr, env=env)
 print(json.dumps({"ports": ports, "pid": p.pid, "host": socket.gethostname(),
                   "cwd": os.getcwd(), "note": note}), flush=True)
