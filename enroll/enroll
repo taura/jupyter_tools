@@ -224,7 +224,9 @@ def ensure_miyabi_link(cfg, pw, klass, dry_run):
         link = os.path.join(pw.pw_dir, cfg.notebooks_dir, klass)
         target = os.path.join("..", MIYABI_MOUNT, "notebooks", klass)
         made = []
-        if not os.path.isdir(mnt):
+        # Look in the home's listing, not at ~/miyabi itself: a dead sshfs mount
+        # there fails stat (ENOTCONN), which isdir() would take for "missing"
+        if MIYABI_MOUNT not in os.listdir(pw.pw_dir):
             if not dry_run:
                 os.mkdir(mnt, 0o700)
             made.append(MIYABI_MOUNT)
