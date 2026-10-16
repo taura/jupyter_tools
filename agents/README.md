@@ -108,6 +108,22 @@ $EDITOR agent_setup.env                       # LITELLM_API_KEY (下記)
 `--litellm-server http://localhost:4000 --site sc -o ...` を付ける (alias は `user@sc`)。
 1 アカウント 1 本を保つなら、発行は taulec でまとめて行う。
 
+### 鍵を作り直す (--reissue)
+
+`litellm_user` を直したとき (綴り間違いなど) や鍵が漏れたとき:
+
+```
+./agent_setup --sudo --reissue --user u26xxx -o new_keys.csv roster.csv
+```
+
+- その行の `key_alias` (= `user`) の鍵を LiteLLM から消し、`litellm_user` を持ち主にして発行し直す。
+  `litellm_key` に鍵が書かれていても作り直す
+- OpenCode の `auth.json` の `"litellm"` の行と、Codex の `auth.json` (API キーでのログインのときだけ。
+  ChatGPT でのログインなどは触らない) を新しい鍵にする
+- `-o` の CSV では、その行の `litellm_key` を新しい鍵に置き換える。名簿に書き戻すこと
+- 全員の鍵を作り直す事故を防ぐため `--user` が必須。`litellm_user` が `@g.ecc.u-tokyo.ac.jp` でなければ飛ばす
+- 鍵の値が変わるので、手元の PC などで鍵を使っている人には伝え直す
+
 ### LiteLLM の管理者キー (LITELLM_API_KEY)
 
 Team と鍵を作れる鍵が 1 本要る。master key をコピーしても動くが、別に発行するのがよい

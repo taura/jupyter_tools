@@ -12,6 +12,7 @@ import os
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
@@ -190,6 +191,17 @@ class LiteLLM:
 
     def delete_key(self, key):
         self.post("/key/delete", {"keys": [key]})
+
+    def keys_by_alias(self, alias):
+        """The keys whose key_alias is alias (full objects: user_id etc.)."""
+        q = urllib.parse.urlencode({"key_alias": alias, "return_full_object": "true"})
+        return [k for k in self.get("/key/list?" + q).get("keys", [])
+                if isinstance(k, dict) and k.get("key_alias") == alias]
+
+    def delete_alias(self, alias):
+        """Delete the keys whose key_alias is alias (check with keys_by_alias first)."""
+        if not self.dry_run:
+            self.post("/key/delete", {"key_aliases": [alias]})
 
     def issue_key(self, alias, email, team_alias):
         """Issue a key, creating the team if needed. Returns (key, note);

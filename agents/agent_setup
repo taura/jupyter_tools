@@ -34,6 +34,13 @@ For each selected row:
       codex_config   {codex_home}/config.toml <- --codex-config (always a copy:
                      Codex writes to it, e.g. trusted directories)
 
+--reissue (with --user) replaces a row's key: the keys with its key_alias
+are deleted from LiteLLM and a new one is issued to litellm_user, even if
+litellm_key is filled in; the new key replaces the old one in OpenCode's
+auth.json, in Codex's auth.json (only an API-key login, never e.g. a
+ChatGPT one) and in the output roster. For a fixed litellm_user, or a key
+that has leaked; the new key has to be handed out again.
+
 Config files and Codex's auth.json are never overwritten: an existing file
 that differs is reported and left alone (Codex's auth.json holds one login,
 e.g. a ChatGPT one). --force-opencode-jsonc replaces a differing
@@ -167,6 +174,10 @@ def ensure_codex_auth(t, key, opts):
         if data.get("OPENAI_API_KEY") == key and key is not None:
             return "exists"
         if data.get("auth_mode") == "apikey":
+            if opts.reissue:
+                if not opts.dry_run and key is not None:
+                    t.write_json(t.codex_auth, entry)
+                return "updated"
             raise Skip(f"{t.codex_auth} has a different API key; left alone")
         raise Skip(f"{t.codex_auth} has another login (auth_mode={data.get('auth_mode')}); left alone")
     if not opts.dry_run and key is not None:
@@ -217,13 +228,14 @@ def in_domain(email, domain):
     return email.lower().endswith("@" + domain.lower())
 
 
-def needs_key(rows, domain):
-    return [r for r in rows if not r["key"] and r["litellm_user"]
+def needs_key(rows, domain, reissue=False):
+    return [r for r in rows if (reissue or not r["key"]) and r["litellm_user"]
             and in_domain(r["litellm_user"], domain)]
 
 
-def write_output(fp, roster_text, issued):
-    """The input roster with litellm_key filled in for issued users."""
+def write_output(fp, roster_text, issued, replace=False):
+    """The input roster with litellm_key filled in for issued users
+    (replaced, with replace: --reissue)."""
     reader = csv.DictReader(io.StringIO(roster_text))
     fields = list(reader.fieldnames or [])
     if KEY_COLUMN not in fields:
@@ -232,7 +244,7 @@ def write_output(fp, roster_text, issued):
     w.writeheader()
     for r in reader:
         user = (r.get("user") or "").strip()
-        if user in issued and not (r.get(KEY_COLUMN) or "").strip():
+        if user in issued and (replace or not (r.get(KEY_COLUMN) or "").strip()):
             r[KEY_COLUMN] = issued[user]
         w.writerow(r)
 
@@ -276,8 +288,11 @@ def run(opts, roster_text, env_text, log, emit):
             problems.append((user, "no litellm_key or litellm_user; skipped"))
             continue
         # The key's owner in LiteLLM: same addresses as JupyterHub / Open WebUI
+        if opts.reissue and not row["litellm_user"]:
+            problems.append((user, "--reissue needs litellm_user (the new key's owner); skipped"))
+            continue
         if row["litellm_user"] and not in_domain(row["litellm_user"], domain):
-            if not row["key"]:
+            if not row["key"] or opts.reissue:
                 problems.append((user, f"litellm_user {row['litellm_user']} is not @{domain}; "
                                  "no key issued, skipped"))
                 continue
@@ -292,13 +307,22 @@ def run(opts, roster_text, env_text, log, emit):
 
         def step_key():
             nonlocal key
-            if key:
+            if key and not opts.reissue:
                 return "given"
             alias = f"{user}@{opts.site}" if opts.site else user
+            done_old = ""
+            if opts.reissue:
+                # key_alias is unique in LiteLLM: the old key has to go first
+                old = litellm().keys_by_alias(alias)
+                if old:
+                    owners = ",".join(sorted({k.get("user_id") or "?" for k in old}))
+                    litellm().delete_alias(alias)
+                    done_old = f" (deleted {len(old)} old, owner {owners})"
+                key = None
             key, note = litellm().issue_key(alias, row["litellm_user"], row["team"])
             if key:
                 emit(user, key)
-            return "issued" + note
+            return ("reissued" if opts.reissue else "issued") + done_old + note
 
         def in_home(fn):
             """Run a step that touches the user's home as that user when we are root."""
@@ -363,6 +387,8 @@ def root_args(opts):
         args.append("--dry-run")
     if opts.force_opencode_jsonc:
         args.append("--force-opencode-jsonc")
+    if opts.reissue:
+        args.append("--reissue")
     return args
 
 
@@ -382,6 +408,9 @@ def main():
     ap.add_argument("--opencode-config-mode", choices=["copy", "symlink"], default="copy",
                     help="install opencode.jsonc as a copy or a symlink to --opencode-config (default: copy); "
                     "Codex's config.toml is always copied")
+    ap.add_argument("--reissue", action="store_true",
+                    help="delete the row's key (by key_alias) and issue a new one to litellm_user; "
+                    "needs --user")
     ap.add_argument("--force-opencode-jsonc", action="store_true",
                     help="replace an existing, different opencode.jsonc (old one kept as .bak)")
     ap.add_argument("--provider-id", default="litellm", help="provider id in opencode.jsonc (default: litellm)")
@@ -397,6 +426,8 @@ def main():
     ap.add_argument("--stdin", action="store_true", help=argparse.SUPPRESS)  # internal: inputs on stdin
     opts = ap.parse_args()
 
+    if opts.reissue and not opts.user:
+        ap.error("--reissue replaces keys; name the users with --user")
     unknown = (split_set(opts.agents) or set()) - set(AGENTS)
     if unknown:
         ap.error(f"unknown agents: {', '.join(sorted(unknown))} (choose from {', '.join(AGENTS)})")
@@ -424,9 +455,10 @@ def main():
     out = None
     rows, _ = read_roster(roster_text, split_set(opts.user), split_set(opts.klass))
     domain = google_domain(env_text)
-    if not opts.dry_run and needs_key(rows, domain):
+    if not opts.dry_run and needs_key(rows, domain, opts.reissue):
         if not opts.output:
-            ap.error(f"{len(needs_key(rows, domain))} keys would be issued; give -o/--output to save them")
+            ap.error(f"{len(needs_key(rows, domain, opts.reissue))} keys would be issued; "
+                     "give -o/--output to save them")
         try:
             out = open(opts.output, "x", encoding="utf-8")   # never overwrite
         except FileExistsError:
@@ -448,7 +480,7 @@ def main():
     finally:
         if out:
             if issued:
-                write_output(out, roster_text, issued)
+                write_output(out, roster_text, issued, replace=opts.reissue)
                 out.close()
                 print(f"\n{len(issued)} new keys written to {opts.output}")
             else:

@@ -37,6 +37,38 @@ $EDITOR enroll.env                 # OPENWEBUI_API_KEY (webui_user のある行�
 
 名簿と `enroll.env` は sudo し直す前に tau の権限で読むので、gocryptfs の中に置いたままでよい。
 
+## 名簿を直したとき (名簿を正にする)
+
+既定では何も消さず、名簿と食い違う登録はエラーかレポートになるだけ。名簿を直したあとで
+サービスを名簿に合わせるには:
+
+| オプション | 対象 | すること |
+|---|---|---|
+| `--rebind` | 選んだ行 | user_map が名簿と食い違っていたら名簿に合わせて付け替える (その u26xxx に別のアドレスが付いている、そのアドレスが別の u26xxx に付いている)。名簿の別の行にまだ同じアドレスがあれば付け替えない |
+| `--prune` | 名簿全体のみ | 名簿にない user_map の行と Open WebUI のユーザ (管理者以外) を消す。**Open WebUI のユーザを消すとチャットも消える** |
+
+LiteLLM の鍵は `../agents/agent_setup --reissue` で作り直す (鍵の値が変わる)。
+
+### Google アカウントの綴り間違い (u26xxx はそのまま)
+
+```
+# 名簿の jupyter_user / webui_user / litellm_user を正しいアドレスにしてから
+./enroll --dry-run --rebind --prune roster.csv    # user_map:rebound (was 誤 -> u26xxx), openwebui:added, 誤ったアドレスが removed に出る
+./enroll --rebind --prune roster.csv
+../agents/agent_setup --sudo --reissue --user u26xxx -o new_keys.csv roster.csv   # 鍵の持ち主も正しいアドレスに
+```
+
+enroll と agent_setup は担当が別 (user_map・Open WebUI と、LiteLLM の鍵) なだけで、順番は関係ない。
+`--rebind` を名簿全体で流すと、名簿と食い違う行はすべて名簿に合わせる (dry-run で確かめる)。
+
+`new_keys.csv` の `litellm_key` を名簿に書き戻す。
+
+### 別の行 (別の u26xxx) に移す
+
+古い行の `jupyter_user` / `webui_user` / `litellm_user` / `litellm_key` を空にし、新しい行に書いてから、
+新しい行について `./enroll --rebind --user <新>`、`agent_setup --sudo --user <新> -o ...` (鍵は新しく発行される。
+古い鍵は LiteLLM の管理画面で消す)。Open WebUI はアドレスが同じなのでそのまま。
+
 ## 名簿
 
 | 列 | |

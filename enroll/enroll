@@ -34,8 +34,15 @@ can't redirect them.
 LiteLLM keys (litellm_user) are issued by ../agents/agent_setup.
 
 Accounts and homes are NOT created here; rows whose account doesn't exist
-are skipped. Nothing is ever deleted; entries not in the roster are only
-reported.
+are skipped. By default nothing is deleted; entries not in the roster are
+only reported. To make the services follow a corrected roster:
+    --rebind  a user_map entry that disagrees with the roster (the account
+              mapped from another address, or the address mapped to another
+              account) is replaced by the roster's; refused if another row
+              of the roster still has that address
+    --prune   (whole roster only) user_map entries and Open WebUI users
+              (not admins) that are not in the roster are deleted.
+              Deleting an Open WebUI user deletes their chats too
 
 Runs as tau and re-executes itself with sudo (writes into users' homes
 and the root-owned user_map). The roster and enroll.env are read as tau
@@ -79,6 +86,12 @@ class OpenWebUI:
         users = http("GET", self.url + "/api/v1/users/all", self.token)["users"]
         self.users = {u["email"].lower(): u for u in users}
 
+    def delete_user(self, email):
+        u = self.users[email]
+        if not self.dry_run:
+            http("DELETE", f"{self.url}/api/v1/users/{u['id']}", self.token)
+        del self.users[email]
+
     def ensure_user(self, email, name):
         """Returns 'exists', 'added' or 'promoted'."""
         u = self.users.get(email)
@@ -119,19 +132,32 @@ def ensure_notebooks(cfg, pw, dry_run):
     return as_user(pw, work)
 
 
-def ensure_user_map(um, email, user, dry_run):
+def ensure_user_map(um, email, user, dry_run, rebind=False, roster_owner=None):
+    """roster_owner: the user the whole roster gives email to (for --rebind)."""
     mapped = um.query(email)
     if mapped == user:
         return "exists"
-    if mapped is not None:
-        raise ApiError(f"{email} is already mapped to {mapped}")
     owner = um.queryl(user)
+    if not rebind:
+        if mapped is not None:
+            raise ApiError(f"{email} is already mapped to {mapped} (--rebind to follow the roster)")
+        if owner:
+            raise ApiError(f"{user} is already mapped from {owner} (--rebind to follow the roster)")
+    if mapped is not None and roster_owner not in (None, user):
+        raise ApiError(f"{email} is also on the roster for {roster_owner}; not rebound")
+    was = []
     if owner:
-        raise ApiError(f"{user} is already mapped from {owner}")
+        was.append(f"{owner} -> {user}")
+        if not dry_run:
+            um.unbindl(user, False)
+    if mapped is not None:
+        was.append(f"{email} -> {mapped}")
+        if not dry_run:
+            um.unbind(email, None, False)
     if not dry_run:
         if um.bind(email, user, False) != email:
             raise ApiError(f"user_map bind {email} -> {user} failed")
-    return "bound"
+    return f"rebound (was {'; '.join(was)})" if was else "bound"
 
 
 def ssh_hosts(text):
@@ -224,8 +250,14 @@ def main():
     ap.add_argument("--env", default=os.path.join(HERE, "enroll.env"), help="settings file (default: enroll.env)")
     ap.add_argument("--ssh-config", default=os.path.join(HERE, "ssh_config"),
                     help="~/.ssh/config template (default: ssh_config next to this script)")
+    ap.add_argument("--rebind", action="store_true",
+                    help="replace user_map entries that disagree with the roster")
+    ap.add_argument("--prune", action="store_true",
+                    help="delete user_map entries and Open WebUI users not in the roster (whole roster only)")
     ap.add_argument("--stdin", action="store_true", help=argparse.SUPPRESS)  # internal: inputs on stdin
     opts = ap.parse_args()
+    if opts.prune and (opts.user or opts.klass):
+        ap.error("--prune needs the whole roster; drop --user/--class")
     if opts.stdin:
         payload = json.load(sys.stdin)
         roster_text, env_text, ssh_template = payload["roster"], payload["env"], payload["ssh_config"]
@@ -234,6 +266,8 @@ def main():
             ap.error("roster is required")
         if os.geteuid() != 0:
             args = (["--dry-run"] if opts.dry_run else []) \
+                + (["--rebind"] if opts.rebind else []) \
+                + (["--prune"] if opts.prune else []) \
                 + (["--user", opts.user] if opts.user else []) \
                 + (["--class", opts.klass] if opts.klass else [])
             return rerun_as_root(__file__, {"roster": opts.roster, "env": opts.env,
@@ -248,6 +282,11 @@ def main():
     cfg = Config(env_text)
     users, classes = split_set(opts.user), split_set(opts.klass)
     rows, problems = read_roster(roster_text, users, classes)
+    # who the whole roster gives each Google address to (--rebind's check)
+    roster_owner = {}
+    for r in read_roster(roster_text)[0]:
+        if r["jupyter_user"]:
+            roster_owner.setdefault(r["jupyter_user"], r["user"])
     um = load_user_map(cfg)
     # Connect to Open WebUI only when some row uses it
     owui = OpenWebUI(cfg, opts.dry_run) if any(r["webui_user"] for r in rows) else None
@@ -288,7 +327,8 @@ def main():
         done = []
         steps = [("notebooks", lambda: ensure_notebooks(cfg, pw, opts.dry_run))]
         if jupyter_user and google_ok(user, "jupyter_user", jupyter_user):
-            steps.append(("user_map", lambda: ensure_user_map(um, jupyter_user, user, opts.dry_run)))
+            steps.append(("user_map", lambda: ensure_user_map(
+                um, jupyter_user, user, opts.dry_run, opts.rebind, roster_owner.get(jupyter_user))))
         if webui_user and google_ok(user, "webui_user", webui_user):
             steps.append(("openwebui", lambda: owui.ensure_user(webui_user, row["name"])))
         miyabi = row["miyabi"]
@@ -339,11 +379,22 @@ def main():
             if owui else []
         if stale_um or stale_owui:
             print()
-            print("registered but not in the roster (not removed)")
+            if not opts.prune:
+                print("registered but not in the roster (not removed; --prune removes them)")
+            else:
+                print(f"{prefix}removed: registered but not in the roster")
             for u, l in stale_um:
+                if opts.prune and not opts.dry_run:
+                    um.unbind(u, l, False)
                 print(f"  user_map   {u} -> {l}")
             for e in stale_owui:
                 print(f"  openwebui  {e} ({owui.users[e].get('role')})")
+                if opts.prune:
+                    try:
+                        owui.delete_user(e)
+                    except ApiError as err:
+                        print(f"    error: {err}")
+                        counts[("openwebui", "error")] = counts.get(("openwebui", "error"), 0) + 1
 
     return 1 if any("error" == r for (_, r) in counts) else 0
 
