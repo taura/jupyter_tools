@@ -6,8 +6,10 @@ echo +memory | sudo tee ${root}/cgroup.subtree_control
 
 # 
 for u in $(ls /home); do  # 
-    if [ "${u}" = "lost+found" ]; then continue; fi
-    echo "=== ${u} ==="
-    sudo mkdir -p ${root}/${u}
-    echo 256M | sudo tee ${root}/${u}/memory.high
+    #if [ "${u}" = "lost+found" ]; then continue; fi
+    if id ${u}; then
+	# echo "=== ${u} ==="
+	sudo mkdir -p ${root}/${u}
+	echo 256M | sudo tee ${root}/${u}/memory.high
+    fi
 done
